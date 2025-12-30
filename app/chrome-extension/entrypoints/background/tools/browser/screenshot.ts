@@ -28,7 +28,11 @@ const SCREENSHOT_CONSTANTS = {
   readonly SCRIPT_INIT_DELAY: number;
 };
 
-SCREENSHOT_CONSTANTS["CAPTURE_STITCH_DELAY_MS"] = Math.max(1000 / chrome.tabs.MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND - SCREENSHOT_CONSTANTS.SCROLL_DELAY_MS, SCREENSHOT_CONSTANTS.CAPTURE_STITCH_DELAY_MS)
+SCREENSHOT_CONSTANTS['CAPTURE_STITCH_DELAY_MS'] = Math.max(
+  1000 / chrome.tabs.MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND -
+    SCREENSHOT_CONSTANTS.SCROLL_DELAY_MS,
+  SCREENSHOT_CONSTANTS.CAPTURE_STITCH_DELAY_MS,
+);
 
 interface ScreenshotToolParams {
   name: string;
@@ -131,8 +135,9 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         return {
           content: [
             {
-              type: 'text',
-              text: JSON.stringify({ base64Data, mimeType: compressed.mimeType }),
+              type: 'image',
+              data: base64Data,
+              mimeType: compressed.mimeType,
             },
           ],
           isError: false,
