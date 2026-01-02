@@ -27,17 +27,26 @@ class WindowTool extends BaseBrowserToolExecutor {
         };
       });
 
-      const result = {
-        windowCount: windows.length,
-        tabCount: tabCount,
-        windows: structuredWindows,
-      };
+      // Format as readable text
+      const lines: string[] = [];
+      lines.push(`${windows.length} window(s), ${tabCount} tab(s) total`);
+      lines.push('');
+
+      for (const win of structuredWindows) {
+        lines.push(`Window ${win.windowId}:`);
+        for (const tab of win.tabs) {
+          const activeMarker = tab.active ? ' [active]' : '';
+          lines.push(`  - ${tab.title || '(no title)'}${activeMarker}`);
+          lines.push(`    ${tab.url}`);
+        }
+        lines.push('');
+      }
 
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result),
+            text: lines.join('\n'),
           },
         ],
         isError: false,

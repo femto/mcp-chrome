@@ -122,11 +122,25 @@ class VectorSearchTabsContentTool extends BaseBrowserToolExecutor {
         `VectorSearchTabsContentTool: Found ${topResults.length} results with vector search`,
       );
 
+      // Format as readable text
+      const lines: string[] = [];
+      lines.push(`Vector search results for: "${query}"`);
+      lines.push(`Found ${topResults.length} matching tab(s) (searched ${stats.totalTabs} tabs)`);
+      lines.push('');
+
+      for (const r of topResults) {
+        const score = (r.semanticScore * 100).toFixed(1);
+        lines.push(`[${score}%] ${r.title}`);
+        lines.push(`  URL: ${r.url}`);
+        lines.push(`  Snippet: ${r.matchedSnippet}`);
+        lines.push('');
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result, null, 2),
+            text: lines.join('\n'),
           },
         ],
         isError: false,

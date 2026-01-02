@@ -59,11 +59,35 @@ class NetworkRequestTool extends BaseBrowserToolExecutor {
 
       console.log(`NetworkRequestTool: Response from content script:`, resultFromContentScript);
 
+      // Format response as readable text
+      const lines: string[] = [];
+      if (resultFromContentScript?.success) {
+        lines.push(`Request to ${url} completed`);
+        lines.push(`Method: ${method}`);
+        if (resultFromContentScript.status) {
+          lines.push(`Status: ${resultFromContentScript.status}`);
+        }
+        lines.push('');
+        // Include response body if available
+        if (resultFromContentScript.data) {
+          if (typeof resultFromContentScript.data === 'string') {
+            lines.push(resultFromContentScript.data);
+          } else {
+            lines.push(JSON.stringify(resultFromContentScript.data, null, 2));
+          }
+        }
+      } else {
+        lines.push(`Request to ${url} failed`);
+        if (resultFromContentScript?.error) {
+          lines.push(`Error: ${resultFromContentScript.error}`);
+        }
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(resultFromContentScript),
+            text: lines.join('\n'),
           },
         ],
         isError: !resultFromContentScript?.success,

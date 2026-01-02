@@ -984,16 +984,7 @@ class NetworkDebuggerStartTool extends BaseBrowserToolExecutor {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: `Network capture started on tab ${tabId}. Waiting for stop command or timeout.`,
-              tabId,
-              url: tabToOperateOn.url,
-              maxCaptureTime,
-              inactivityTimeout,
-              includeStatic,
-              maxRequests: NetworkDebuggerStartTool.MAX_REQUESTS_PER_CAPTURE,
-            }),
+            text: `Network capture started on tab ${tabId}\nURL: ${tabToOperateOn.url}\nMax capture time: ${maxCaptureTime}ms\nUse chrome_network_debugger_stop to stop and get results.`,
           },
         ],
         isError: false,
@@ -1126,28 +1117,38 @@ class NetworkDebuggerStopTool extends BaseBrowserToolExecutor {
       );
     }
 
+    // Format as readable text
+    const lines: string[] = [];
+    lines.push(`Network capture stopped for tab ${tabId}`);
+    lines.push(`URL: ${resultData.tabUrl || 'N/A'}`);
+    lines.push(
+      `Captured ${resultData.requestCount || 0} requests in ${resultData.totalDurationMs || 0}ms`,
+    );
+    if (resultData.requestLimitReached) {
+      lines.push('(Request limit reached)');
+    }
+    lines.push('');
+
+    // Format requests
+    const requests = resultData.requests || [];
+    if (requests.length > 0) {
+      lines.push('--- Captured Requests ---');
+      for (const req of requests.slice(0, 20)) {
+        // Limit to first 20 for readability
+        const status = req.status || '???';
+        const method = req.method || 'GET';
+        lines.push(`[${status}] ${method} ${req.url}`);
+      }
+      if (requests.length > 20) {
+        lines.push(`... and ${requests.length - 20} more requests`);
+      }
+    }
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            success: true,
-            message: `Capture for tab ${tabId} (${resultData.tabUrl || 'N/A'}) stopped. ${resultData.requestCount || 0} requests captured.`,
-            tabId: tabId,
-            tabUrl: resultData.tabUrl || 'N/A',
-            tabTitle: resultData.tabTitle || 'Unknown Tab',
-            requestCount: resultData.requestCount || 0,
-            commonRequestHeaders: resultData.commonRequestHeaders || {},
-            commonResponseHeaders: resultData.commonResponseHeaders || {},
-            requests: resultData.requests || [],
-            captureStartTime: resultData.captureStartTime,
-            captureEndTime: resultData.captureEndTime,
-            totalDurationMs: resultData.totalDurationMs,
-            settingsUsed: resultData.settingsUsed || {},
-            remainingCaptures: remainingCaptures,
-            totalRequestsReceived: resultData.totalRequestsReceived || resultData.requestCount || 0,
-            requestLimitReached: resultData.requestLimitReached || false,
-          }),
+          text: lines.join('\n'),
         },
       ],
       isError: false,

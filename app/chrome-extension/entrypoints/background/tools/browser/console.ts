@@ -83,11 +83,43 @@ class ConsoleTool extends BaseBrowserToolExecutor {
         maxMessages,
       });
 
+      // Format console messages as readable text
+      const lines: string[] = [];
+      lines.push(`Console capture for: ${result.tabTitle}`);
+      lines.push(`URL: ${result.tabUrl}`);
+      lines.push(`Duration: ${result.totalDurationMs}ms`);
+      lines.push(`Messages: ${result.messageCount}, Exceptions: ${result.exceptionCount}`);
+      if (result.messageLimitReached) {
+        lines.push('(Message limit reached)');
+      }
+      lines.push('');
+
+      // Format messages
+      if (result.messages.length > 0) {
+        lines.push('--- Console Messages ---');
+        for (const msg of result.messages) {
+          const level = msg.level.toUpperCase().padEnd(7);
+          lines.push(`[${level}] ${msg.text}`);
+          if (msg.url) lines.push(`         at ${msg.url}:${msg.lineNumber || '?'}`);
+        }
+        lines.push('');
+      }
+
+      // Format exceptions
+      if (result.exceptions.length > 0) {
+        lines.push('--- Exceptions ---');
+        for (const ex of result.exceptions) {
+          lines.push(`[ERROR] ${ex.text}`);
+          if (ex.url)
+            lines.push(`        at ${ex.url}:${ex.lineNumber || '?'}:${ex.columnNumber || '?'}`);
+        }
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result),
+            text: lines.join('\n'),
           },
         ],
         isError: false,

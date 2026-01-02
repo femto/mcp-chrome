@@ -133,11 +133,38 @@ class WebFetcherTool extends BaseBrowserToolExecutor {
 
       // Interactive elements feature has been removed
 
+      // Build readable text response
+      const contentParts: string[] = [];
+
+      // Add metadata header
+      contentParts.push(`URL: ${result.url}`);
+      if (result.title) {
+        contentParts.push(`Title: ${result.title}`);
+      }
+      if (result.article) {
+        if (result.article.byline) contentParts.push(`Author: ${result.article.byline}`);
+        if (result.article.siteName) contentParts.push(`Site: ${result.article.siteName}`);
+      }
+      contentParts.push(''); // Empty line separator
+
+      // Add main content
+      if (result.textContent) {
+        contentParts.push(result.textContent);
+      } else if (result.htmlContent) {
+        contentParts.push(result.htmlContent);
+      } else if (result.textContentError) {
+        contentParts.push(`Error: ${result.textContentError}`);
+      } else if (result.htmlContentError) {
+        contentParts.push(`Error: ${result.htmlContentError}`);
+      } else {
+        contentParts.push('No content found');
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result),
+            text: contentParts.join('\n'),
           },
         ],
         isError: false,
@@ -199,20 +226,29 @@ class GetInteractiveElementsTool extends BaseBrowserToolExecutor {
         return createErrorResponse(result.error || 'Failed to get interactive elements');
       }
 
+      // Format elements as readable text
+      const elements = result.elements || [];
+      const lines: string[] = [];
+
+      lines.push(`Found ${elements.length} interactive elements`);
+      if (textQuery) lines.push(`Query: "${textQuery}"`);
+      if (selector) lines.push(`Selector: ${selector}`);
+      lines.push('');
+
+      for (const el of elements) {
+        const parts: string[] = [];
+        parts.push(`[${el.type || 'element'}]`);
+        if (el.text) parts.push(`"${el.text}"`);
+        if (el.selector) parts.push(`(${el.selector})`);
+        if (el.coordinates) parts.push(`at (${el.coordinates.x}, ${el.coordinates.y})`);
+        lines.push(parts.join(' '));
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              elements: result.elements,
-              count: result.elements.length,
-              query: {
-                textQuery,
-                selector,
-                types: types || 'all',
-              },
-            }),
+            text: lines.join('\n'),
           },
         ],
         isError: false,

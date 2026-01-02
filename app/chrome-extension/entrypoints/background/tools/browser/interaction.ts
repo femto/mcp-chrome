@@ -64,17 +64,31 @@ class ClickTool extends BaseBrowserToolExecutor {
         timeout,
       });
 
+      // Build readable response
+      const parts: string[] = [];
+      parts.push(result.message || 'Click operation successful');
+
+      if (coordinates) {
+        parts.push(`Clicked at coordinates (${coordinates.x}, ${coordinates.y})`);
+      } else if (selector) {
+        parts.push(`Clicked element: ${selector}`);
+      }
+
+      if (result.elementInfo) {
+        if (result.elementInfo.tagName)
+          parts.push(`Element: <${result.elementInfo.tagName.toLowerCase()}>`);
+        if (result.elementInfo.text) parts.push(`Text: "${result.elementInfo.text}"`);
+      }
+
+      if (result.navigationOccurred) {
+        parts.push('Navigation occurred after click');
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: result.message || 'Click operation successful',
-              elementInfo: result.elementInfo,
-              navigationOccurred: result.navigationOccurred,
-              clickMethod: coordinates ? 'coordinates' : 'selector',
-            }),
+            text: parts.join('\n'),
           },
         ],
         isError: false,
@@ -142,15 +156,22 @@ class FillTool extends BaseBrowserToolExecutor {
         return createErrorResponse(result.error);
       }
 
+      // Build readable response
+      const parts: string[] = [];
+      parts.push(result.message || 'Fill operation successful');
+      parts.push(`Filled element: ${selector}`);
+      parts.push(`Value: "${value}"`);
+
+      if (result.elementInfo) {
+        if (result.elementInfo.tagName)
+          parts.push(`Element: <${result.elementInfo.tagName.toLowerCase()}>`);
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: result.message || 'Fill operation successful',
-              elementInfo: result.elementInfo,
-            }),
+            text: parts.join('\n'),
           },
         ],
         isError: false,

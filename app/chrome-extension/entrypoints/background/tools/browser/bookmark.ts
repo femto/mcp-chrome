@@ -325,23 +325,28 @@ class BookmarkSearchTool extends BaseBrowserToolExecutor {
         }),
       );
 
+      // Format as readable text
+      const lines: string[] = [];
+      const folderInfo = targetFolderNode
+        ? targetFolderNode.title || targetFolderNode.id
+        : 'All bookmarks';
+      lines.push(`Found ${resultsWithPath.length} bookmark(s) in "${folderInfo}"`);
+      if (query) {
+        lines.push(`Search query: "${query}"`);
+      }
+      lines.push('');
+
+      for (const bm of resultsWithPath) {
+        lines.push(`- ${bm.title || '(no title)'}`);
+        lines.push(`  ${bm.url}`);
+        if (bm.folderPath) lines.push(`  Folder: ${bm.folderPath}`);
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                totalResults: resultsWithPath.length,
-                query: query || null,
-                folderSearched: targetFolderNode
-                  ? targetFolderNode.title || targetFolderNode.id
-                  : 'All bookmarks',
-                bookmarks: resultsWithPath,
-              },
-              null,
-              2,
-            ),
+            text: lines.join('\n'),
           },
         ],
         isError: false,
@@ -453,26 +458,21 @@ class BookmarkAddTool extends BaseBrowserToolExecutor {
       // Get bookmark path
       const path = await getBookmarkFolderPath(newBookmark.id);
 
+      // Format as readable text
+      const lines: string[] = [];
+      lines.push('Bookmark added successfully');
+      lines.push(`Title: ${newBookmark.title}`);
+      lines.push(`URL: ${newBookmark.url}`);
+      lines.push(`Folder: ${path}`);
+      if (createFolder && parentId) {
+        lines.push('(Folder created if necessary)');
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
-              {
-                success: true,
-                message: 'Bookmark added successfully',
-                bookmark: {
-                  id: newBookmark.id,
-                  title: newBookmark.title,
-                  url: newBookmark.url,
-                  dateAdded: newBookmark.dateAdded,
-                  folderPath: path,
-                },
-                folderCreated: createFolder && parentId ? 'Folder created if necessary' : false,
-              },
-              null,
-              2,
-            ),
+            text: lines.join('\n'),
           },
         ],
         isError: false,
@@ -579,11 +579,28 @@ class BookmarkDeleteTool extends BaseBrowserToolExecutor {
         result.errors = errors;
       }
 
+      // Format as readable text
+      const lines: string[] = [];
+      lines.push(result.message);
+
+      for (const bm of deletedBookmarks) {
+        lines.push(`- ${bm.title || '(no title)'}`);
+        lines.push(`  ${bm.url}`);
+      }
+
+      if (errors.length > 0) {
+        lines.push('');
+        lines.push('Errors:');
+        for (const err of errors) {
+          lines.push(`- ${err}`);
+        }
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result, null, 2),
+            text: lines.join('\n'),
           },
         ],
         isError: false,

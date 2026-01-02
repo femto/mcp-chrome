@@ -202,18 +202,20 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
     this.logInfo('Screenshot completed!');
 
+    // Build readable response for savePng case
+    const parts: string[] = [];
+    parts.push(`Screenshot "${name}" captured successfully`);
+    if (results.filename) parts.push(`Filename: ${results.filename}`);
+    if (results.fullPath) parts.push(`Path: ${results.fullPath}`);
+    if (results.downloadId) parts.push(`Download ID: ${results.downloadId}`);
+    if (tab.url) parts.push(`URL: ${tab.url}`);
+    if (results.saveError) parts.push(`Warning: ${results.saveError}`);
+
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            success: true,
-            message: `Screenshot [${name}] captured successfully`,
-            tabId: tab.id,
-            url: tab.url,
-            name: name,
-            ...results,
-          }),
+          text: parts.join('\n'),
         },
       ],
       isError: false,

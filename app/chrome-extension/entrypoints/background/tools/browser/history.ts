@@ -211,11 +211,28 @@ class HistoryTool extends BaseBrowserToolExecutor {
         result.query = text;
       }
 
+      // Format as readable text
+      const lines: string[] = [];
+      lines.push(`Found ${result.totalCount} history items`);
+      lines.push(
+        `Time range: ${result.timeRange.startTimeFormatted} to ${result.timeRange.endTimeFormatted}`,
+      );
+      if (result.query) {
+        lines.push(`Search query: "${result.query}"`);
+      }
+      lines.push('');
+
+      for (const item of result.items) {
+        const visitInfo = item.visitCount ? ` (${item.visitCount} visits)` : '';
+        lines.push(`- ${item.title || '(no title)'}${visitInfo}`);
+        lines.push(`  ${item.url}`);
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result, null, 2),
+            text: lines.join('\n'),
           },
         ],
         isError: false,

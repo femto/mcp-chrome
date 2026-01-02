@@ -841,16 +841,7 @@ class NetworkCaptureStartTool extends BaseBrowserToolExecutor {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: 'Network capture V2 started successfully, waiting for stop command.',
-              tabId: tabToOperateOn.id,
-              url: tabToOperateOn.url,
-              maxCaptureTime,
-              inactivityTimeout,
-              includeStatic,
-              maxRequests: NetworkCaptureStartTool.MAX_REQUESTS_PER_CAPTURE,
-            }),
+            text: `Network capture started on tab ${tabToOperateOn.id}\nURL: ${tabToOperateOn.url}\nMax capture time: ${maxCaptureTime}ms\nUse chrome_network_capture_stop to stop and get results.`,
           },
         ],
         isError: false,
@@ -949,28 +940,37 @@ class NetworkCaptureStopTool extends BaseBrowserToolExecutor {
           }
         }
       }
+      // Format as readable text
+      const data = stopResult.data;
+      const lines: string[] = [];
+      lines.push(`Network capture stopped for tab ${primaryTabId}`);
+      lines.push(`URL: ${data?.tabUrl || 'N/A'}`);
+      lines.push(`Captured ${data?.requestCount || 0} requests in ${data?.totalDurationMs || 0}ms`);
+      if (data?.requestLimitReached) {
+        lines.push('(Request limit reached)');
+      }
+      lines.push('');
+
+      // Format requests
+      const requests = data?.requests || [];
+      if (requests.length > 0) {
+        lines.push('--- Captured Requests ---');
+        for (const req of requests.slice(0, 20)) {
+          // Limit to first 20 for readability
+          const status = req.status || '???';
+          const method = req.method || 'GET';
+          lines.push(`[${status}] ${method} ${req.url}`);
+        }
+        if (requests.length > 20) {
+          lines.push(`... and ${requests.length - 20} more requests`);
+        }
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: `Capture complete. ${stopResult.data?.requestCount || 0} requests captured.`,
-              tabId: primaryTabId,
-              tabUrl: stopResult.data?.tabUrl || 'N/A',
-              tabTitle: stopResult.data?.tabTitle || 'Unknown Tab',
-              requestCount: stopResult.data?.requestCount || 0,
-              commonRequestHeaders: stopResult.data?.commonRequestHeaders || {},
-              commonResponseHeaders: stopResult.data?.commonResponseHeaders || {},
-              requests: stopResult.data?.requests || [],
-              captureStartTime: stopResult.data?.captureStartTime,
-              captureEndTime: stopResult.data?.captureEndTime,
-              totalDurationMs: stopResult.data?.totalDurationMs,
-              settingsUsed: stopResult.data?.settingsUsed || {},
-              totalRequestsReceived: stopResult.data?.totalRequestsReceived || 0,
-              requestLimitReached: stopResult.data?.requestLimitReached || false,
-              remainingCaptures: Array.from(startTool.captureData.keys()),
-            }),
+            text: lines.join('\n'),
           },
         ],
         isError: false,

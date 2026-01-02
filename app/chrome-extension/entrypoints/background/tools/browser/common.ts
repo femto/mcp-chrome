@@ -52,13 +52,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                success: true,
-                message: 'Successfully refreshed current tab',
-                tabId: updatedTab.id,
-                windowId: updatedTab.windowId,
-                url: updatedTab.url,
-              }),
+              text: `Successfully refreshed current tab\nURL: ${updatedTab.url}`,
             },
           ],
           isError: false,
@@ -107,13 +101,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  message: 'Activated existing tab',
-                  tabId: updatedTab.id,
-                  windowId: updatedTab.windowId,
-                  url: updatedTab.url,
-                }),
+                text: `Activated existing tab\nURL: ${updatedTab.url}`,
               },
             ],
             isError: false,
@@ -138,21 +126,12 @@ class NavigateTool extends BaseBrowserToolExecutor {
         if (newWindow && newWindow.id !== undefined) {
           console.log(`URL opened in new Window ID: ${newWindow.id}`);
 
+          const tabUrls = newWindow.tabs?.map((tab) => tab.url).join('\n  ') || url;
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  message: 'Opened URL in new window',
-                  windowId: newWindow.id,
-                  tabs: newWindow.tabs
-                    ? newWindow.tabs.map((tab) => ({
-                        tabId: tab.id,
-                        url: tab.url,
-                      }))
-                    : [],
-                }),
+                text: `Opened URL in new window\nWindow ID: ${newWindow.id}\nURL: ${tabUrls}`,
               },
             ],
             isError: false,
@@ -183,13 +162,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  message: 'Opened URL in new tab in existing window',
-                  tabId: newTab.id,
-                  windowId: lastFocusedWindow.id,
-                  url: newTab.url,
-                }),
+                text: `Opened URL in new tab\nURL: ${newTab.url}`,
               },
             ],
             isError: false,
@@ -213,17 +186,7 @@ class NavigateTool extends BaseBrowserToolExecutor {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({
-                    success: true,
-                    message: 'Opened URL in new window',
-                    windowId: fallbackWindow.id,
-                    tabs: fallbackWindow.tabs
-                      ? fallbackWindow.tabs.map((tab) => ({
-                          tabId: tab.id,
-                          url: tab.url,
-                        }))
-                      : [],
-                  }),
+                  text: `Opened URL in new window\nURL: ${url}`,
                 },
               ],
               isError: false,
@@ -280,11 +243,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  message: `No tabs found with URL: ${url}`,
-                  closedCount: 0,
-                }),
+                text: `No tabs found with URL: ${url}`,
               },
             ],
             isError: false,
@@ -306,12 +265,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                success: true,
-                message: `Closed ${tabIdsToClose.length} tabs with URL: ${url}`,
-                closedCount: tabIdsToClose.length,
-                closedTabIds: tabIdsToClose,
-              }),
+              text: `Closed ${tabIdsToClose.length} tab(s) with URL: ${url}`,
             },
           ],
           isError: false,
@@ -344,11 +298,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  message: 'None of the provided tab IDs exist',
-                  closedCount: 0,
-                }),
+                text: 'None of the provided tab IDs exist',
               },
             ],
             isError: false,
@@ -357,17 +307,17 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
 
         await chrome.tabs.remove(validTabIds);
 
+        const invalidIds = tabIds.filter((id) => !validTabIds.includes(id));
+        let msg = `Closed ${validTabIds.length} tab(s)`;
+        if (invalidIds.length > 0) {
+          msg += `\nInvalid tab IDs: ${invalidIds.join(', ')}`;
+        }
+
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                success: true,
-                message: `Closed ${validTabIds.length} tabs`,
-                closedCount: validTabIds.length,
-                closedTabIds: validTabIds,
-                invalidTabIds: tabIds.filter((id) => !validTabIds.includes(id)),
-              }),
+              text: msg,
             },
           ],
           isError: false,
@@ -388,12 +338,7 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: 'Closed active tab',
-              closedCount: 1,
-              closedTabIds: [activeTab.id],
-            }),
+            text: 'Closed active tab',
           },
         ],
         isError: false,
@@ -448,13 +393,7 @@ class GoBackOrForwardTool extends BaseBrowserToolExecutor {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: `Successfully navigated ${isForward ? 'forward' : 'back'} in browser history`,
-              tabId: updatedTab.id,
-              windowId: updatedTab.windowId,
-              url: updatedTab.url,
-            }),
+            text: `Navigated ${isForward ? 'forward' : 'back'}\nURL: ${updatedTab.url}`,
           },
         ],
         isError: false,
@@ -505,13 +444,7 @@ class SwitchTabTool extends BaseBrowserToolExecutor {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: `Successfully switched to tab ID: ${tabId}`,
-              tabId: updatedTab.id,
-              windowId: updatedTab.windowId,
-              url: updatedTab.url,
-            }),
+            text: `Switched to tab\nURL: ${updatedTab.url}`,
           },
         ],
         isError: false,

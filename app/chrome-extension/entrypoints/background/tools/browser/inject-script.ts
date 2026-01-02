@@ -77,7 +77,7 @@ class InjectScriptTool extends BaseBrowserToolExecutor {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(res),
+            text: res.injected ? 'Script injected successfully' : 'Script injection failed',
           },
         ],
         isError: false,
@@ -132,11 +132,21 @@ class SendCommandToInjectScriptTool extends BaseBrowserToolExecutor {
         targetWorld: injectedTabs.get(finalTabId).type, // The bridge uses this to decide whether to forward to MAIN world.
       });
 
+      // Format result as readable text
+      let text: string;
+      if (result === null || result === undefined) {
+        text = 'Command executed (no return value)';
+      } else if (typeof result === 'string') {
+        text = result;
+      } else {
+        text = JSON.stringify(result, null, 2);
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result),
+            text: text,
           },
         ],
         isError: false,

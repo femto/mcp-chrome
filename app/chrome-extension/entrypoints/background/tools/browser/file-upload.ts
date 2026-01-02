@@ -43,9 +43,7 @@ class FileUploadTool extends BaseBrowserToolExecutor {
     }
 
     if (!filePath && !fileUrl && !base64Data) {
-      return createErrorResponse(
-        'One of filePath, fileUrl, or base64Data must be provided',
-      );
+      return createErrorResponse('One of filePath, fileUrl, or base64Data must be provided');
     }
 
     let tabId: number | undefined;
@@ -86,32 +84,25 @@ class FileUploadTool extends BaseBrowserToolExecutor {
       await chrome.debugger.sendCommand({ tabId }, 'Runtime.enable', {});
 
       // Get the document
-      const { root } = await chrome.debugger.sendCommand(
-        { tabId },
-        'DOM.getDocument',
-        { depth: -1, pierce: true },
-      ) as { root: { nodeId: number } };
+      const { root } = (await chrome.debugger.sendCommand({ tabId }, 'DOM.getDocument', {
+        depth: -1,
+        pierce: true,
+      })) as { root: { nodeId: number } };
 
       // Find the file input element using the selector
-      const { nodeId } = await chrome.debugger.sendCommand(
-        { tabId },
-        'DOM.querySelector',
-        {
-          nodeId: root.nodeId,
-          selector: selector,
-        },
-      ) as { nodeId: number };
+      const { nodeId } = (await chrome.debugger.sendCommand({ tabId }, 'DOM.querySelector', {
+        nodeId: root.nodeId,
+        selector: selector,
+      })) as { nodeId: number };
 
       if (!nodeId || nodeId === 0) {
         throw new Error(`Element with selector "${selector}" not found`);
       }
 
       // Verify it's actually a file input
-      const { node } = await chrome.debugger.sendCommand(
-        { tabId },
-        'DOM.describeNode',
-        { nodeId },
-      ) as { node: { nodeName: string; attributes?: string[] } };
+      const { node } = (await chrome.debugger.sendCommand({ tabId }, 'DOM.describeNode', {
+        nodeId,
+      })) as { node: { nodeName: string; attributes?: string[] } };
 
       if (node.nodeName !== 'INPUT') {
         throw new Error(`Element with selector "${selector}" is not an input element`);
@@ -133,21 +124,14 @@ class FileUploadTool extends BaseBrowserToolExecutor {
 
       // Set the files on the input element
       // This is the key CDP command that Playwright and Puppeteer use
-      await chrome.debugger.sendCommand(
-        { tabId },
-        'DOM.setFileInputFiles',
-        {
-          nodeId: nodeId,
-          files: files,
-        },
-      );
+      await chrome.debugger.sendCommand({ tabId }, 'DOM.setFileInputFiles', {
+        nodeId: nodeId,
+        files: files,
+      });
 
       // Trigger change event to ensure the page reacts to the file upload
-      await chrome.debugger.sendCommand(
-        { tabId },
-        'Runtime.evaluate',
-        {
-          expression: `
+      await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+        expression: `
             (function() {
               const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
               if (element) {
@@ -158,8 +142,7 @@ class FileUploadTool extends BaseBrowserToolExecutor {
               return false;
             })()
           `,
-        },
-      );
+      });
 
       // Clean up debugger
       await this.detachDebugger(tabId);
@@ -168,20 +151,14 @@ class FileUploadTool extends BaseBrowserToolExecutor {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: 'File(s) uploaded successfully',
-              files: files,
-              selector: selector,
-              fileCount: files.length,
-            }),
+            text: `File(s) uploaded successfully\nSelector: ${selector}\nFiles: ${files.join(', ')}`,
           },
         ],
         isError: false,
       };
     } catch (error) {
       console.error('Error in file upload operation:', error);
-      
+
       // Clean up debugger if attached
       if (tabId !== undefined && this.activeDebuggers.has(tabId)) {
         await this.detachDebugger(tabId);
@@ -199,9 +176,7 @@ class FileUploadTool extends BaseBrowserToolExecutor {
   private async attachDebugger(tabId: number): Promise<void> {
     // Check if debugger is already attached
     const targets = await chrome.debugger.getTargets();
-    const existingTarget = targets.find(
-      (t) => t.tabId === tabId && t.attached,
-    );
+    const existingTarget = targets.find((t) => t.tabId === tabId && t.attached);
 
     if (existingTarget) {
       if (existingTarget.extensionId === chrome.runtime.id) {
@@ -265,15 +240,20 @@ class FileUploadTool extends BaseBrowserToolExecutor {
 
       // Create listener for the response
       const handleMessage = (message: any) => {
-        if (message.type === 'file_operation_response' && 
-            message.responseToRequestId === requestId) {
+        if (
+          message.type === 'file_operation_response' &&
+          message.responseToRequestId === requestId
+        ) {
           clearTimeout(timeout);
           chrome.runtime.onMessage.removeListener(handleMessage);
-          
+
           if (message.payload?.success && message.payload?.filePath) {
             resolve(message.payload.filePath);
           } else {
-            console.error('Native host failed to prepare file:', message.error || message.payload?.error);
+            console.error(
+              'Native host failed to prepare file:',
+              message.error || message.payload?.error,
+            );
             resolve(null);
           }
         }
@@ -283,24 +263,26 @@ class FileUploadTool extends BaseBrowserToolExecutor {
       chrome.runtime.onMessage.addListener(handleMessage);
 
       // Send message to background script to forward to native host
-      chrome.runtime.sendMessage({
-        type: 'forward_to_native',
-        message: {
-          type: 'file_operation',
-          requestId: requestId,
-          payload: {
-            action: 'prepareFile',
-            fileUrl,
-            base64Data,
-            fileName,
+      chrome.runtime
+        .sendMessage({
+          type: 'forward_to_native',
+          message: {
+            type: 'file_operation',
+            requestId: requestId,
+            payload: {
+              action: 'prepareFile',
+              fileUrl,
+              base64Data,
+              fileName,
+            },
           },
-        },
-      }).catch((error) => {
-        console.error('Error sending message to background:', error);
-        clearTimeout(timeout);
-        chrome.runtime.onMessage.removeListener(handleMessage);
-        resolve(null);
-      });
+        })
+        .catch((error) => {
+          console.error('Error sending message to background:', error);
+          clearTimeout(timeout);
+          chrome.runtime.onMessage.removeListener(handleMessage);
+          resolve(null);
+        });
     });
   }
 }

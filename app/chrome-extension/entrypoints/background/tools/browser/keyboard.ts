@@ -56,16 +56,19 @@ class KeyboardTool extends BaseBrowserToolExecutor {
         return createErrorResponse(result.error);
       }
 
+      // Format as readable text
+      const lines: string[] = [];
+      lines.push(result.message || 'Keyboard operation successful');
+      lines.push(`Keys: ${keys}`);
+      if (selector) {
+        lines.push(`Target: ${selector}`);
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              success: true,
-              message: result.message || 'Keyboard operation successful',
-              targetElement: result.targetElement,
-              results: result.results,
-            }),
+            text: lines.join('\n'),
           },
         ],
         isError: false,
