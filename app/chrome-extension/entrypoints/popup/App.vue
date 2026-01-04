@@ -2,7 +2,10 @@
   <div class="popup-container">
     <div class="header">
       <div class="header-content">
-        <h1 class="header-title">Chrome MCP Server</h1>
+        <div class="header-title-group">
+          <h1 class="header-title">Chrome MCP Server</h1>
+          <span class="build-version">Build: 2026-01-02 16:10</span>
+        </div>
       </div>
     </div>
     <div class="content">
@@ -218,7 +221,9 @@
           @click="showClearConfirmation = true"
         >
           <TrashIcon />
-          <span>{{ isClearingData ? getMessage('clearingStatus') : getMessage('clearAllDataButton') }}</span>
+          <span>{{
+            isClearingData ? getMessage('clearingStatus') : getMessage('clearAllDataButton')
+          }}</span>
         </button>
       </div>
 
@@ -385,7 +390,9 @@ const getStatusClass = () => {
 const getStatusText = () => {
   if (nativeConnectionStatus.value === 'connected') {
     if (serverStatus.value.isRunning) {
-      return getMessage('serviceRunningStatus', [(serverStatus.value.port || 'Unknown').toString()]);
+      return getMessage('serviceRunningStatus', [
+        (serverStatus.value.port || 'Unknown').toString(),
+      ]);
     } else {
       return getMessage('connectedServiceNotStartedStatus');
     }
@@ -1225,11 +1232,22 @@ onUnmounted(() => {
   align-items: center;
 }
 
+.header-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
 .header-title {
   font-size: 24px;
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+}
+
+.build-version {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
 }
 
 .settings-button {

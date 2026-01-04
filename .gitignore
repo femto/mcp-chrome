@@ -33,6 +33,7 @@ releases/
 .env.local
 .env.*.local
 
+.mcp.json
 # Prevent npm metadata pollution
 false/
 metadata-v1.3/
