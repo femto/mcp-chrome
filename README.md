@@ -300,3 +300,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Architecture Design](docs/ARCHITECTURE.md) - Detailed technical architecture documentation
 - [TOOLS API](docs/TOOLS.md) - Complete tool API documentation
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issue solutions
+
+based on https://github.com/hangwin/mcp-chrome and fixed a few bugs.
