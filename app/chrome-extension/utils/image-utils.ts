@@ -152,20 +152,40 @@ export async function canvasToDataURL(
  * @param {number} [options.scale=1.0] - The scaling factor for dimensions (e.g., 0.7 for 70%).
  * @param {number} [options.quality=0.8] - The quality for lossy formats like JPEG (0.0 to 1.0).
  * @param {string} [options.format='image/jpeg'] - The target image format.
+ * @param {number} [options.maxDimension] - Maximum dimension (width or height) in pixels. If the scaled image exceeds this, it will be further scaled down.
  * @returns {Promise<{dataUrl: string, mimeType: string}>} A promise that resolves to the compressed image data URL and its MIME type.
  */
 export async function compressImage(
   imageDataUrl: string,
-  options: { scale?: number; quality?: number; format?: 'image/jpeg' | 'image/webp' },
+  options: {
+    scale?: number;
+    quality?: number;
+    format?: 'image/jpeg' | 'image/webp';
+    maxDimension?: number;
+  },
 ): Promise<{ dataUrl: string; mimeType: string }> {
-  const { scale = 1.0, quality = 0.8, format = 'image/jpeg' } = options;
+  const { scale = 1.0, quality = 0.8, format = 'image/jpeg', maxDimension } = options;
 
   // 1. Create an ImageBitmap from the original data URL for efficient drawing.
   const imageBitmap = await createImageBitmapFromUrl(imageDataUrl);
 
   // 2. Calculate the new dimensions based on the scale factor.
-  const newWidth = Math.round(imageBitmap.width * scale);
-  const newHeight = Math.round(imageBitmap.height * scale);
+  let actualScale = scale;
+
+  // If maxDimension is set, ensure output dimensions don't exceed the limit
+  if (maxDimension) {
+    const scaledWidth = imageBitmap.width * scale;
+    const scaledHeight = imageBitmap.height * scale;
+    const maxScaledDim = Math.max(scaledWidth, scaledHeight);
+
+    if (maxScaledDim > maxDimension) {
+      // Further scale down to fit within maxDimension
+      actualScale = maxDimension / Math.max(imageBitmap.width, imageBitmap.height);
+    }
+  }
+
+  const newWidth = Math.round(imageBitmap.width * actualScale);
+  const newHeight = Math.round(imageBitmap.height * actualScale);
 
   // 3. Use OffscreenCanvas for performance, as it doesn't need to be in the DOM.
   const canvas = new OffscreenCanvas(newWidth, newHeight);

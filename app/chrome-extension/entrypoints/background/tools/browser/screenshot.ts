@@ -19,6 +19,7 @@ const SCREENSHOT_CONSTANTS = {
   MAX_CAPTURE_HEIGHT_PX: 50000, // Maximum height in pixels to capture
   PIXEL_TOLERANCE: 1,
   SCRIPT_INIT_DELAY: 100, // Delay for script initialization
+  MAX_BASE64_DIMENSION_PX: 7000, // Max dimension for base64 output (API limit is 8000, leave buffer)
 } as {
   readonly SCROLL_DELAY_MS: number;
   CAPTURE_STITCH_DELAY_MS: number; // This one is mutable
@@ -26,6 +27,7 @@ const SCREENSHOT_CONSTANTS = {
   readonly MAX_CAPTURE_HEIGHT_PX: number;
   readonly PIXEL_TOLERANCE: number;
   readonly SCRIPT_INIT_DELAY: number;
+  readonly MAX_BASE64_DIMENSION_PX: number;
 };
 
 SCREENSHOT_CONSTANTS['CAPTURE_STITCH_DELAY_MS'] = Math.max(
@@ -127,6 +129,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
           scale: 0.7, // Reduce dimensions by 30%
           quality: 0.8, // 80% quality for good balance
           format: 'image/jpeg', // JPEG for better compression
+          maxDimension: SCREENSHOT_CONSTANTS.MAX_BASE64_DIMENSION_PX, // Ensure within API limits
         });
 
         // Include base64 data in response (without prefix)
