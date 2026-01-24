@@ -1,4 +1,4 @@
-export const COMMAND_NAME = 'chrome-mcp-bridge';
+export const COMMAND_NAME = 'mcp-chrome-bridger';
 export const EXTENSION_ID = 'belabbdecfehmijepcpibgfkgglcclko';
 export const EXTENSION_ID_WEBSTORE = 'mnchdcikbochaacmcfohjibjkhdbaahe';
 export const HOST_NAME = 'com.chromemcp.nativehost';

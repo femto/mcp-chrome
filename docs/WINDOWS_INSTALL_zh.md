@@ -8,16 +8,17 @@ Chrome MCP Server 在windows电脑的详细安装和配置步骤
 
 下载地址：https://github.com/hangwin/mcp-chrome/releases
 
-2. **全局安装mcp-chrome-bridge**
+2. **全局安装mcp-chrome-bridger**
 
 确保电脑上已经安装了node，如果没安装请自行先安装
 
 ```bash
 # 确保安装的是最新版本的npm包(当前最新版本是1.0.14)，否则可能有问题
-npm install -g mcp-chrome-bridge
+npm install -g mcp-chrome-bridger
 ```
 
 3. **加载 Chrome 扩展**
+
    - 打开 Chrome 并访问 `chrome://extensions/`
    - 启用"开发者模式"
    - 点击"加载已解压的扩展程序"，选择 `your/dowloaded/extension/folder`
@@ -49,10 +50,10 @@ npm install -g mcp-chrome-bridge
 
 ### 点击扩展的连接按钮后如果没连接成功
 
-1. **检查mcp-chrome-bridge是否安装成功**，确保是全局安装的
+1. **检查mcp-chrome-bridger是否安装成功**，确保是全局安装的
 
 ```bash
-mcp-chrome-bridge -V
+mcp-chrome-bridger -V
 ```
 
 <img width="612" alt="截屏2025-06-11 15 09 57" src="https://github.com/user-attachments/assets/59458532-e6e1-457c-8c82-3756a5dbb28e" />
@@ -64,5 +65,5 @@ mcp-chrome-bridge -V
 3. **检查npm包的安装目录下是否有日志**
 
 具体要看你的安装路径（如果不清楚，可以打开第2步的清单文件，里面的path就是安装目录），比如安装路径如下：看下日志的内容
-C:\Users\admin\AppData\Local\nvm\v20.19.2\node_modules\mcp-chrome-bridge\dist\logs
+C:\Users\admin\AppData\Local\nvm\v20.19.2\node_modules\mcp-chrome-bridger\dist\logs
 <img width="804" alt="截屏2025-06-11 15 09 41" src="https://github.com/user-attachments/assets/ce7b7c94-7c84-409a-8210-c9317823aae1" />

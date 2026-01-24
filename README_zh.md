@@ -52,12 +52,12 @@ Chrome MCP Server 是一个基于chrome插件的 **模型上下文协议 (MCP) �
 
 下载地址：https://github.com/hangwin/mcp-chrome/releases
 
-2. **全局安装mcp-chrome-bridge**
+2. **全局安装mcp-chrome-bridger**
 
 npm
 
 ```bash
-npm install -g mcp-chrome-bridge
+npm install -g mcp-chrome-bridger
 ```
 
 pnpm
@@ -65,11 +65,11 @@ pnpm
 ```bash
 # 方法1：全局启用脚本（推荐）
 pnpm config set enable-pre-post-scripts true
-pnpm install -g mcp-chrome-bridge
+pnpm install -g mcp-chrome-bridger
 
 # 方法2：如果 postinstall 没有运行，手动注册
-pnpm install -g mcp-chrome-bridge
-mcp-chrome-bridge register
+pnpm install -g mcp-chrome-bridger
+mcp-chrome-bridger register
 ```
 
 > 注意：pnpm v7+ 默认禁用 postinstall 脚本以提高安全性。`enable-pre-post-scripts` 设置控制是否运行 pre/post 安装脚本。如果自动注册失败，请使用上述手动注册命令。
@@ -79,7 +79,7 @@ mcp-chrome-bridge register
    - 启用"开发者模式"
    - 点击"加载已解压的扩展程序"，选择 `your/dowloaded/extension/folder`
    - 点击插件图标打开插件，点击连接即可看到mcp的配置
-   <img width="475" alt="截屏2025-06-09 15 52 06" src="https://github.com/user-attachments/assets/241e57b8-c55f-41a4-9188-0367293dc5bc" />
+     <img width="475" alt="截屏2025-06-09 15 52 06" src="https://github.com/user-attachments/assets/241e57b8-c55f-41a4-9188-0367293dc5bc" />
 
 ### 在支持MCP协议的客户端中使用
 
@@ -108,13 +108,13 @@ mcp-chrome-bridge register
 
 ```sh
 # npm 查看方式
-npm list -g mcp-chrome-bridge
+npm list -g mcp-chrome-bridger
 # pnpm 查看方式
-pnpm list -g mcp-chrome-bridge
+pnpm list -g mcp-chrome-bridger
 ```
 
 假设上面的命令输出的路径是：/Users/xxx/Library/pnpm/global/5
-那么你的最终路径就是：/Users/xxx/Library/pnpm/global/5/node_modules/mcp-chrome-bridge/dist/mcp/mcp-server-stdio.js
+那么你的最终路径就是：/Users/xxx/Library/pnpm/global/5/node_modules/mcp-chrome-bridger/dist/mcp/mcp-server-stdio.js
 
 2. 把下面的配置替换成你刚刚得到的最终路径
 
@@ -125,7 +125,7 @@ pnpm list -g mcp-chrome-bridge
       "command": "npx",
       "args": [
         "node",
-        "/Users/xxx/Library/pnpm/global/5/node_modules/mcp-chrome-bridge/dist/mcp/mcp-server-stdio.js"
+        "/Users/xxx/Library/pnpm/global/5/node_modules/mcp-chrome-bridger/dist/mcp/mcp-server-stdio.js"
       ]
     }
   }

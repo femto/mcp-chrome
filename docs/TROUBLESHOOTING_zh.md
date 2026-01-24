@@ -8,10 +8,10 @@
 
 1. npm包全局安装后，确认清单文件com.chromemcp.nativehost.json的位置，里面有一个**path**字段，指向的是一个启动脚本:
 
-1.1 **检查mcp-chrome-bridge是否安装成功**，确保是**全局安装**的
+1.1 **检查mcp-chrome-bridger是否安装成功**，确保是**全局安装**的
 
 ```bash
-mcp-chrome-bridge -V
+mcp-chrome-bridger -V
 ```
 
 <img width="612" alt="截屏2025-06-11 15 09 57" src="https://github.com/user-attachments/assets/59458532-e6e1-457c-8c82-3756a5dbb28e" />
@@ -28,18 +28,18 @@ mac路径： /Users/xxx/Library/Application\ Support/Google/Chrome/NativeMessagi
 {
   "name": "com.chromemcp.nativehost",
   "description": "Node.js Host for Browser Bridge Extension",
-  "path": "/Users/xxx/Library/pnpm/global/5/.pnpm/mcp-chrome-bridge@1.0.23/node_modules/mcp-chrome-bridge/dist/run_host.sh",
+  "path": "/Users/xxx/Library/pnpm/global/5/.pnpm/mcp-chrome-bridger@1.0.23/node_modules/mcp-chrome-bridger/dist/run_host.sh",
   "type": "stdio",
   "allowed_origins": ["chrome-extension://hbdgbgagpkpjffpklnamcljpakneikee/"]
 }
 ```
 
-> 如果发现没有此清单文件，可以尝试命令行执行：`mcp-chrome-bridge register`
+> 如果发现没有此清单文件，可以尝试命令行执行：`mcp-chrome-bridger register`
 
-2. Chrome浏览器会找到上面的清单文件指向的脚本路径来执行该脚本，同时会在/Users/xxx/Library/pnpm/global/5/.pnpm/mcp-chrome-bridge@1.0.23/node_modules/mcp-chrome-bridge/dist/（windows的自行查看清单文件对应的目录）下生成logs文件夹，里面会记录日志
+2. Chrome浏览器会找到上面的清单文件指向的脚本路径来执行该脚本，同时会在/Users/xxx/Library/pnpm/global/5/.pnpm/mcp-chrome-bridger@1.0.23/node_modules/mcp-chrome-bridger/dist/（windows的自行查看清单文件对应的目录）下生成logs文件夹，里面会记录日志
 
 具体要看你的安装路径（如果不清楚，可以打开上面提到的清单文件，里面的path就是安装目录），比如安装路径如下：看下日志的内容
-C:\Users\admin\AppData\Local\nvm\v20.19.2\node_modules\mcp-chrome-bridge\dist\logs
+C:\Users\admin\AppData\Local\nvm\v20.19.2\node_modules\mcp-chrome-bridger\dist\logs
 <img width="804" alt="截屏2025-06-11 15 09 41" src="https://github.com/user-attachments/assets/ce7b7c94-7c84-409a-8210-c9317823aae1" />
 
 3. 一般失败的原因就是两种
