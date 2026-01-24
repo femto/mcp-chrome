@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-bridger",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Chrome Native-Messaging host (Node) - Fork with Chrome Web Store support",
   "main": "dist/index.js",
   "bin": {
@@ -37,7 +37,7 @@
     "@modelcontextprotocol/sdk": "^1.11.0",
     "@types/node-fetch": "^2.6.13",
     "chalk": "^5.4.1",
-    "chrome-mcp-shared": "workspace:*",
+    "chrome-mcp-shared": "^1.0.2",
     "commander": "^13.1.0",
     "fastify": "^5.3.2",
     "is-admin": "^4.0.0",
