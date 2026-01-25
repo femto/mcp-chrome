@@ -85,6 +85,8 @@ export default defineConfig({
             dest: '_locales',
           },
         ],
+        structured: false,
+        hook: 'writeBundle',
       }) as any,
     ],
     build: {
