@@ -6,7 +6,11 @@ import { resolve } from 'path';
 config({ path: resolve(process.cwd(), '.env') });
 config({ path: resolve(process.cwd(), '.env.local') });
 
-const CHROME_EXTENSION_KEY = process.env.CHROME_EXTENSION_KEY;
+// Default extension key for consistent extension ID across builds
+// This produces extension ID: gkgkeiahoaihgefckmjckmennckgaege
+const DEFAULT_EXTENSION_KEY =
+  'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuw17tqGmCW4q/+TSJKySEix2JmRi4GuF4OJgXbD0dJ4EhmohxQIQ5JO0pF7qmrcsX+d6QHY2E+RQy2Vf3UuFdQNBHIozbe8Lr5Yu1t0pp2IT4XPrCqNiv2JHUVTj5N9e9veiO6EOMPSzBnsaSf47cr1rfZLop5hHLYOUHIKT7g+6DEucmaO3LtJ21kVioK1tUccC/FJQu4HOveBUtRkT0pGJPYO+Bi7DmKgSfcdjtAU2QqaTYKTDzyYnHKYNLdfFj60W+0Hc3kHb1tODueAWF1TEIeMGhbjXKlmMJGpi7GQOYE1wlyBQ+wz3OLPk+9bdFCtqKsukZinoLAg/S5N/QQIDAQAB';
+const CHROME_EXTENSION_KEY = process.env.CHROME_EXTENSION_KEY || DEFAULT_EXTENSION_KEY;
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
