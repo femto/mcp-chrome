@@ -5,6 +5,7 @@ import {
 } from './semantic-similarity';
 import { initStorageManagerListener } from './storage-manager';
 import { cleanupModelCache } from '@/utils/semantic-similarity-engine';
+import { initWebMCPListener } from '@/webmcp';
 
 /**
  * Background script entry point
@@ -15,6 +16,7 @@ export default defineBackground(() => {
   initNativeHostListener();
   initSemanticSimilarityListener();
   initStorageManagerListener();
+  initWebMCPListener(); // Initialize WebMCP dynamic site tools
 
   // Conditionally initialize semantic similarity engine if model cache exists
   initializeSemanticEngineIfCached()

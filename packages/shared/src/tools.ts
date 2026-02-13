@@ -27,6 +27,10 @@ export const TOOL_NAMES = {
     SEND_COMMAND_TO_INJECT_SCRIPT: 'chrome_send_command_to_inject_script',
     CONSOLE: 'chrome_console',
     FILE_UPLOAD: 'chrome_upload_file',
+    // WebMCP 动态网站工具
+    WEBMCP_LIST_TOOLS: 'webmcp_list_tools',
+    WEBMCP_DETECT_TOOLS: 'webmcp_detect_tools',
+    WEBMCP_CALL_TOOL: 'webmcp_call_tool',
   },
 };
 
@@ -556,7 +560,8 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.FILE_UPLOAD,
-    description: 'Upload files to web forms with file input elements using Chrome DevTools Protocol',
+    description:
+      'Upload files to web forms with file input elements using Chrome DevTools Protocol',
     inputSchema: {
       type: 'object',
       properties: {
@@ -586,6 +591,64 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: ['selector'],
+    },
+  },
+  // WebMCP 动态网站工具
+  {
+    name: TOOL_NAMES.BROWSER.WEBMCP_LIST_TOOLS,
+    description:
+      'List all available WebMCP tools for websites. Shows both registered tools (active tabs) and configured site tools.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: {
+          type: 'number',
+          description: 'Optional tab ID to get tools for a specific tab only',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.WEBMCP_DETECT_TOOLS,
+    description:
+      'Detect and register WebMCP tools for a specific tab or the current active tab. Use this when visiting a supported website to enable site-specific tools.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'Optional tab ID to detect tools for. If not provided, uses the current active tab.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.WEBMCP_CALL_TOOL,
+    description:
+      'Call a WebMCP site-specific tool. Use webmcp_list_tools or webmcp_detect_tools first to see available tools.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tabId: {
+          type: 'number',
+          description:
+            'Tab ID where the tool should be executed. If not provided, uses active tab.',
+        },
+        toolName: {
+          type: 'string',
+          description:
+            'Name of the WebMCP tool to call (e.g., "google_search", "youtube_play_pause")',
+        },
+        params: {
+          type: 'object',
+          description:
+            'Parameters to pass to the tool. Check webmcp_list_tools for required params.',
+        },
+      },
+      required: ['toolName'],
     },
   },
 ];

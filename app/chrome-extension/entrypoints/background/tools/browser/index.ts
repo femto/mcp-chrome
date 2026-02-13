@@ -13,3 +13,6 @@ export { bookmarkSearchTool, bookmarkAddTool, bookmarkDeleteTool } from './bookm
 export { injectScriptTool, sendCommandToInjectScriptTool } from './inject-script';
 export { consoleTool } from './console';
 export { fileUploadTool } from './file-upload';
+
+// WebMCP 动态网站工具
+export { listWebMCPToolsTool, detectWebMCPToolsTool, callWebMCPToolTool } from '@/webmcp';

@@ -2892,6 +2892,21 @@ if (window.__WEB_FETCHER_HELPER_INITIALIZED__) {
   }
 
   /**
+   * Check if element is visible
+   * @param {Element} element - The element to check
+   * @returns {boolean} - Whether the element is visible
+   */
+  function isElementVisible(element) {
+    if (!element) return false;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+      return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  /**
    * Clean content text
    * @param {string} text - The text to clean
    * @returns {string} - Cleaned text
