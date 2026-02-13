@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { NativeMessageType } from 'chrome-mcp-shared';
 import { TIMEOUTS } from './constant';
 import fileHandler from './file-handler';
+import { handleDynamicToolsUpdate } from './mcp/register-tools';
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -106,6 +107,10 @@ export class NativeMessagingHost {
         case 'file_operation':
           await this.handleFileOperation(message);
           break;
+        case NativeMessageType.WEBMCP_TOOLS_UPDATE:
+          // Handle WebMCP dynamic tools update from extension
+          handleDynamicToolsUpdate(message.payload);
+          break;
         default:
           // Double check when message type is not supported
           if (!message.responseToRequestId) {
@@ -125,7 +130,7 @@ export class NativeMessagingHost {
   private async handleFileOperation(message: any): Promise<void> {
     try {
       const result = await fileHandler.handleFileRequest(message.payload);
-      
+
       if (message.requestId) {
         // Send response back with the request ID
         this.sendMessage({
@@ -145,7 +150,7 @@ export class NativeMessagingHost {
         success: false,
         error: error.message || 'Unknown error during file operation',
       };
-      
+
       if (message.requestId) {
         this.sendMessage({
           type: 'file_operation_response',
@@ -212,7 +217,6 @@ export class NativeMessagingHost {
         type: NativeMessageType.SERVER_STARTED,
         payload: { port },
       });
-
     } catch (error: any) {
       this.sendError(`Failed to start server: ${error.message}`);
     }
@@ -278,8 +282,6 @@ export class NativeMessagingHost {
       payload: { message: errorMessage },
     });
   }
-
-
 
   /**
    * Clean up resources

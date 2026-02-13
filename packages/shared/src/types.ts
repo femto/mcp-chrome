@@ -17,6 +17,8 @@ export enum NativeMessageType {
   CONNECT_NATIVE = 'connectNative',
   PING_NATIVE = 'ping_native',
   DISCONNECT_NATIVE = 'disconnect_native',
+  // WebMCP dynamic tools
+  WEBMCP_TOOLS_UPDATE = 'webmcp_tools_update',
 }
 
 export interface NativeMessage<P = any, E = any> {

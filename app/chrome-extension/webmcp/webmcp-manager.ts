@@ -4,9 +4,60 @@
  */
 
 import { siteToolsConfig, matchSiteConfig, SiteConfig, SiteTool } from './site-tools-config';
+import { NativeMessageType } from 'chrome-mcp-shared';
 
 // Worldbook API 配置
 const WORLDBOOK_API_URL = 'https://worldbook.it.com/api/webmcp';
+
+// Debounce timeout for native server notification
+let notifyNativeTimeout: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Send WebMCP tools update to native server
+ */
+function notifyNativeServerToolsUpdate(
+  action: 'register' | 'unregister',
+  tabId: number,
+  siteName?: string,
+  tools?: SiteTool[],
+) {
+  // Debounce to prevent rapid fire
+  if (notifyNativeTimeout) {
+    clearTimeout(notifyNativeTimeout);
+  }
+
+  notifyNativeTimeout = setTimeout(() => {
+    const payload: any = { action, tabId };
+
+    if (action === 'register' && siteName && tools) {
+      payload.siteName = siteName;
+      payload.tools = tools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        params: t.params,
+      }));
+    }
+
+    // Send message to background script which forwards to native host
+    chrome.runtime
+      .sendMessage({
+        type: 'forward_to_native',
+        message: {
+          type: NativeMessageType.WEBMCP_TOOLS_UPDATE,
+          payload,
+        },
+      })
+      .then(() => {
+        console.log(`[WebMCP] Sent tools update to native server: ${action}`);
+      })
+      .catch((err) => {
+        console.log(
+          '[WebMCP] Failed to send tools update (native host may not be connected):',
+          err,
+        );
+      });
+  }, 300);
+}
 
 // API 响应类型 (snake_case)
 interface ApiToolParam {
@@ -105,10 +156,24 @@ export function initWebMCPListener() {
   // 监听标签页更新，自动检测并注册工具
   chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && tab.url) {
+      // Check if we need to unregister old tools (URL changed to non-matching site)
+      const oldConfig = registeredSiteTools.get(tabId);
+
       const siteConfig = await getSiteConfig(tab.url);
       if (siteConfig) {
-        console.log(`[WebMCP] 检测到匹配的网站: ${siteConfig.siteName} (${tab.url})`);
-        await registerSiteTools(tabId, siteConfig);
+        // Only register if not already registered for this site
+        if (!oldConfig || oldConfig.siteName !== siteConfig.siteName) {
+          console.log(`[WebMCP] 检测到匹配的网站: ${siteConfig.siteName} (${tab.url})`);
+          await registerSiteTools(tabId, siteConfig);
+
+          // Notify native server about new tools
+          notifyNativeServerToolsUpdate('register', tabId, siteConfig.siteName, siteConfig.tools);
+        }
+      } else if (oldConfig) {
+        // URL changed to non-matching site, unregister old tools
+        console.log(`[WebMCP] 标签页 ${tabId} 导航离开 ${oldConfig.siteName}，清理工具`);
+        registeredSiteTools.delete(tabId);
+        notifyNativeServerToolsUpdate('unregister', tabId);
       }
     }
   });
@@ -118,6 +183,7 @@ export function initWebMCPListener() {
     if (registeredSiteTools.has(tabId)) {
       console.log(`[WebMCP] 标签页 ${tabId} 关闭，清理工具`);
       registeredSiteTools.delete(tabId);
+      notifyNativeServerToolsUpdate('unregister', tabId);
     }
   });
 
