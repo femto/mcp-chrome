@@ -531,6 +531,9 @@ export async function detectAndRegisterTools(targetTabId?: number): Promise<{
 
   await registerSiteTools(tab.id, siteConfig);
 
+  // Notify native server about the registered tools
+  notifyNativeServerToolsUpdate('register', tab.id, siteConfig.siteName, siteConfig.tools);
+
   return {
     tabId: tab.id,
     siteName: siteConfig.siteName,
