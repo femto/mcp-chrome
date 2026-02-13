@@ -9,6 +9,7 @@ import {
   SUCCESS_MESSAGES,
 } from '@/common/constants';
 import { handleCallTool } from './tools';
+import { on as onBusMessage } from './native-message-bus';
 
 let nativePort: chrome.runtime.Port | null = null;
 export const HOST_NAME = NATIVE_HOST.NAME;
@@ -177,6 +178,16 @@ export const initNativeHostListener = () => {
       console.error(ERROR_MESSAGES.SERVER_STATUS_LOAD_FAILED, error);
     });
 
+  // Listen for messages from the internal message bus (for intra-background communication)
+  onBusMessage('forward_to_native', (message: any) => {
+    if (nativePort) {
+      nativePort.postMessage(message);
+      console.log('[NativeHost] Forwarded message via bus to native host:', message?.type);
+    } else {
+      console.log('[NativeHost] Cannot forward via bus - native host not connected');
+    }
+  });
+
   chrome.runtime.onStartup.addListener(connectNativeHost);
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -243,26 +254,13 @@ export const initNativeHostListener = () => {
     if (message.type === 'forward_to_native' && message.message) {
       if (nativePort) {
         nativePort.postMessage(message.message);
+        console.log('[NativeHost] Forwarded message to native host:', message.message?.type);
         sendResponse({ success: true });
       } else {
+        console.log('[NativeHost] Cannot forward - native host not connected');
         sendResponse({ success: false, error: 'Native host not connected' });
       }
       return true;
     }
   });
 };
-
-/**
- * Send a message directly to the native host
- * Use this instead of chrome.runtime.sendMessage for intra-background communication
- */
-export function sendToNativeHost(message: any): boolean {
-  if (nativePort) {
-    nativePort.postMessage(message);
-    console.log('[NativeHost] Sent message to native host:', message.type);
-    return true;
-  } else {
-    console.log('[NativeHost] Cannot send message - native host not connected');
-    return false;
-  }
-}

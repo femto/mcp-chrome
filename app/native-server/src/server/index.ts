@@ -13,6 +13,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { randomUUID } from 'node:crypto';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getMcpServer } from '../mcp/mcp-server';
+import { handleDynamicToolsUpdate } from '../mcp/register-tools';
 
 // Define request body type (if data needs to be retrieved from HTTP requests)
 interface ExtensionRequestPayload {
@@ -49,7 +50,6 @@ export class Server {
     this.fastify.get(
       '/ask-extension',
       async (request: FastifyRequest<{ Body: ExtensionRequestPayload }>, reply: FastifyReply) => {
-
         if (!this.nativeHost) {
           return reply
             .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
