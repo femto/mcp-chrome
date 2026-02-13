@@ -251,3 +251,18 @@ export const initNativeHostListener = () => {
     }
   });
 };
+
+/**
+ * Send a message directly to the native host
+ * Use this instead of chrome.runtime.sendMessage for intra-background communication
+ */
+export function sendToNativeHost(message: any): boolean {
+  if (nativePort) {
+    nativePort.postMessage(message);
+    console.log('[NativeHost] Sent message to native host:', message.type);
+    return true;
+  } else {
+    console.log('[NativeHost] Cannot send message - native host not connected');
+    return false;
+  }
+}

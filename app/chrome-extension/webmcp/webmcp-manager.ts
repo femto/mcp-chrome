@@ -5,6 +5,7 @@
 
 import { siteToolsConfig, matchSiteConfig, SiteConfig, SiteTool } from './site-tools-config';
 import { NativeMessageType } from 'chrome-mcp-shared';
+import { sendToNativeHost } from '@/entrypoints/background/native-host';
 
 // Worldbook API 配置
 const WORLDBOOK_API_URL = 'https://worldbook.it.com/api/webmcp';
@@ -38,24 +39,17 @@ function notifyNativeServerToolsUpdate(
       }));
     }
 
-    // Send message to background script which forwards to native host
-    chrome.runtime
-      .sendMessage({
-        type: 'forward_to_native',
-        message: {
-          type: NativeMessageType.WEBMCP_TOOLS_UPDATE,
-          payload,
-        },
-      })
-      .then(() => {
-        console.log(`[WebMCP] Sent tools update to native server: ${action}`);
-      })
-      .catch((err) => {
-        console.log(
-          '[WebMCP] Failed to send tools update (native host may not be connected):',
-          err,
-        );
-      });
+    // Send message directly to native host (same background context)
+    const sent = sendToNativeHost({
+      type: NativeMessageType.WEBMCP_TOOLS_UPDATE,
+      payload,
+    });
+
+    if (sent) {
+      console.log(`[WebMCP] Sent tools update to native server: ${action}`);
+    } else {
+      console.log('[WebMCP] Failed to send tools update (native host may not be connected)');
+    }
   }, 300);
 }
 
