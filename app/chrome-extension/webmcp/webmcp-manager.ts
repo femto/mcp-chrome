@@ -306,24 +306,21 @@ async function registerSiteTools(tabId: number, siteConfig: SiteConfig) {
 
 /**
  * 注入到 MAIN world 的执行器
+ * 使用 lazy eval：只存储 handler 字符串，调用时才编译执行
+ * 这样更安全，避免 IIFE 恶意代码在页面加载时立即执行
  */
 function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
   // 防止重复注入
   if ((window as any).__WEBMCP_EXECUTOR_LOADED__) return;
   (window as any).__WEBMCP_EXECUTOR_LOADED__ = true;
 
-  // 存储工具处理函数
-  const toolHandlers = new Map<string, (...args: unknown[]) => unknown>();
+  // 存储工具 handler 字符串（不立即 eval）
+  const toolHandlers = new Map<string, string>();
 
-  // 编译工具处理函数
+  // 只存储 handler 字符串，不编译
   tools.forEach((tool) => {
-    try {
-      const handler = eval(`(${tool.handler})`);
-      toolHandlers.set(tool.name, handler);
-      console.log(`[WebMCP] 注册工具: ${tool.name}`);
-    } catch (e) {
-      console.error(`[WebMCP] 编译工具 ${tool.name} 失败:`, e);
-    }
+    toolHandlers.set(tool.name, tool.handler);
+    console.log(`[WebMCP] 注册工具: ${tool.name}`);
   });
 
   // 监听工具执行请求 (通过 postMessage 从 ISOLATED world)
@@ -334,8 +331,8 @@ function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
     const { requestId, toolName, params } = event.data;
     console.log(`[WebMCP] 执行工具: ${toolName}`, params);
 
-    const handler = toolHandlers.get(toolName);
-    if (!handler) {
+    const handlerCode = toolHandlers.get(toolName);
+    if (!handlerCode) {
       window.postMessage(
         {
           type: 'webmcp:tool-result',
@@ -348,9 +345,12 @@ function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
       return;
     }
 
-    // 使用 Promise.resolve 包装结果，支持同步和异步 handler
+    // Lazy eval: 调用时才编译并执行 handler
     Promise.resolve()
-      .then(() => handler(params))
+      .then(() => {
+        const handler = eval(`(${handlerCode})`);
+        return handler(params);
+      })
       .then((result) => {
         window.postMessage(
           {

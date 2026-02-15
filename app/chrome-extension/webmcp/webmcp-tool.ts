@@ -12,7 +12,6 @@ import {
   getTabTools,
   getConfiguredSites,
 } from './webmcp-manager';
-import { siteToolsConfig } from './site-tools-config';
 
 // WebMCP 工具名称常量
 const WEBMCP_TOOL_NAMES = {
@@ -44,7 +43,7 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
                   tools: tools.map((t) => ({
                     name: t.name,
                     description: t.description,
-                    params: t.params,
+                    inputSchema: t.inputSchema,
                   })),
                 },
                 null,
@@ -67,7 +66,7 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
           tools: config.tools.map((t) => ({
             name: t.name,
             description: t.description,
-            params: t.params,
+            inputSchema: t.inputSchema,
           })),
         });
       });
@@ -125,7 +124,10 @@ class DetectWebMCPToolsTool extends BaseBrowserToolExecutor {
       // 获取工具详情用于生成推荐
       const toolDetails = getTabTools(result.tabId);
       const toolDescriptions = toolDetails
-        .map((t) => `  - ${t.name}(${t.params.map((p) => p.name).join(', ')}): ${t.description}`)
+        .map((t) => {
+          const paramNames = Object.keys(t.inputSchema?.properties || {});
+          return `  - ${t.name}(${paramNames.join(', ')}): ${t.description}`;
+        })
         .join('\n');
 
       const recommendation = `

@@ -1,4 +1,14 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+// Log to file instead of stdout (stdout is used by native messaging protocol)
+const LOG_FILE = path.join(os.tmpdir(), 'mcp-chrome-native.log');
+function logToFile(msg: string) {
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(LOG_FILE, `[${timestamp}] [dynamic-tools] ${msg}\n`);
+}
 
 /**
  * Dynamic tool information
@@ -62,7 +72,7 @@ export function registerDynamicTools(tabId: number, siteName: string, tools: Sit
         inputSchema,
       });
       changed = true;
-      console.log(`[DynamicTools] Registered: ${name}`);
+      logToFile(`[DynamicTools] Registered: ${name}`);
     }
   });
 
@@ -79,7 +89,7 @@ export function unregisterDynamicTools(tabId: number): boolean {
     if (tool.tabId === tabId) {
       dynamicToolsRegistry.delete(name);
       changed = true;
-      console.log(`[DynamicTools] Unregistered: ${name}`);
+      logToFile(`[DynamicTools] Unregistered: ${name}`);
     }
   }
   return changed;
@@ -95,7 +105,7 @@ export function unregisterDynamicToolsBySite(siteName: string): boolean {
     if (tool.siteName === siteName) {
       dynamicToolsRegistry.delete(name);
       changed = true;
-      console.log(`[DynamicTools] Unregistered by site: ${name}`);
+      logToFile(`[DynamicTools] Unregistered by site: ${name}`);
     }
   }
   return changed;
@@ -110,9 +120,8 @@ export function getDynamicToolSchemas(): Tool[] {
     description: t.description,
     inputSchema: t.inputSchema,
   }));
-  console.log(
-    `[DynamicTools] getDynamicToolSchemas called, returning ${tools.length} tools:`,
-    tools.map((t) => t.name),
+  logToFile(
+    `[DynamicTools] getDynamicToolSchemas called, returning ${tools.length} tools: ${tools.map((t) => t.name).join(', ')}`,
   );
   return tools;
 }
@@ -136,7 +145,7 @@ export function isDynamicTool(name: string): boolean {
  */
 export function clearAllDynamicTools(): void {
   dynamicToolsRegistry.clear();
-  console.log('[DynamicTools] Cleared all dynamic tools');
+  logToFile('[DynamicTools] Cleared all dynamic tools');
 }
 
 /**
