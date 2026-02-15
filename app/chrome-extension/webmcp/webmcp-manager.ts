@@ -306,8 +306,8 @@ async function registerSiteTools(tabId: number, siteConfig: SiteConfig) {
 
 /**
  * 注入到 MAIN world 的执行器
- * 使用 lazy eval：只存储 handler 字符串，调用时才编译执行
- * 这样更安全，避免 IIFE 恶意代码在页面加载时立即执行
+ * 使用 lazy eval + 缓存：只存储 handler 字符串，首次调用时编译并缓存
+ * 这样既安全（避免 IIFE 在页面加载时执行），又高效（后续调用复用编译结果）
  */
 function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
   // 防止重复注入
@@ -316,6 +316,8 @@ function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
 
   // 存储工具 handler 字符串（不立即 eval）
   const toolHandlers = new Map<string, string>();
+  // 缓存编译后的函数
+  const compiledCache = new Map<string, (...args: unknown[]) => unknown>();
 
   // 只存储 handler 字符串，不编译
   tools.forEach((tool) => {
@@ -345,10 +347,15 @@ function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
       return;
     }
 
-    // Lazy eval: 调用时才编译并执行 handler
+    // Lazy eval + 缓存: 首次调用时编译，后续复用
     Promise.resolve()
       .then(() => {
-        const handler = eval(`(${handlerCode})`);
+        let handler = compiledCache.get(toolName);
+        if (!handler) {
+          console.log(`[WebMCP] 首次编译工具: ${toolName}`);
+          handler = eval(`(${handlerCode})`) as (...args: unknown[]) => unknown;
+          compiledCache.set(toolName, handler);
+        }
         return handler(params);
       })
       .then((result) => {
