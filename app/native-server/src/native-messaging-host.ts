@@ -72,30 +72,13 @@ export class NativeMessagingHost {
     });
 
     stdin.on('end', () => {
-      logToFile(
-        `stdin "end" event received - Chrome extension disconnected (serverStarting=${this.serverStarting}, isRunning=${this.associatedServer?.isRunning})`,
-      );
-      // Don't exit if HTTP server is running or starting
-      if (this.serverStarting) {
-        logToFile('Server is starting, keeping process alive');
-      } else if (this.associatedServer && this.associatedServer.isRunning) {
-        logToFile('HTTP server still running, keeping process alive');
-      } else {
-        logToFile('No server running, calling cleanup');
-        this.cleanup();
-      }
+      logToFile('stdin "end" event received - Chrome extension disconnected');
+      this.cleanup();
     });
 
     stdin.on('error', (err) => {
       logToFile(`stdin "error" event received: ${err}`);
-      // Don't exit if HTTP server is running or starting
-      if (this.serverStarting) {
-        logToFile('Server is starting, keeping process alive despite stdin error');
-      } else if (this.associatedServer && this.associatedServer.isRunning) {
-        logToFile('HTTP server still running, keeping process alive despite stdin error');
-      } else {
-        this.cleanup();
-      }
+      this.cleanup();
     });
   }
 
