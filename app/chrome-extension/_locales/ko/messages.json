@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "chrome-mcp-server",
+    "message": "Chrome MCP Server - AI 브라우저 제어",
     "description": "확장 프로그램 이름"
   },
   "extensionDescription": {
-    "message": "크롬 브라우저와 연동하여 브라우저 기능을 제어하는 MCP 서버입니다.",
+    "message": "Chrome을 MCP 서버로 변환. Claude/Codex 등 AI 어시스턴트가 브라우저를 제어 - 탐색, 클릭, 양식 작성, 스크린샷.",
     "description": "확장 프로그램 설명"
   },
   "nativeServerConfigLabel": {

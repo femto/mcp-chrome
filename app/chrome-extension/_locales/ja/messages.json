@@ -1,9 +1,9 @@
 {
   "extensionName": {
-    "message": "Chrome MCPサーバー"
+    "message": "Chrome MCP Server - AI ブラウザ制御"
   },
   "extensionDescription": {
-    "message": "自身のChromeブラウザの機能を外部に公開します"
+    "message": "ChromeをMCPサーバーに変換。Claude/CodexなどのAIアシスタントがブラウザを制御 - ナビゲート、クリック、フォーム入力、スクリーンショット。"
   },
   "nativeServerConfigLabel": {
     "message": "ネイティブサーバー設定"

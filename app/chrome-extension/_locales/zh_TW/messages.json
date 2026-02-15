@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "chrome-mcp-server",
+    "message": "Chrome MCP Server - AI 瀏覽器控制",
     "description": "擴充功能名稱"
   },
   "extensionDescription": {
-    "message": "使用您自己的 Chrome 瀏覽器暴露瀏覽器功能",
+    "message": "將 Chrome 變成 MCP 伺服器，讓 Claude/Codex 等 AI 助手控制瀏覽器 - 導航、點擊、填表、截圖。",
     "description": "擴充功能描述"
   },
   "nativeServerConfigLabel": {
