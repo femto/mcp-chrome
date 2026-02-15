@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "chrome-mcp-server",
+    "message": "Chrome MCP Server - AI Browser Control",
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Exposes browser capabilities with your own chrome",
+    "message": "Turn your Chrome into an MCP server. Let AI assistants like Claude/Codex control your browser - navigate, click, fill forms, take screenshots.",
     "description": "Extension description"
   },
   "nativeServerConfigLabel": {

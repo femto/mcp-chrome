@@ -58,9 +58,18 @@ export function registerDynamicTools(tabId: number, siteName: string, tools: Sit
     const name = `${siteName}_${tool.name}`;
     if (!dynamicToolsRegistry.has(name)) {
       // 兼容处理：如果没有 inputSchema，使用默认空 schema
-      const inputSchema = tool.inputSchema || {
+      // 同时确保 required 是数组或 undefined（不能是 null）
+      const rawSchema = tool.inputSchema || {
         type: 'object' as const,
         properties: {},
+      };
+      const inputSchema: InputSchema = {
+        type: 'object',
+        properties: rawSchema.properties || {},
+        // MCP 协议要求 required 必须是数组或不存在，不能是 null
+        ...(Array.isArray(rawSchema.required) && rawSchema.required.length > 0
+          ? { required: rawSchema.required }
+          : {}),
       };
 
       dynamicToolsRegistry.set(name, {
