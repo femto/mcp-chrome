@@ -8,7 +8,72 @@ import { NativeMessageType } from 'chrome-mcp-shared';
 import { emit as emitBusMessage } from '@/entrypoints/background/native-message-bus';
 
 // Worldbook API 配置
-const WORLDBOOK_API_URL = 'https://worldbook.it.com/api/webmcp';
+const DEFAULT_WORLDBOOK_API_URL = 'https://worldbook.it.com/api/webmcp';
+let cachedWorldbookApiUrl: string | null = null;
+let cachedWorldbookEnabled: boolean | null = null;
+
+function getStorage<T extends Record<string, any>>(keys: string[]): Promise<T> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(keys, (result) => resolve(result as T));
+  });
+}
+
+async function isWorldbookWebMCPEnabled(): Promise<boolean> {
+  if (cachedWorldbookEnabled !== null) {
+    return cachedWorldbookEnabled;
+  }
+
+  try {
+    const result = await getStorage<{ worldbookWebMCPEnabled?: boolean }>([
+      'worldbookWebMCPEnabled',
+    ]);
+    // Default to true
+    cachedWorldbookEnabled = result.worldbookWebMCPEnabled !== false;
+    return cachedWorldbookEnabled;
+  } catch (error) {
+    console.log('[WebMCP] Failed to read Worldbook WebMCP preference:', error);
+    return true; // Enable by default
+  }
+}
+
+async function getWorldbookApiUrl(): Promise<string> {
+  if (cachedWorldbookApiUrl) {
+    return cachedWorldbookApiUrl;
+  }
+
+  try {
+    const result = await getStorage<{ webmcpApiUrl?: string; worldbookApiUrl?: string }>([
+      'webmcpApiUrl',
+      'worldbookApiUrl',
+    ]);
+    const candidate = (result.webmcpApiUrl || result.worldbookApiUrl || '').trim();
+    if (candidate) {
+      cachedWorldbookApiUrl = candidate;
+      return cachedWorldbookApiUrl;
+    }
+  } catch (error) {
+    console.log('[WebMCP] Failed to read Worldbook API override from storage:', error);
+  }
+
+  cachedWorldbookApiUrl = DEFAULT_WORLDBOOK_API_URL;
+  return cachedWorldbookApiUrl;
+}
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return;
+  if (changes.webmcpApiUrl || changes.worldbookApiUrl) {
+    const next = (
+      (changes.webmcpApiUrl?.newValue as string | undefined) ||
+      (changes.worldbookApiUrl?.newValue as string | undefined) ||
+      ''
+    ).trim();
+    cachedWorldbookApiUrl = next || DEFAULT_WORLDBOOK_API_URL;
+  }
+  if (changes.worldbookWebMCPEnabled !== undefined) {
+    cachedWorldbookEnabled = changes.worldbookWebMCPEnabled.newValue !== false;
+    console.log(`[WebMCP] Worldbook WebMCP preference changed to: ${cachedWorldbookEnabled}`);
+  }
+});
 
 // Debounce timeout for native server notification
 let notifyNativeTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -32,10 +97,11 @@ function notifyNativeServerToolsUpdate(
 
     if (action === 'register' && siteName && tools) {
       payload.siteName = siteName;
+      // 使用 WebMCP 标准格式：inputSchema
       payload.tools = tools.map((t) => ({
         name: t.name,
         description: t.description,
-        params: t.params,
+        inputSchema: t.inputSchema,
       }));
     }
 
@@ -48,18 +114,24 @@ function notifyNativeServerToolsUpdate(
   }, 300);
 }
 
-// API 响应类型 (snake_case)
-interface ApiToolParam {
-  name: string;
-  type: string;
-  description: string;
-  required?: boolean;
+// API 响应类型 - WebMCP 标准格式
+interface ApiInputSchema {
+  type: 'object';
+  properties: Record<
+    string,
+    {
+      type: string;
+      description?: string;
+      enum?: string[];
+    }
+  >;
+  required?: string[];
 }
 
 interface ApiTool {
   name: string;
   description: string;
-  params: ApiToolParam[];
+  inputSchema: ApiInputSchema;
   handler: string;
 }
 
@@ -72,13 +144,6 @@ interface ApiSiteConfig {
 // 存储当前已注册的网站工具
 const registeredSiteTools = new Map<number, SiteConfig>();
 
-// 事件名称
-const WEBMCP_EVENTS = {
-  EXECUTE_TOOL: 'webmcp:execute-tool',
-  TOOL_RESULT: 'webmcp:tool-result',
-  REGISTER_TOOLS: 'webmcp:register-tools',
-};
-
 /**
  * 将 API 响应转换为本地 SiteConfig 格式
  */
@@ -89,12 +154,7 @@ function convertApiConfig(apiConfig: ApiSiteConfig): SiteConfig {
     tools: apiConfig.tools.map((t) => ({
       name: t.name,
       description: t.description,
-      params: t.params.map((p) => ({
-        name: p.name,
-        type: p.type as 'string' | 'number' | 'boolean' | 'object' | 'array',
-        description: p.description,
-        required: p.required,
-      })),
+      inputSchema: t.inputSchema,
       handler: t.handler,
     })),
   };
@@ -105,7 +165,8 @@ function convertApiConfig(apiConfig: ApiSiteConfig): SiteConfig {
  */
 async function fetchSiteConfigFromAPI(url: string): Promise<SiteConfig | null> {
   try {
-    const response = await fetch(`${WORLDBOOK_API_URL}/match?url=${encodeURIComponent(url)}`);
+    const apiUrl = await getWorldbookApiUrl();
+    const response = await fetch(`${apiUrl}/match?url=${encodeURIComponent(url)}`);
     if (!response.ok) {
       console.log(`[WebMCP] API request failed: ${response.status}`);
       return null;
@@ -120,20 +181,27 @@ async function fetchSiteConfigFromAPI(url: string): Promise<SiteConfig | null> {
 }
 
 /**
- * 获取站点配置 - 优先从 API 获取，失败时使用本地配置
+ * Get site config - prefer API, fallback to local config
  */
 async function getSiteConfig(url: string): Promise<SiteConfig | null> {
-  // 首先尝试从 Worldbook API 获取
-  const apiConfig = await fetchSiteConfigFromAPI(url);
-  if (apiConfig) {
-    console.log(`[WebMCP] 从 Worldbook API 获取配置: ${apiConfig.siteName}`);
-    return apiConfig;
+  // Check if Worldbook WebMCP is enabled
+  const worldbookEnabled = await isWorldbookWebMCPEnabled();
+
+  if (worldbookEnabled) {
+    // Try to fetch from Worldbook API first
+    const apiConfig = await fetchSiteConfigFromAPI(url);
+    if (apiConfig) {
+      console.log(`[WebMCP] Got config from Worldbook API: ${apiConfig.siteName}`);
+      return apiConfig;
+    }
+  } else {
+    console.log(`[WebMCP] Worldbook WebMCP disabled, skipping API request`);
   }
 
-  // 如果 API 失败，使用本地配置作为后备
+  // Fallback to local config if API fails or disabled
   const localConfig = matchSiteConfig(url);
   if (localConfig) {
-    console.log(`[WebMCP] 使用本地配置: ${localConfig.siteName}`);
+    console.log(`[WebMCP] Using local config: ${localConfig.siteName}`);
   }
   return localConfig;
 }
@@ -531,6 +599,18 @@ export async function detectAndRegisterTools(targetTabId?: number): Promise<{
 }
 
 /**
+ * Re-send all registered tools to native server
+ * Called when native server restarts
+ */
+export function resendAllToolsToNative(): void {
+  console.log('[WebMCP] Resending all registered tools to native server');
+  registeredSiteTools.forEach((config, tabId) => {
+    console.log(`[WebMCP] Resending tools for tab ${tabId}: ${config.siteName}`);
+    notifyNativeServerToolsUpdate('register', tabId, config.siteName, config.tools);
+  });
+}
+
+/**
  * 获取所有配置的站点列表 (从 API)
  */
 export async function getConfiguredSites(): Promise<
@@ -541,18 +621,26 @@ export async function getConfiguredSites(): Promise<
     tools: string[];
   }>
 > {
-  try {
-    const response = await fetch(`${WORLDBOOK_API_URL}/sites`);
-    if (!response.ok) return [];
-    return await response.json();
-  } catch (error) {
-    console.log('[WebMCP] Failed to fetch sites from API:', error);
-    // 返回本地配置作为后备
-    return siteToolsConfig.map((c) => ({
-      site_name: c.siteName,
-      url_pattern: String(c.urlPattern),
-      tool_count: c.tools.length,
-      tools: c.tools.map((t) => t.name),
-    }));
+  // 检查 Worldbook WebMCP 是否启用
+  const worldbookEnabled = await isWorldbookWebMCPEnabled();
+
+  if (worldbookEnabled) {
+    try {
+      const apiUrl = await getWorldbookApiUrl();
+      const response = await fetch(`${apiUrl}/sites`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.log('[WebMCP] Failed to fetch sites from API:', error);
+    }
   }
+
+  // 返回本地配置作为后备
+  return siteToolsConfig.map((c) => ({
+    site_name: c.siteName,
+    url_pattern: String(c.urlPattern),
+    tool_count: c.tools.length,
+    tools: c.tools.map((t) => t.name),
+  }));
 }

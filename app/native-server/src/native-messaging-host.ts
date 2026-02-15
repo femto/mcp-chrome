@@ -5,6 +5,16 @@ import { NativeMessageType } from 'chrome-mcp-shared';
 import { TIMEOUTS } from './constant';
 import fileHandler from './file-handler';
 import { handleDynamicToolsUpdate } from './mcp/register-tools';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+// Simple file logger for debugging
+const LOG_FILE = path.join(os.tmpdir(), 'mcp-chrome-native.log');
+function logToFile(msg: string) {
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(LOG_FILE, `[${timestamp}] ${msg}\n`);
+}
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -15,6 +25,7 @@ interface PendingRequest {
 export class NativeMessagingHost {
   private associatedServer: Server | null = null;
   private pendingRequests: Map<string, PendingRequest> = new Map();
+  private serverStarting: boolean = false; // Flag to prevent exit during server startup
 
   public setServer(serverInstance: Server): void {
     this.associatedServer = serverInstance;
@@ -22,9 +33,11 @@ export class NativeMessagingHost {
 
   // add message handler to wait for start server
   public start(): void {
+    logToFile(`Native messaging host started. Log file: ${LOG_FILE}`);
     try {
       this.setupMessageHandling();
     } catch (error: any) {
+      logToFile(`Failed to setup message handling: ${error.message}`);
       process.exit(1);
     }
   }
@@ -59,15 +72,38 @@ export class NativeMessagingHost {
     });
 
     stdin.on('end', () => {
-      this.cleanup();
+      logToFile(
+        `stdin "end" event received - Chrome extension disconnected (serverStarting=${this.serverStarting}, isRunning=${this.associatedServer?.isRunning})`,
+      );
+      // Don't exit if HTTP server is running or starting
+      if (this.serverStarting) {
+        logToFile('Server is starting, keeping process alive');
+      } else if (this.associatedServer && this.associatedServer.isRunning) {
+        logToFile('HTTP server still running, keeping process alive');
+      } else {
+        logToFile('No server running, calling cleanup');
+        this.cleanup();
+      }
     });
 
-    stdin.on('error', () => {
-      this.cleanup();
+    stdin.on('error', (err) => {
+      logToFile(`stdin "error" event received: ${err}`);
+      // Don't exit if HTTP server is running or starting
+      if (this.serverStarting) {
+        logToFile('Server is starting, keeping process alive despite stdin error');
+      } else if (this.associatedServer && this.associatedServer.isRunning) {
+        logToFile('HTTP server still running, keeping process alive despite stdin error');
+      } else {
+        this.cleanup();
+      }
     });
   }
 
   private async handleMessage(message: any): Promise<void> {
+    logToFile(
+      `Received message: type=${message?.type}, hasResponseId=${!!message?.responseToRequestId}`,
+    );
+
     if (!message || typeof message !== 'object') {
       this.sendError('Invalid message format');
       return;
@@ -109,7 +145,16 @@ export class NativeMessagingHost {
           break;
         case NativeMessageType.WEBMCP_TOOLS_UPDATE:
           // Handle WebMCP dynamic tools update from extension
-          handleDynamicToolsUpdate(message.payload);
+          logToFile(`Received WEBMCP_TOOLS_UPDATE: ${JSON.stringify(message.payload)}`);
+          try {
+            handleDynamicToolsUpdate(message.payload);
+            logToFile('Successfully handled WEBMCP_TOOLS_UPDATE');
+          } catch (err: any) {
+            logToFile(`Error handling WEBMCP_TOOLS_UPDATE: ${err.message}\n${err.stack}`);
+          }
+          logToFile(
+            `After WEBMCP_TOOLS_UPDATE: serverStarting=${this.serverStarting}, isRunning=${this.associatedServer?.isRunning}`,
+          );
           break;
         default:
           // Double check when message type is not supported
@@ -211,13 +256,18 @@ export class NativeMessagingHost {
         return;
       }
 
+      this.serverStarting = true;
+      logToFile(`Starting HTTP server on port ${port}...`);
       await this.associatedServer.start(port, this);
+      this.serverStarting = false;
+      logToFile(`HTTP server started successfully on port ${port}`);
 
       this.sendMessage({
         type: NativeMessageType.SERVER_STARTED,
         payload: { port },
       });
     } catch (error: any) {
+      this.serverStarting = false;
       this.sendError(`Failed to start server: ${error.message}`);
     }
   }
@@ -287,6 +337,7 @@ export class NativeMessagingHost {
    * Clean up resources
    */
   private cleanup(): void {
+    logToFile('cleanup() called - shutting down native host');
     // Reject all pending requests
     this.pendingRequests.forEach((pending) => {
       clearTimeout(pending.timeoutId);

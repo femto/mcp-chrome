@@ -17,50 +17,25 @@ export interface DynamicTool {
 }
 
 /**
- * Tool parameter from WebMCP config
+ * Input schema (WebMCP standard format)
  */
-interface ToolParam {
-  name: string;
-  type: string;
-  description: string;
-  required?: boolean;
+interface InputSchema {
+  type: 'object';
+  properties: Record<string, any>;
+  required?: string[];
 }
 
 /**
- * Site tool from WebMCP config
+ * Site tool from WebMCP config (WebMCP standard format)
  */
 interface SiteTool {
   name: string;
   description: string;
-  params: ToolParam[];
+  inputSchema?: InputSchema; // 可选，兼容旧格式
 }
 
 // Global dynamic tools registry
 const dynamicToolsRegistry = new Map<string, DynamicTool>();
-
-/**
- * Build input schema from tool params
- */
-function buildInputSchema(params: ToolParam[]): DynamicTool['inputSchema'] {
-  const properties: Record<string, any> = {};
-  const required: string[] = [];
-
-  params.forEach((param) => {
-    properties[param.name] = {
-      type: param.type,
-      description: param.description,
-    };
-    if (param.required) {
-      required.push(param.name);
-    }
-  });
-
-  return {
-    type: 'object',
-    properties,
-    required: required.length > 0 ? required : undefined,
-  };
-}
 
 /**
  * Register dynamic tools for a site
@@ -72,13 +47,19 @@ export function registerDynamicTools(tabId: number, siteName: string, tools: Sit
   tools.forEach((tool) => {
     const name = `${siteName}_${tool.name}`;
     if (!dynamicToolsRegistry.has(name)) {
+      // 兼容处理：如果没有 inputSchema，使用默认空 schema
+      const inputSchema = tool.inputSchema || {
+        type: 'object' as const,
+        properties: {},
+      };
+
       dynamicToolsRegistry.set(name, {
         name,
         siteName,
         originalName: tool.name,
         tabId,
         description: `[${siteName}] ${tool.description}`,
-        inputSchema: buildInputSchema(tool.params),
+        inputSchema,
       });
       changed = true;
       console.log(`[DynamicTools] Registered: ${name}`);
@@ -124,11 +105,16 @@ export function unregisterDynamicToolsBySite(siteName: string): boolean {
  * Get all dynamic tools as MCP Tool schemas
  */
 export function getDynamicToolSchemas(): Tool[] {
-  return Array.from(dynamicToolsRegistry.values()).map((t) => ({
+  const tools = Array.from(dynamicToolsRegistry.values()).map((t) => ({
     name: t.name,
     description: t.description,
     inputSchema: t.inputSchema,
   }));
+  console.log(
+    `[DynamicTools] getDynamicToolSchemas called, returning ${tools.length} tools:`,
+    tools.map((t) => t.name),
+  );
+  return tools;
 }
 
 /**

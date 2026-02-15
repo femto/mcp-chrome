@@ -10,6 +10,7 @@ import {
 } from '@/common/constants';
 import { handleCallTool } from './tools';
 import { on as onBusMessage } from './native-message-bus';
+import { resendAllToolsToNative } from '@/webmcp/webmcp-manager';
 
 let nativePort: chrome.runtime.Port | null = null;
 export const HOST_NAME = NATIVE_HOST.NAME;
@@ -135,6 +136,10 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT) {
         await saveServerStatus(currentServerStatus);
         broadcastServerStatusChange(currentServerStatus);
         console.log(`${SUCCESS_MESSAGES.SERVER_STARTED} on port ${port}`);
+
+        // Resend all registered WebMCP tools to native server
+        // This ensures tools are available after server restart
+        resendAllToolsToNative();
       } else if (message.type === NativeMessageType.SERVER_STOPPED) {
         currentServerStatus = {
           isRunning: false,
@@ -155,7 +160,11 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT) {
     });
 
     nativePort.onDisconnect.addListener(() => {
-      console.error(ERROR_MESSAGES.NATIVE_DISCONNECTED, chrome.runtime.lastError);
+      const error = chrome.runtime.lastError;
+      console.error('[NativeHost] Disconnected!', {
+        error: error?.message || 'no error',
+        timestamp: new Date().toISOString(),
+      });
       nativePort = null;
     });
 
@@ -173,6 +182,8 @@ export const initNativeHostListener = () => {
   loadServerStatus()
     .then((status) => {
       currentServerStatus = status;
+      const port = status.port ?? NATIVE_HOST.DEFAULT_PORT;
+      connectNativeHost(port);
     })
     .catch((error) => {
       console.error(ERROR_MESSAGES.SERVER_STATUS_LOAD_FAILED, error);
@@ -180,9 +191,14 @@ export const initNativeHostListener = () => {
 
   // Listen for messages from the internal message bus (for intra-background communication)
   onBusMessage('forward_to_native', (message: any) => {
+    console.log('[NativeHost] Received bus message, nativePort exists:', !!nativePort);
     if (nativePort) {
-      nativePort.postMessage(message);
-      console.log('[NativeHost] Forwarded message via bus to native host:', message?.type);
+      try {
+        nativePort.postMessage(message);
+        console.log('[NativeHost] Successfully posted message to native host:', message?.type);
+      } catch (err) {
+        console.error('[NativeHost] Error posting message:', err);
+      }
     } else {
       console.log('[NativeHost] Cannot forward via bus - native host not connected');
     }

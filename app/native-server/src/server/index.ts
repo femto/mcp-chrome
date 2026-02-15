@@ -14,6 +14,61 @@ import { randomUUID } from 'node:crypto';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { getMcpServer } from '../mcp/mcp-server';
 import { handleDynamicToolsUpdate } from '../mcp/register-tools';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as net from 'net';
+
+const LOG_FILE = path.join(os.tmpdir(), 'mcp-chrome-native.log');
+function logToFile(msg: string) {
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(LOG_FILE, `[${timestamp}] [server] ${msg}\n`);
+}
+
+/**
+ * Check if a port is already in use
+ */
+function isPortInUse(port: number, host: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
+    server.once('listening', () => {
+      server.close();
+      resolve(false);
+    });
+    server.listen(port, host);
+  });
+}
+
+/**
+ * Kill process using the specified port (cross-platform)
+ */
+async function killProcessOnPort(port: number): Promise<void> {
+  return new Promise((resolve) => {
+    const { exec } = require('child_process');
+    const platform = process.platform;
+
+    let command: string;
+    if (platform === 'win32') {
+      // Windows: find PID and kill
+      command = `for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port} ^| findstr LISTENING') do taskkill /PID %a /F`;
+    } else {
+      // macOS/Linux: use lsof
+      command = `lsof -ti :${port} | xargs kill -9 2>/dev/null`;
+    }
+
+    exec(command, (error: any) => {
+      // Wait a bit for the port to be released
+      setTimeout(resolve, 500);
+    });
+  });
+}
 
 // Define request body type (if data needs to be retrieved from HTTP requests)
 interface ExtensionRequestPayload {
@@ -29,6 +84,18 @@ export class Server {
 
   constructor() {
     this.fastify = Fastify({ logger: SERVER_CONFIG.LOGGER_ENABLED });
+
+    // Add error handlers
+    this.fastify.addHook('onError', (request, reply, error, done) => {
+      logToFile(`Fastify onError: ${error.message}\n${error.stack}`);
+      done();
+    });
+
+    this.fastify.setErrorHandler((error, request, reply) => {
+      logToFile(`Fastify errorHandler: ${error.message}\n${error.stack}`);
+      reply.status(500).send({ error: error.message });
+    });
+
     this.setupPlugins();
     this.setupRoutes();
   }
@@ -134,17 +201,21 @@ export class Server {
 
     // POST /mcp: Handle client-to-server messages
     this.fastify.post('/mcp', async (request, reply) => {
+      logToFile(`[mcp] POST /mcp received`);
       const sessionId = request.headers['mcp-session-id'] as string | undefined;
       let transport: StreamableHTTPServerTransport | undefined = this.transportsMap.get(
         sessionId || '',
       ) as StreamableHTTPServerTransport;
       if (transport) {
+        logToFile(`[mcp] Using existing transport for session ${sessionId}`);
         // transport found, do nothing
       } else if (!sessionId && isInitializeRequest(request.body)) {
+        logToFile(`[mcp] Creating new transport (initialize request)`);
         const newSessionId = randomUUID(); // Generate session ID
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => newSessionId, // Use pre-generated ID
           onsessioninitialized: (initializedSessionId) => {
+            logToFile(`[mcp] Session initialized: ${initializedSessionId}`);
             // Ensure transport instance exists and session ID matches
             if (transport && initializedSessionId === newSessionId) {
               this.transportsMap.set(initializedSessionId, transport);
@@ -153,19 +224,25 @@ export class Server {
         });
 
         transport.onclose = () => {
+          logToFile(`[mcp] Transport onclose called for session ${transport?.sessionId}`);
           if (transport?.sessionId && this.transportsMap.get(transport.sessionId)) {
             this.transportsMap.delete(transport.sessionId);
           }
         };
         await getMcpServer().connect(transport);
+        logToFile(`[mcp] MCP server connected to transport`);
       } else {
+        logToFile(`[mcp] Invalid request - no session and not initialize`);
         reply.code(HTTP_STATUS.BAD_REQUEST).send({ error: ERROR_MESSAGES.INVALID_MCP_REQUEST });
         return;
       }
 
       try {
+        logToFile(`[mcp] Handling request...`);
         await transport.handleRequest(request.raw, reply.raw, request.body);
-      } catch (error) {
+        logToFile(`[mcp] Request handled successfully`);
+      } catch (error: any) {
+        logToFile(`[mcp] Error handling request: ${error.message}\n${error.stack}`);
         if (!reply.sent) {
           reply
             .code(HTTP_STATUS.INTERNAL_SERVER_ERROR)
@@ -243,15 +320,32 @@ export class Server {
     }
 
     if (this.isRunning) {
+      logToFile('Server.start() called but already running');
       return;
     }
 
+    // Check if port is already in use (another instance running)
+    const portInUse = await isPortInUse(port, SERVER_CONFIG.HOST);
+    if (portInUse) {
+      logToFile(`Port ${port} already in use - killing old process and taking over`);
+      await killProcessOnPort(port);
+      logToFile(`Old process killed, proceeding with startup`);
+    }
+
     try {
+      // Initialize MCP server early so it's available for notifications
+      logToFile('Initializing MCP server...');
+      getMcpServer();
+      logToFile('MCP server initialized');
+
+      logToFile(`Starting Fastify on port ${port}...`);
       await this.fastify.listen({ port, host: SERVER_CONFIG.HOST });
       this.isRunning = true; // Update running status
+      logToFile('Fastify started successfully');
       // No need to return, Promise resolves void by default
-    } catch (err) {
+    } catch (err: any) {
       this.isRunning = false; // Startup failed, reset status
+      logToFile(`Fastify start error: ${err.message}\n${err.stack}`);
       // Throw error instead of exiting directly, let caller (possibly NativeHost) handle
       throw err; // or return Promise.reject(err);
       // process.exit(1); // Not recommended to exit directly here

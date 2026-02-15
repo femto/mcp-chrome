@@ -3,18 +3,27 @@
  * 定义每个网站的 MCP 工具
  */
 
-export interface SiteToolParam {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-  description: string;
-  required?: boolean;
-  enum?: string[];
+/**
+ * JSON Schema for tool input (WebMCP standard)
+ */
+export interface InputSchema {
+  type: 'object';
+  properties: Record<
+    string,
+    {
+      type: string;
+      description?: string;
+      enum?: string[];
+    }
+  >;
+  required?: string[];
 }
 
 export interface SiteTool {
   name: string;
   description: string;
-  params: SiteToolParam[];
+  // WebMCP 标准格式的参数 schema
+  inputSchema: InputSchema;
   // 工具执行的 JS 代码，会在页面上下文中执行
   // 可以访问 DOM，接收 params 参数
   handler: string;
@@ -42,17 +51,16 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'search_hotels',
         description: '搜索酒店，填写目的地和日期',
-        params: [
-          { name: 'destination', type: 'string', description: '目的地城市', required: true },
-          { name: 'checkIn', type: 'string', description: '入住日期 (YYYY-MM-DD)', required: true },
-          {
-            name: 'checkOut',
-            type: 'string',
-            description: '退房日期 (YYYY-MM-DD)',
-            required: true,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            destination: { type: 'string', description: '目的地城市' },
+            checkIn: { type: 'string', description: '入住日期 (YYYY-MM-DD)' },
+            checkOut: { type: 'string', description: '退房日期 (YYYY-MM-DD)' },
+            guests: { type: 'number', description: '入住人数' },
           },
-          { name: 'guests', type: 'number', description: '入住人数', required: false },
-        ],
+          required: ['destination', 'checkIn', 'checkOut'],
+        },
         handler: `
           async (params) => {
             const searchBox = document.querySelector('[data-testid="destination-container"] input');
@@ -76,7 +84,13 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'google_search',
         description: '在 Google 上搜索',
-        params: [{ name: 'query', type: 'string', description: '搜索关键词', required: true }],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: '搜索关键词' },
+          },
+          required: ['query'],
+        },
         handler: `
           async (params) => {
             const searchBox = document.querySelector('input[name="q"], textarea[name="q"]');
@@ -95,7 +109,10 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'get_search_results',
         description: '获取当前 Google 搜索结果',
-        params: [],
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
         handler: `
           async (params) => {
             const results = [];
@@ -122,7 +139,10 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'github_star_repo',
         description: '给当前仓库点 Star',
-        params: [],
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
         handler: `
           async (params) => {
             const starButton = document.querySelector('button[data-ga-click*="star"]');
@@ -137,7 +157,10 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'github_get_repo_info',
         description: '获取当前仓库信息',
-        params: [],
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
         handler: `
           async (params) => {
             const repoName = document.querySelector('[itemprop="name"] a')?.textContent?.trim();
@@ -162,7 +185,13 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'taobao_search',
         description: '在淘宝搜索商品',
-        params: [{ name: 'keyword', type: 'string', description: '搜索关键词', required: true }],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            keyword: { type: 'string', description: '搜索关键词' },
+          },
+          required: ['keyword'],
+        },
         handler: `
           async (params) => {
             const searchBox = document.querySelector('#q');
@@ -188,7 +217,13 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'youtube_search',
         description: '在 YouTube 搜索视频',
-        params: [{ name: 'query', type: 'string', description: '搜索关键词', required: true }],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: '搜索关键词' },
+          },
+          required: ['query'],
+        },
         handler: `
           async (params) => {
             const searchBox = document.querySelector('input#search');
@@ -206,7 +241,10 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'youtube_play_pause',
         description: '播放/暂停当前视频',
-        params: [],
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
         handler: `
           async (params) => {
             const video = document.querySelector('video');
@@ -226,7 +264,10 @@ export const siteToolsConfig: SiteConfig[] = [
       {
         name: 'youtube_get_video_info',
         description: '获取当前视频信息',
-        params: [],
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
         handler: `
           async (params) => {
             const title = document.querySelector('h1.ytd-video-primary-info-renderer')?.textContent?.trim();

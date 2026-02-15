@@ -14,6 +14,15 @@ import {
   unregisterDynamicTools,
 } from './dynamic-tools-registry';
 import { mcpServer } from './mcp-server';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+const LOG_FILE = path.join(os.tmpdir(), 'mcp-chrome-native.log');
+function logToFile(msg: string) {
+  const timestamp = new Date().toISOString();
+  fs.appendFileSync(LOG_FILE, `[${timestamp}] [register-tools] ${msg}\n`);
+}
 
 // Debounce timeout for sending notifications
 let notifyTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -26,16 +35,22 @@ export function notifyToolsListChanged(): void {
     clearTimeout(notifyTimeout);
   }
 
-  notifyTimeout = setTimeout(() => {
+  logToFile('notifyToolsListChanged called, scheduling notification...');
+
+  notifyTimeout = setTimeout(async () => {
+    logToFile(`mcpServer exists: ${!!mcpServer}`);
     if (mcpServer) {
       try {
-        mcpServer.notification({
+        logToFile('Attempting to send notifications/tools/list_changed');
+        await mcpServer.notification({
           method: 'notifications/tools/list_changed',
         });
-        console.log('[MCP] Sent notifications/tools/list_changed');
-      } catch (error) {
-        console.error('[MCP] Failed to send notification:', error);
+        logToFile('Successfully sent notifications/tools/list_changed');
+      } catch (error: any) {
+        logToFile(`Failed to send notification: ${error?.message || error}\n${error?.stack || ''}`);
       }
+    } else {
+      logToFile('Cannot send notification - mcpServer not initialized');
     }
   }, 300); // 300ms debounce
 }
@@ -50,12 +65,12 @@ export function handleDynamicToolsUpdate(payload: {
   tools?: Array<{
     name: string;
     description: string;
-    params: Array<{
-      name: string;
-      type: string;
-      description: string;
-      required?: boolean;
-    }>;
+    // WebMCP 标准格式
+    inputSchema: {
+      type: 'object';
+      properties: Record<string, any>;
+      required?: string[];
+    };
   }>;
 }): void {
   let changed = false;

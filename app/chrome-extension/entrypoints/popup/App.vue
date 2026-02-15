@@ -65,6 +65,20 @@
                   : getMessage('connectButton')
             }}</span>
           </button>
+
+          <div class="webmcp-option">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="worldbookWebMCPEnabled"
+                @change="saveWorldbookWebMCPPreference"
+              />
+              <span class="checkbox-text">Worldbook WebMCP</span>
+            </label>
+            <p class="option-description"
+              >Fetch site tools config from Worldbook API when enabled</p
+            >
+          </div>
         </div>
       </div>
 
@@ -290,6 +304,7 @@ import {
 const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('unknown');
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
+const worldbookWebMCPEnabled = ref<boolean>(true); // Worldbook WebMCP enabled by default
 
 const serverStatus = ref<{
   isRunning: boolean;
@@ -891,6 +906,32 @@ const loadPortPreference = async () => {
   }
 };
 
+const saveWorldbookWebMCPPreference = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    await chrome.storage.local.set({ worldbookWebMCPEnabled: worldbookWebMCPEnabled.value });
+    console.log(`Worldbook WebMCP preference saved: ${worldbookWebMCPEnabled.value}`);
+  } catch (error) {
+    console.error('Failed to save Worldbook WebMCP preference:', error);
+  }
+};
+
+const loadWorldbookWebMCPPreference = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    const result = await chrome.storage.local.get(['worldbookWebMCPEnabled']);
+    // Default to true, only disable if explicitly set to false
+    if (result.worldbookWebMCPEnabled !== undefined) {
+      worldbookWebMCPEnabled.value = result.worldbookWebMCPEnabled;
+    } else {
+      worldbookWebMCPEnabled.value = true; // Enable by default
+    }
+    console.log(`Worldbook WebMCP preference loaded: ${worldbookWebMCPEnabled.value}`);
+  } catch (error) {
+    console.error('Failed to load Worldbook WebMCP preference:', error);
+  }
+};
+
 const saveModelState = async () => {
   try {
     const modelState = {
@@ -1194,6 +1235,7 @@ const setupServerStatusListener = () => {
 
 onMounted(async () => {
   await loadPortPreference();
+  await loadWorldbookWebMCPPreference();
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();
@@ -1770,6 +1812,37 @@ onUnmounted(() => {
 .connect-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.webmcp-option {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #8b5cf6;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.option-description {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 0 26px;
 }
 .error-card {
   background: #fef2f2;
