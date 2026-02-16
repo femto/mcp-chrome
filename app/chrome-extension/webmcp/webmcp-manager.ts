@@ -495,8 +495,12 @@ export async function executeWebMCPTool(
       func: (handlerCode: string, toolParams: Record<string, any>) => {
         return new Promise((resolve) => {
           try {
+            // Defensive: if params is a string, parse it
+            const actualParams =
+              typeof toolParams === 'string' ? JSON.parse(toolParams) : toolParams;
+
             const handler = eval(`(${handlerCode})`);
-            Promise.resolve(handler(toolParams))
+            Promise.resolve(handler(actualParams))
               .then((result) => resolve({ result, error: null }))
               .catch((err) => resolve({ result: null, error: err.message }));
           } catch (e: any) {

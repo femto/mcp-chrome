@@ -21,7 +21,7 @@ const WEBMCP_TOOL_NAMES = {
 };
 
 /**
- * 列出所有可用的网站工具
+ * List all available WebMCP tools
  */
 class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
   name = WEBMCP_TOOL_NAMES.LIST_TOOLS;
@@ -31,7 +31,7 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
       const { tabId } = args;
 
       if (tabId) {
-        // 获取指定标签页的工具
+        // Get tools for specific tab
         const tools = getTabTools(tabId);
         return {
           content: [
@@ -55,7 +55,7 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
         };
       }
 
-      // 列出所有已注册的工具
+      // List all registered tools
       const allTools = getAllRegisteredTools();
       const result: any[] = [];
 
@@ -71,8 +71,8 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
         });
       });
 
-      // 从 Worldbook API 获取所有配置的网站
-      const configuredSites = await getConfiguredSites();
+      // Get available sites from Worldbook API (visiting these sites will auto-register tools)
+      const availableSites = await getConfiguredSites();
 
       return {
         content: [
@@ -81,7 +81,7 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
             text: JSON.stringify(
               {
                 registeredTools: result,
-                configuredSites,
+                availableSites,
               },
               null,
               2,
@@ -92,14 +92,14 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
       };
     } catch (error) {
       return createErrorResponse(
-        `获取工具列表失败: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to get tool list: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 }
 
 /**
- * 检测指定标签页或当前页面并注册工具
+ * Detect and register WebMCP tools for specified tab or current active tab
  */
 class DetectWebMCPToolsTool extends BaseBrowserToolExecutor {
   name = WEBMCP_TOOL_NAMES.DETECT_TOOLS;
@@ -114,33 +114,25 @@ class DetectWebMCPToolsTool extends BaseBrowserToolExecutor {
           content: [
             {
               type: 'text',
-              text: '当前页面没有匹配的网站工具配置',
+              text: 'No matching WebMCP configuration found for current page',
             },
           ],
           isError: false,
         };
       }
 
-      // 获取工具详情用于生成推荐
+      // Get tool details for generating usage info
       const toolDetails = getTabTools(result.tabId);
-      const toolDescriptions = toolDetails
-        .map((t) => {
-          const paramNames = Object.keys(t.inputSchema?.properties || {});
-          return `  - ${t.name}(${paramNames.join(', ')}): ${t.description}`;
-        })
-        .join('\n');
+      const topLevelTools = toolDetails.map((t) => `  - ${result.siteName}_${t.name}`).join('\n');
 
       const recommendation = `
-⚠️ IMPORTANT: This site has WebMCP support with precise tools.
-ALWAYS prefer webmcp_call_tool over general browser automation (chrome_click_element, chrome_fill_or_select, etc.)
+Tools registered. You can call them directly at top level:
+${topLevelTools}
 
-Available WebMCP tools for ${result.siteName}:
-${toolDescriptions}
+Note: If your MCP client doesn't support notifications/tools/list_changed,
+use webmcp_call_tool({ toolName: "${toolDetails[0]?.name || 'tool_name'}", params: {...} }) as fallback.
 
-Example usage:
-  webmcp_call_tool({ toolName: "${toolDetails[0]?.name || 'tool_name'}", params: {...} })
-
-WebMCP tools are MORE RELIABLE than clicking/typing because they use site-specific APIs.
+Prefer these WebMCP tools over general browser automation (chrome_click_element, etc.) - they use site-specific APIs and are more reliable.
 `;
 
       return {
@@ -150,7 +142,7 @@ WebMCP tools are MORE RELIABLE than clicking/typing because they use site-specif
             text: JSON.stringify(
               {
                 success: true,
-                message: `已为 ${result.siteName} 注册 ${result.tools.length} 个工具`,
+                message: `Registered ${result.tools.length} tools for ${result.siteName}`,
                 tabId: result.tabId,
                 siteName: result.siteName,
                 tools: result.tools,
@@ -165,14 +157,14 @@ WebMCP tools are MORE RELIABLE than clicking/typing because they use site-specif
       };
     } catch (error) {
       return createErrorResponse(
-        `检测工具失败: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to detect tools: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 }
 
 /**
- * 调用网站工具
+ * Call a WebMCP site-specific tool
  */
 class CallWebMCPToolTool extends BaseBrowserToolExecutor {
   name = 'webmcp_call_tool';
@@ -187,43 +179,43 @@ class CallWebMCPToolTool extends BaseBrowserToolExecutor {
       let { tabId } = args;
 
       if (!toolName) {
-        return createErrorResponse('参数 [toolName] 是必需的');
+        return createErrorResponse('Parameter [toolName] is required');
       }
 
-      // 如果没有指定 tabId，使用当前活动标签页
+      // If tabId not specified, use current active tab
       if (!tabId) {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab?.id) {
-          return createErrorResponse('没有活动的标签页');
+          return createErrorResponse('No active tab found');
         }
         tabId = tab.id;
       }
 
-      // 检查工具是否已注册
+      // Check if tool is registered
       const tools = getTabTools(tabId);
       const tool = tools.find((t) => t.name === toolName);
 
       if (!tool) {
-        // 尝试自动检测并注册
+        // Try auto-detect and register
         const detected = await detectAndRegisterTools();
         if (!detected) {
           return createErrorResponse(
-            `工具 "${toolName}" 未找到。请先访问支持的网站并使用 webmcp_detect_tools 检测工具。`,
+            `Tool "${toolName}" not found. Please visit a supported website and use webmcp_detect_tools first.`,
           );
         }
 
         const newTools = getTabTools(tabId);
         const newTool = newTools.find((t) => t.name === toolName);
         if (!newTool) {
-          return createErrorResponse(`工具 "${toolName}" 在当前网站不可用`);
+          return createErrorResponse(`Tool "${toolName}" is not available on current website`);
         }
       }
 
-      // 执行工具
+      // Execute the tool
       const result = await executeWebMCPTool(tabId, toolName, params);
 
       if (result.error) {
-        return createErrorResponse(`工具执行失败: ${result.error}`);
+        return createErrorResponse(`Tool execution failed: ${result.error}`);
       }
 
       return {
@@ -246,13 +238,13 @@ class CallWebMCPToolTool extends BaseBrowserToolExecutor {
       };
     } catch (error) {
       return createErrorResponse(
-        `调用工具失败: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to call tool: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
 }
 
-// 导出工具实例
+// Export tool instances
 export const listWebMCPToolsTool = new ListWebMCPToolsTool();
 export const detectWebMCPToolsTool = new DetectWebMCPToolsTool();
 export const callWebMCPToolTool = new CallWebMCPToolTool();

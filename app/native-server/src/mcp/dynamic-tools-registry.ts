@@ -52,40 +52,41 @@ const dynamicToolsRegistry = new Map<string, DynamicTool>();
  * @returns true if tools were changed
  */
 export function registerDynamicTools(tabId: number, siteName: string, tools: SiteTool[]): boolean {
-  let changed = false;
+  // 先清理这个 tabId 之前的所有工具（处理从一个匹配网站切换到另一个匹配网站的情况）
+  const hadOldTools = unregisterDynamicTools(tabId);
+
+  let registered = false;
 
   tools.forEach((tool) => {
     const name = `${siteName}_${tool.name}`;
-    if (!dynamicToolsRegistry.has(name)) {
-      // 兼容处理：如果没有 inputSchema，使用默认空 schema
-      // 同时确保 required 是数组或 undefined（不能是 null）
-      const rawSchema = tool.inputSchema || {
-        type: 'object' as const,
-        properties: {},
-      };
-      const inputSchema: InputSchema = {
-        type: 'object',
-        properties: rawSchema.properties || {},
-        // MCP 协议要求 required 必须是数组或不存在，不能是 null
-        ...(Array.isArray(rawSchema.required) && rawSchema.required.length > 0
-          ? { required: rawSchema.required }
-          : {}),
-      };
+    // 兼容处理：如果没有 inputSchema，使用默认空 schema
+    // 同时确保 required 是数组或 undefined（不能是 null）
+    const rawSchema = tool.inputSchema || {
+      type: 'object' as const,
+      properties: {},
+    };
+    const inputSchema: InputSchema = {
+      type: 'object',
+      properties: rawSchema.properties || {},
+      // MCP 协议要求 required 必须是数组或不存在，不能是 null
+      ...(Array.isArray(rawSchema.required) && rawSchema.required.length > 0
+        ? { required: rawSchema.required }
+        : {}),
+    };
 
-      dynamicToolsRegistry.set(name, {
-        name,
-        siteName,
-        originalName: tool.name,
-        tabId,
-        description: `[${siteName}] ${tool.description}`,
-        inputSchema,
-      });
-      changed = true;
-      logToFile(`[DynamicTools] Registered: ${name}`);
-    }
+    dynamicToolsRegistry.set(name, {
+      name,
+      siteName,
+      originalName: tool.name,
+      tabId,
+      description: `[${siteName}] ${tool.description}`,
+      inputSchema,
+    });
+    registered = true;
+    logToFile(`[DynamicTools] Registered: ${name}`);
   });
 
-  return changed;
+  return hadOldTools || registered;
 }
 
 /**
