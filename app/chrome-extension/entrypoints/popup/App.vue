@@ -74,6 +74,13 @@
                 @change="saveWorldbookWebMCPPreference"
               />
               <span class="checkbox-text">Worldbook WebMCP</span>
+              <a
+                href="https://worldbook.it.com/"
+                target="_blank"
+                class="help-icon"
+                title="Worldbook is a community-driven registry of WebMCP site tools. When enabled, Chrome MCP Server fetches tool configurations from Worldbook API, giving you access to pre-configured tools for popular websites."
+                >?</a
+              >
             </label>
             <p class="option-description"
               >Fetch site tools config from Worldbook API when enabled</p
@@ -1837,6 +1844,27 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 600;
   color: #374151;
+}
+
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.help-icon:hover {
+  background: #8b5cf6;
+  color: white;
 }
 
 .option-description {
