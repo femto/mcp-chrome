@@ -1,72 +1,72 @@
-# name: Build and Release Chrome Extension
+name: Build and Release Chrome Extension
 
-# on:
-#   push:
-#     branches: [ master, develop ]
-#     paths:
-#       - 'app/chrome-extension/**'
-#   pull_request:
-#     branches: [ master ]
-#     paths:
-#       - 'app/chrome-extension/**'
-#   workflow_dispatch:
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'app/chrome-extension/**'
+      - 'app/native-server/**'
+      - 'packages/**'
+  workflow_dispatch:
 
-# jobs:
-#   build-extension:
-#     runs-on: ubuntu-latest
-    
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-      
-#     - name: Setup Node.js
-#       uses: actions/setup-node@v4
-#       with:
-#         node-version: '18'
-#         cache: 'npm'
-#         cache-dependency-path: 'app/chrome-extension/package-lock.json'
-        
-#     - name: Install dependencies
-#       run: |
-#         cd app/chrome-extension
-#         npm ci
-        
-#     - name: Build extension
-#       run: |
-#         cd app/chrome-extension
-#         npm run build
-        
-#     - name: Create zip package
-#       run: |
-#         cd app/chrome-extension
-#         npm run zip
-        
-#     - name: Prepare release directory
-#       run: |
-#         mkdir -p releases/chrome-extension/latest
-#         mkdir -p releases/chrome-extension/$(date +%Y%m%d-%H%M%S)
-        
-#     - name: Copy release files
-#       run: |
-#         # Copy to latest
-#         cp app/chrome-extension/.output/chrome-mv3-prod.zip releases/chrome-extension/latest/chrome-mcp-server-latest.zip
-        
-#         # Copy to timestamped version
-#         TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-#         cp app/chrome-extension/.output/chrome-mv3-prod.zip releases/chrome-extension/$TIMESTAMP/chrome-mcp-server-$TIMESTAMP.zip
-        
-#     - name: Upload build artifacts
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: chrome-extension-build
-#         path: releases/chrome-extension/
-#         retention-days: 30
-        
-#     - name: Commit and push releases (if on main branch)
-#       if: github.ref == 'refs/heads/main'
-#       run: |
-#         git config --local user.email "action@github.com"
-#         git config --local user.name "GitHub Action"
-#         git add releases/
-#         git diff --staged --quiet || git commit -m "Auto-build: Update Chrome extension release [skip ci]"
-#         git push
+jobs:
+  build-extension:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Get pnpm store directory
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - name: Setup pnpm cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build shared packages
+      run: pnpm --filter chrome-mcp-shared build
+
+    - name: Build Chrome extension
+      run: pnpm --filter chrome-mcp-extension build
+
+    - name: Build Native server
+      run: pnpm --filter mcp-chrome-bridger build
+
+    - name: Create zip package
+      run: |
+        cd app/chrome-extension
+        pnpm run zip
+
+    - name: Upload Chrome extension artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: chrome-extension-${{ github.sha }}
+        path: app/chrome-extension/.output/*.zip
+        retention-days: 30
+
+    - name: Upload Native server artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: native-server-${{ github.sha }}
+        path: app/native-server/dist/
+        retention-days: 30
