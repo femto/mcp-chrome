@@ -91,7 +91,7 @@ export class Server {
       done();
     });
 
-    this.fastify.setErrorHandler((error, request, reply) => {
+    this.fastify.setErrorHandler((error: Error, request, reply) => {
       logToFile(`Fastify errorHandler: ${error.message}\n${error.stack}`);
       reply.status(500).send({ error: error.message });
     });
