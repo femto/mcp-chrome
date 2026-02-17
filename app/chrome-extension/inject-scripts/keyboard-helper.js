@@ -128,15 +128,46 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
   }
 
   /**
+   * Special scroll keys that need native scroll API instead of dispatchEvent
+   * (because dispatchEvent creates untrusted events that don't trigger default browser behavior)
+   */
+  const SCROLL_KEY_HANDLERS = {
+    pagedown: () => window.scrollBy(0, window.innerHeight),
+    pageup: () => window.scrollBy(0, -window.innerHeight),
+    home: () => window.scrollTo(0, 0),
+    end: () => window.scrollTo(0, document.body.scrollHeight),
+  };
+
+  /**
    * Simulates a single key press (keydown, (keypress), keyup) for a parsed key.
    * @param { {key: string, code: string, keyCode: number, charCode?: number, modifiers: object} } parsedKeyInfo
    * @param {Element} element - Target element.
+   * @param {string} originalKeyString - The original key string (lowercase) for scroll handling.
    * @returns {{success: boolean, error?: string}}
    */
-  function dispatchKeyEvents(parsedKeyInfo, element) {
+  function dispatchKeyEvents(parsedKeyInfo, element, originalKeyString) {
     if (!parsedKeyInfo) return { success: false, error: 'Invalid key info provided for dispatch.' };
 
     const { key, code, keyCode, charCode, modifiers } = parsedKeyInfo;
+
+    // Check if this is a scroll key that needs native handling
+    // Only use native scroll if no modifiers are pressed
+    const hasModifiers =
+      modifiers.ctrlKey || modifiers.altKey || modifiers.shiftKey || modifiers.metaKey;
+    const scrollHandler = SCROLL_KEY_HANDLERS[originalKeyString];
+
+    if (scrollHandler && !hasModifiers) {
+      try {
+        scrollHandler();
+        return { success: true, usedNativeScroll: true };
+      } catch (error) {
+        console.error(`Error executing native scroll for "${key}":`, error);
+        return {
+          success: false,
+          error: `Error executing native scroll for "${key}": ${error.message}`,
+        };
+      }
+    }
 
     const eventOptions = {
       key: key,
@@ -208,7 +239,9 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
           continue; // Skip to next combination in sequence
         }
 
-        const dispatchResult = dispatchKeyEvents(parsedKeyInfo, element);
+        // Extract the main key (without modifiers) for scroll handling
+        const mainKeyLower = comboString.split('+').pop().trim().toLowerCase();
+        const dispatchResult = dispatchKeyEvents(parsedKeyInfo, element, mainKeyLower);
         operationResults.push({
           keyCombination: comboString,
           ...dispatchResult,
