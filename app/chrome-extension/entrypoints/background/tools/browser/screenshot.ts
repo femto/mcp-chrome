@@ -135,12 +135,23 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         // Include base64 data in response (without prefix)
         const base64Data = compressed.dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
         results.base64 = base64Data;
+
+        // Build scale info for AI to convert coordinates
+        const scaleInfo =
+          compressed.scale < 1
+            ? `\n\nIMPORTANT: This screenshot has been scaled down to ${Math.round(compressed.scale * 100)}% of original size (${compressed.originalWidth}x${compressed.originalHeight} → ${compressed.scaledWidth}x${compressed.scaledHeight}). To click on a position you see in this image, multiply the coordinates by ${(1 / compressed.scale).toFixed(2)}. For example, if you see an element at (100, 200) in this image, the actual page coordinates are (${Math.round(100 / compressed.scale)}, ${Math.round(200 / compressed.scale)}). Alternatively, use chrome_get_interactive_elements to get accurate coordinates.`
+            : '';
+
         return {
           content: [
             {
               type: 'image',
               data: base64Data,
               mimeType: compressed.mimeType,
+            },
+            {
+              type: 'text',
+              text: `Screenshot captured successfully.${scaleInfo}`,
             },
           ],
           isError: false,

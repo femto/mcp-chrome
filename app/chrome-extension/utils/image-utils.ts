@@ -163,11 +163,22 @@ export async function compressImage(
     format?: 'image/jpeg' | 'image/webp';
     maxDimension?: number;
   },
-): Promise<{ dataUrl: string; mimeType: string }> {
+): Promise<{
+  dataUrl: string;
+  mimeType: string;
+  originalWidth: number;
+  originalHeight: number;
+  scaledWidth: number;
+  scaledHeight: number;
+  scale: number;
+}> {
   const { scale = 1.0, quality = 0.8, format = 'image/jpeg', maxDimension } = options;
 
   // 1. Create an ImageBitmap from the original data URL for efficient drawing.
   const imageBitmap = await createImageBitmapFromUrl(imageDataUrl);
+
+  const originalWidth = imageBitmap.width;
+  const originalHeight = imageBitmap.height;
 
   // 2. Calculate the new dimensions based on the scale factor.
   let actualScale = scale;
@@ -210,5 +221,13 @@ export async function compressImage(
     reader.readAsDataURL(compressedDataUrl);
   });
 
-  return { dataUrl, mimeType: format };
+  return {
+    dataUrl,
+    mimeType: format,
+    originalWidth,
+    originalHeight,
+    scaledWidth: newWidth,
+    scaledHeight: newHeight,
+    scale: actualScale,
+  };
 }
