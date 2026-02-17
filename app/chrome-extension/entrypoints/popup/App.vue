@@ -332,8 +332,8 @@ const mcpConfigJson = computed(() => {
   const port = serverStatus.value.port || nativeServerPort.value;
   const config = {
     mcpServers: {
-      'streamable-mcp-server': {
-        type: 'streamable-http',
+      'mcp-chrome': {
+        type: 'http',
         url: `http://127.0.0.1:${port}/mcp`,
       },
     },
