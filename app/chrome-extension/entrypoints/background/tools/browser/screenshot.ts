@@ -19,7 +19,7 @@ const SCREENSHOT_CONSTANTS = {
   MAX_CAPTURE_HEIGHT_PX: 50000, // Maximum height in pixels to capture
   PIXEL_TOLERANCE: 1,
   SCRIPT_INIT_DELAY: 100, // Delay for script initialization
-  MAX_BASE64_DIMENSION_PX: 7000, // Max dimension for base64 output (API limit is 8000, leave buffer)
+  MAX_BASE64_DIMENSION_PX: 1800, // Max dimension for base64 output (multi-image API limit is 2000, leave buffer)
 } as {
   readonly SCROLL_DELAY_MS: number;
   CAPTURE_STITCH_DELAY_MS: number; // This one is mutable
