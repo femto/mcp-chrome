@@ -139,6 +139,45 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
   };
 
   /**
+   * Simulate Tab key focus navigation
+   * @param {boolean} shift - If true, move focus backwards (Shift+Tab)
+   */
+  function simulateTabFocus(shift = false) {
+    // Get all focusable elements
+    const focusableSelector =
+      'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const allFocusable = [...document.querySelectorAll(focusableSelector)].filter((el) => {
+      // Filter out disabled and hidden elements
+      if (el.disabled) return false;
+      if (el.offsetParent === null && el.tagName !== 'BODY') return false;
+      const style = window.getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
+      return true;
+    });
+
+    if (allFocusable.length === 0) return false;
+
+    const current = document.activeElement;
+    const currentIndex = allFocusable.indexOf(current);
+
+    let nextIndex;
+    if (shift) {
+      // Shift+Tab: move backwards
+      nextIndex = currentIndex <= 0 ? allFocusable.length - 1 : currentIndex - 1;
+    } else {
+      // Tab: move forwards
+      nextIndex = currentIndex >= allFocusable.length - 1 ? 0 : currentIndex + 1;
+    }
+
+    const nextElement = allFocusable[nextIndex];
+    if (nextElement) {
+      nextElement.focus();
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Simulates a single key press (keydown, (keypress), keyup) for a parsed key.
    * @param { {key: string, code: string, keyCode: number, charCode?: number, modifiers: object} } parsedKeyInfo
    * @param {Element} element - Target element.
@@ -151,12 +190,11 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
     const { key, code, keyCode, charCode, modifiers } = parsedKeyInfo;
 
     // Check if this is a scroll key that needs native handling
-    // Only use native scroll if no modifiers are pressed
-    const hasModifiers =
-      modifiers.ctrlKey || modifiers.altKey || modifiers.shiftKey || modifiers.metaKey;
+    // Only use native scroll if no modifiers are pressed (except Shift for some keys)
+    const hasNonShiftModifiers = modifiers.ctrlKey || modifiers.altKey || modifiers.metaKey;
     const scrollHandler = SCROLL_KEY_HANDLERS[originalKeyString];
 
-    if (scrollHandler && !hasModifiers) {
+    if (scrollHandler && !hasNonShiftModifiers && !modifiers.shiftKey) {
       try {
         scrollHandler();
         return { success: true, usedNativeScroll: true };
@@ -165,6 +203,20 @@ if (window.__KEYBOARD_HELPER_INITIALIZED__) {
         return {
           success: false,
           error: `Error executing native scroll for "${key}": ${error.message}`,
+        };
+      }
+    }
+
+    // Handle Tab key with native focus navigation
+    if (originalKeyString === 'tab' && !hasNonShiftModifiers) {
+      try {
+        const success = simulateTabFocus(modifiers.shiftKey);
+        return { success, usedNativeFocus: true };
+      } catch (error) {
+        console.error(`Error executing native tab focus:`, error);
+        return {
+          success: false,
+          error: `Error executing native tab focus: ${error.message}`,
         };
       }
     }
