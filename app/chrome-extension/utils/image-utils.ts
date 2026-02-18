@@ -162,23 +162,31 @@ export async function compressImage(
     quality?: number;
     format?: 'image/jpeg' | 'image/webp';
     maxDimension?: number;
+    devicePixelRatio?: number; // DPR to convert device pixels to CSS pixels for coordinate calculation
   },
 ): Promise<{
   dataUrl: string;
   mimeType: string;
-  originalWidth: number;
-  originalHeight: number;
+  originalWidth: number; // CSS pixels (for click coordinates)
+  originalHeight: number; // CSS pixels (for click coordinates)
   scaledWidth: number;
   scaledHeight: number;
   scale: number;
 }> {
-  const { scale = 1.0, quality = 0.8, format = 'image/jpeg', maxDimension } = options;
+  const {
+    scale = 1.0,
+    quality = 0.8,
+    format = 'image/jpeg',
+    maxDimension,
+    devicePixelRatio = 1,
+  } = options;
 
   // 1. Create an ImageBitmap from the original data URL for efficient drawing.
   const imageBitmap = await createImageBitmapFromUrl(imageDataUrl);
 
-  const originalWidth = imageBitmap.width;
-  const originalHeight = imageBitmap.height;
+  // Report dimensions in CSS pixels (device pixels / DPR) for accurate click coordinate conversion
+  const originalWidth = Math.round(imageBitmap.width / devicePixelRatio);
+  const originalHeight = Math.round(imageBitmap.height / devicePixelRatio);
 
   // 2. Calculate the new dimensions based on the scale factor.
   let actualScale = scale;

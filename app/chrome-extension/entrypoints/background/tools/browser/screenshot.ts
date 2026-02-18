@@ -125,21 +125,23 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       // 2. Process output
       if (storeBase64 === true) {
         // Compress image for base64 output to reduce size
+        // Pass devicePixelRatio so originalWidth/Height are reported in CSS pixels (for click coordinates)
         const compressed = await compressImage(finalImageDataUrl, {
           scale: 0.7, // Reduce dimensions by 30%
           quality: 0.8, // 80% quality for good balance
           format: 'image/jpeg', // JPEG for better compression
           maxDimension: SCREENSHOT_CONSTANTS.MAX_BASE64_DIMENSION_PX, // Ensure within API limits
+          devicePixelRatio: pageDetails.devicePixelRatio || 1, // Convert device pixels to CSS pixels
         });
 
         // Include base64 data in response (without prefix)
         const base64Data = compressed.dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
         results.base64 = base64Data;
 
-        // Build scale info for AI to convert coordinates
+        // Build scale info for AI to convert coordinates (CSS pixels)
         const scaleInfo =
           compressed.scale < 1
-            ? `\n\nIMPORTANT: This screenshot has been scaled down to ${Math.round(compressed.scale * 100)}% of original size (${compressed.originalWidth}x${compressed.originalHeight} → ${compressed.scaledWidth}x${compressed.scaledHeight}). To click on a position you see in this image, multiply the coordinates by ${(1 / compressed.scale).toFixed(2)}. For example, if you see an element at (100, 200) in this image, the actual page coordinates are (${Math.round(100 / compressed.scale)}, ${Math.round(200 / compressed.scale)}). Alternatively, use chrome_get_interactive_elements to get accurate coordinates.`
+            ? `\n\nIMPORTANT: This screenshot has been scaled down to ${Math.round(compressed.scale * 100)}% of original size (${compressed.originalWidth}x${compressed.originalHeight} CSS pixels → ${compressed.scaledWidth}x${compressed.scaledHeight}). To click on a position you see in this image, multiply the coordinates by ${(1 / compressed.scale).toFixed(2)}. For example, if you see an element at (100, 200) in this image, the actual CSS pixel coordinates for clicking are (${Math.round(100 / compressed.scale)}, ${Math.round(200 / compressed.scale)}). Alternatively, use chrome_get_interactive_elements to get accurate coordinates.`
             : '';
 
         return {
