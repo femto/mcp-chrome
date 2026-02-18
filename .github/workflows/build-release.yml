@@ -53,6 +53,8 @@ jobs:
 
     - name: Build Chrome extension
       run: pnpm --filter chrome-mcp-extension build
+      env:
+        CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
 
     - name: Build Native server
       run: pnpm --filter mcp-chrome-bridger build
