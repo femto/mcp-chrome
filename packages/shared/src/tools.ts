@@ -230,6 +230,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'string',
           description: 'Value to fill or select into the element',
         },
+        useCDP: {
+          type: 'boolean',
+          description:
+            'Use Chrome DevTools Protocol for trusted input. Enable this for complex editors (like Lexical, ProseMirror) or sites with strict CSP (like Twitter, Reddit). Bypasses Content Security Policy restrictions. (default: false)',
+        },
       },
       required: ['selector', 'value'],
     },

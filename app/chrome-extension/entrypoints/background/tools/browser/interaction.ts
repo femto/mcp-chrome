@@ -107,6 +107,7 @@ export const clickTool = new ClickTool();
 interface FillToolParams {
   selector: string;
   value: string;
+  useCDP?: boolean; // Use Chrome DevTools Protocol for trusted input (bypasses CSP)
 }
 
 /**
@@ -119,7 +120,7 @@ class FillTool extends BaseBrowserToolExecutor {
    * Execute fill operation
    */
   async execute(args: FillToolParams): Promise<ToolResult> {
-    const { selector, value } = args;
+    const { selector, value, useCDP = false } = args;
 
     console.log(`Starting fill operation with options:`, args);
 
@@ -141,6 +142,11 @@ class FillTool extends BaseBrowserToolExecutor {
       const tab = tabs[0];
       if (!tab.id) {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+      }
+
+      // Use CDP for trusted input (bypasses CSP, works with complex editors like Lexical)
+      if (useCDP) {
+        return await this.fillWithCDP(tab.id, selector, value);
       }
 
       await this.injectContentScript(tab.id, ['inject-scripts/fill-helper.js']);
@@ -180,6 +186,218 @@ class FillTool extends BaseBrowserToolExecutor {
       console.error('Error in fill operation:', error);
       return createErrorResponse(
         `Error filling element: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Fill element using Chrome DevTools Protocol (CDP)
+   * This bypasses CSP and sends trusted input events
+   */
+  private async fillWithCDP(tabId: number, selector: string, value: string): Promise<ToolResult> {
+    const DEBUGGER_VERSION = '1.3';
+
+    try {
+      // Check if debugger is already attached
+      const targets = await chrome.debugger.getTargets();
+      const existingTarget = targets.find(
+        (t) => t.tabId === tabId && t.attached && t.type === 'page',
+      );
+
+      if (existingTarget && !existingTarget.extensionId) {
+        return createErrorResponse(
+          'Debugger is already attached to this tab (possibly by DevTools). Please close DevTools and try again.',
+        );
+      }
+
+      // Attach debugger
+      await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION);
+
+      try {
+        // Focus the element using Runtime.evaluate (bypasses CSP)
+        const focusResult = await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+          expression: `
+            (function() {
+              const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
+              if (!element) {
+                return { success: false, error: 'Element not found: ${selector.replace(/'/g, "\\'")}' };
+              }
+
+              // Click to activate (for complex editors)
+              element.click();
+
+              // Focus the element
+              element.focus();
+
+              // For contenteditable elements, select all content so insertText replaces it
+              if (element.contentEditable === 'true' || element.getAttribute('role') === 'textbox') {
+                // Select all content (insertText will replace selection)
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.selectNodeContents(element);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              } else if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                // For regular inputs, select all to replace
+                element.select();
+              }
+
+              return {
+                success: true,
+                tagName: element.tagName,
+                isContentEditable: element.contentEditable === 'true'
+              };
+            })()
+          `,
+          returnByValue: true,
+        });
+
+        const focusData = (focusResult as any)?.result?.value;
+        if (!focusData?.success) {
+          throw new Error(focusData?.error || 'Failed to focus element');
+        }
+
+        // Longer delay to ensure focus is fully established (complex editors need time)
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // For contenteditable, use Ctrl+A to select all via CDP keyboard (more reliable)
+        if (focusData.isContentEditable) {
+          await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+            type: 'keyDown',
+            key: 'a',
+            code: 'KeyA',
+            modifiers: 2, // Ctrl/Cmd
+          });
+          await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+            type: 'keyUp',
+            key: 'a',
+            code: 'KeyA',
+            modifiers: 2,
+          });
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+
+        // Strategy 1: Try Input.insertText first (fast, one-shot, more natural)
+        await chrome.debugger.sendCommand({ tabId }, 'Input.insertText', {
+          text: value,
+        });
+
+        // Small delay to let the editor process the input
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Verify if the text was actually inserted
+        const verifyResult = await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+          expression: `
+            (function() {
+              const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
+              if (!element) return { content: '', found: false };
+
+              // Get the actual content
+              let content = '';
+              if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                content = element.value || '';
+              } else {
+                content = element.textContent || element.innerText || '';
+              }
+
+              return { content: content.trim(), found: true };
+            })()
+          `,
+          returnByValue: true,
+        });
+
+        const verifyData = (verifyResult as any)?.result?.value;
+        const insertedContent = verifyData?.content || '';
+
+        // Check if insertText worked (content should contain our value)
+        const insertTextWorked =
+          insertedContent.includes(value) || insertedContent.length >= value.length * 0.8; // Allow some tolerance
+
+        // Strategy 2: Fall back to character-by-character if insertText didn't work
+        if (!insertTextWorked && verifyData?.found) {
+          console.log('insertText failed, falling back to character-by-character input');
+
+          // Helper for random delay (mimics human typing variance)
+          const randomDelay = (min: number, max: number) =>
+            new Promise((resolve) =>
+              setTimeout(resolve, Math.floor(Math.random() * (max - min + 1)) + min),
+            );
+
+          // Clear and refocus
+          await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+            expression: `
+              (function() {
+                const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
+                if (element) {
+                  if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                    element.value = '';
+                    element.select();
+                  } else {
+                    element.innerHTML = '';
+                  }
+                  element.focus();
+                }
+              })()
+            `,
+          });
+
+          await randomDelay(30, 80);
+
+          // Type each character using Input.dispatchKeyEvent
+          for (const char of value) {
+            await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+              type: 'keyDown',
+              key: char,
+            });
+
+            await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+              type: 'char',
+              text: char,
+            });
+
+            await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+              type: 'keyUp',
+              key: char,
+            });
+
+            // Human-like typing delays: longer pause after space/punctuation (finishing a word)
+            if (' .,!?;:\n'.includes(char)) {
+              await randomDelay(80, 200);
+            } else {
+              await randomDelay(5, 25);
+            }
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: [
+                'Fill operation successful (CDP mode)',
+                `Filled element: ${selector}`,
+                `Value: "${value}"`,
+                `Element: <${focusData.tagName?.toLowerCase() || 'unknown'}>`,
+                focusData.isContentEditable ? '(contenteditable element)' : '',
+              ]
+                .filter(Boolean)
+                .join('\n'),
+            },
+          ],
+          isError: false,
+        };
+      } finally {
+        // Always detach debugger
+        try {
+          await chrome.debugger.detach({ tabId });
+        } catch (e) {
+          console.warn('Error detaching debugger:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error in CDP fill operation:', error);
+      return createErrorResponse(
+        `Error filling element (CDP): ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

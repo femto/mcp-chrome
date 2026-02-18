@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Turn your Chrome into an MCP server. Let AI assistants like Claude/Codex control your browser - navigate, click, fill forms, take screenshots.",
+    "message": "Turn Chrome into an MCP server. Let AI control your browser - navigate, click, fill forms, take screenshots.",
     "description": "Extension description"
   },
   "nativeServerConfigLabel": {
