@@ -229,6 +229,10 @@ export async function compressImage(
     reader.readAsDataURL(compressedDataUrl);
   });
 
+  // Calculate CSS-based scale ratio for coordinate conversion
+  // This represents the ratio between compressed image coordinates and CSS pixel coordinates
+  const cssScale = newWidth / originalWidth;
+
   return {
     dataUrl,
     mimeType: format,
@@ -236,6 +240,6 @@ export async function compressImage(
     originalHeight,
     scaledWidth: newWidth,
     scaledHeight: newHeight,
-    scale: actualScale,
+    scale: cssScale,
   };
 }
