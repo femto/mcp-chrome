@@ -52,7 +52,7 @@ jobs:
       run: pnpm --filter chrome-mcp-shared build
 
     - name: Build Chrome extension
-      run: pnpm --filter chrome-mcp-extension build
+      run: pnpm --filter chrome-mcp-server build
       env:
         CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
 
@@ -63,6 +63,8 @@ jobs:
       run: |
         cd app/chrome-extension
         pnpm run zip
+      env:
+        CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
 
     - name: Upload Chrome extension artifact
       uses: actions/upload-artifact@v4
