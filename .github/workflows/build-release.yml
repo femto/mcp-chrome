@@ -49,7 +49,7 @@ jobs:
       run: pnpm install
 
     - name: Build shared packages
-      run: pnpm --filter chrome-mcp-shared build
+      run: pnpm --filter mcp-chrome-shared build
 
     - name: Build Chrome extension
       run: pnpm --filter chrome-mcp-server build
