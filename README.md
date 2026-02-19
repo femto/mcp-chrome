@@ -77,11 +77,13 @@ mcp-chrome-bridger register
 > Note: pnpm v7+ disables postinstall scripts by default for security. The `enable-pre-post-scripts` setting controls whether pre/post install scripts run. If automatic registration fails, use the manual registration command above.
 
 3. **Load Chrome Extension**
+
    - Open Chrome and go to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked" and select `your/dowloaded/extension/folder`
    - Click the extension icon to open the plugin, then click connect to see the MCP configuration
-     <img width="475" alt="Screenshot 2025-06-09 15 52 06" src="https://github.com/user-attachments/assets/241e57b8-c55f-41a4-9188-0367293dc5bc" />
+
+     ![Extension Popup](docs/images/extension-popup.png)
 
 ### Usage with MCP Protocol Clients
 
@@ -123,7 +125,7 @@ Then your final path would be: /Users/xxx/Library/pnpm/global/5/node_modules/mcp
 ```json
 {
   "mcpServers": {
-    "chrome-mcp-stdio": {
+    "mcp-chrome-stdio": {
       "command": "npx",
       "args": [
         "node",

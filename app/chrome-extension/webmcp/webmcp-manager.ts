@@ -4,7 +4,7 @@
  */
 
 import { siteToolsConfig, matchSiteConfig, SiteConfig, SiteTool } from './site-tools-config';
-import { NativeMessageType } from 'chrome-mcp-shared';
+import { NativeMessageType } from 'mcp-chrome-shared';
 import { emit as emitBusMessage } from '@/entrypoints/background/native-message-bus';
 
 // Worldbook API 配置

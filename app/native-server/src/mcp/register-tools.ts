@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import nativeMessagingHostInstance from '../native-messaging-host';
-import { NativeMessageType, TOOL_SCHEMAS } from 'chrome-mcp-shared';
+import { NativeMessageType, TOOL_SCHEMAS } from 'mcp-chrome-shared';
 import {
   getDynamicToolSchemas,
   getDynamicTool,

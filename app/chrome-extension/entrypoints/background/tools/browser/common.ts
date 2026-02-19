@@ -1,6 +1,6 @@
 import { createErrorResponse, ToolResult } from '@/common/tool-handler';
 import { BaseBrowserToolExecutor } from '../base-browser';
-import { TOOL_NAMES } from 'chrome-mcp-shared';
+import { TOOL_NAMES } from 'mcp-chrome-shared';
 
 // Default window dimensions
 const DEFAULT_WINDOW_WIDTH = 1280;
