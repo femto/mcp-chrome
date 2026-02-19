@@ -13,7 +13,7 @@ import {
   registerDynamicTools,
   unregisterDynamicTools,
 } from './dynamic-tools-registry';
-import { mcpServer } from './mcp-server';
+import { getActiveServers } from './mcp-server';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -28,7 +28,7 @@ function logToFile(msg: string) {
 let notifyTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
- * Send tools list changed notification to connected clients
+ * Send tools list changed notification to all connected clients
  */
 export function notifyToolsListChanged(): void {
   if (notifyTimeout) {
@@ -38,19 +38,25 @@ export function notifyToolsListChanged(): void {
   logToFile('notifyToolsListChanged called, scheduling notification...');
 
   notifyTimeout = setTimeout(async () => {
-    logToFile(`mcpServer exists: ${!!mcpServer}`);
-    if (mcpServer) {
+    const activeServers = getActiveServers();
+    logToFile(`Active servers count: ${activeServers.size}`);
+
+    if (activeServers.size === 0) {
+      logToFile('Cannot send notification - no active servers');
+      return;
+    }
+
+    // Notify all active servers
+    for (const server of activeServers) {
       try {
-        logToFile('Attempting to send notifications/tools/list_changed');
-        await mcpServer.notification({
+        logToFile('Attempting to send notifications/tools/list_changed to a server');
+        await server.notification({
           method: 'notifications/tools/list_changed',
         });
         logToFile('Successfully sent notifications/tools/list_changed');
       } catch (error: any) {
         logToFile(`Failed to send notification: ${error?.message || error}\n${error?.stack || ''}`);
       }
-    } else {
-      logToFile('Cannot send notification - mcpServer not initialized');
     }
   }, 300); // 300ms debounce
 }

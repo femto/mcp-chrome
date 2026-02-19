@@ -12,7 +12,8 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { randomUUID } from 'node:crypto';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import { getMcpServer } from '../mcp/mcp-server';
+import { createMcpServer, registerServer, unregisterServer } from '../mcp/mcp-server';
+import { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { handleDynamicToolsUpdate } from '../mcp/register-tools';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -81,6 +82,8 @@ export class Server {
   private nativeHost: NativeMessagingHost | null = null;
   private transportsMap: Map<string, StreamableHTTPServerTransport | SSEServerTransport> =
     new Map();
+  // Map to track MCP server instances for each session (multi-client support)
+  private mcpServersMap: Map<string, McpServer> = new Map();
 
   constructor() {
     this.fastify = Fastify({ logger: SERVER_CONFIG.LOGGER_ENABLED });
@@ -165,12 +168,22 @@ export class Server {
         const transport = new SSEServerTransport('/messages', reply.raw);
         this.transportsMap.set(transport.sessionId, transport);
 
+        // Create new MCP server instance for this connection (multi-client support)
+        const mcpServer = createMcpServer();
+        this.mcpServersMap.set(transport.sessionId, mcpServer);
+        registerServer(mcpServer);
+
         reply.raw.on('close', () => {
           this.transportsMap.delete(transport.sessionId);
+          // Cleanup MCP server instance
+          const server = this.mcpServersMap.get(transport.sessionId);
+          if (server) {
+            unregisterServer(server);
+            this.mcpServersMap.delete(transport.sessionId);
+          }
         });
 
-        const server = getMcpServer();
-        await server.connect(transport);
+        await mcpServer.connect(transport);
 
         // Keep connection open
         reply.raw.write(':\n\n');
@@ -212,6 +225,10 @@ export class Server {
       } else if (!sessionId && isInitializeRequest(request.body)) {
         logToFile(`[mcp] Creating new transport (initialize request)`);
         const newSessionId = randomUUID(); // Generate session ID
+
+        // Create new MCP server instance for this connection (multi-client support)
+        const mcpServer = createMcpServer();
+
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => newSessionId, // Use pre-generated ID
           onsessioninitialized: (initializedSessionId) => {
@@ -219,17 +236,25 @@ export class Server {
             // Ensure transport instance exists and session ID matches
             if (transport && initializedSessionId === newSessionId) {
               this.transportsMap.set(initializedSessionId, transport);
+              this.mcpServersMap.set(initializedSessionId, mcpServer);
+              registerServer(mcpServer);
             }
           },
         });
 
         transport.onclose = () => {
           logToFile(`[mcp] Transport onclose called for session ${transport?.sessionId}`);
-          if (transport?.sessionId && this.transportsMap.get(transport.sessionId)) {
+          if (transport?.sessionId) {
             this.transportsMap.delete(transport.sessionId);
+            // Cleanup MCP server instance
+            const server = this.mcpServersMap.get(transport.sessionId);
+            if (server) {
+              unregisterServer(server);
+              this.mcpServersMap.delete(transport.sessionId);
+            }
           }
         };
-        await getMcpServer().connect(transport);
+        await mcpServer.connect(transport);
         logToFile(`[mcp] MCP server connected to transport`);
       } else {
         logToFile(`[mcp] Invalid request - no session and not initialize`);
@@ -333,10 +358,8 @@ export class Server {
     }
 
     try {
-      // Initialize MCP server early so it's available for notifications
-      logToFile('Initializing MCP server...');
-      getMcpServer();
-      logToFile('MCP server initialized');
+      // MCP servers are now created per-connection (multi-client support)
+      logToFile('MCP multi-client support enabled');
 
       logToFile(`Starting Fastify on port ${port}...`);
       await this.fastify.listen({ port, host: SERVER_CONFIG.HOST });
