@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "8fe06580c92e",
+  "session_id": "ed381837-4c4b-4e6e-be38-d360d5c8e2c6",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T13:50:00.078265Z",
+  "branch": "master",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "app/chrome-extension/package.json",
+    "package.json"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "d1590ab6c819",
+  "transcript_identifier_at_start": "b51c2cb5-4b80-486e-bb8f-3daf312114d4",
+  "token_usage": {
+    "input_tokens": 3548,
+    "cache_creation_tokens": 2343012,
+    "cache_read_tokens": 32942084,
+    "output_tokens": 24018,
+    "api_call_count": 353
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T13:49:58.057044Z",
+    "agent_lines": 9,
+    "human_added": 202,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 211,
+    "agent_percentage": 4.265402843601896
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/ed381837-4c4b-4e6e-be38-d360d5c8e2c6.jsonl"
+}

@@ -3,7 +3,7 @@
   "checkpoint_id": "8fe06580c92e",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 1,
+  "checkpoints_count": 6,
   "files_touched": [
     "app/chrome-extension/package.json",
     "package.json"
@@ -15,13 +15,20 @@
       "context": "/8f/e06580c92e/0/context.md",
       "content_hash": "/8f/e06580c92e/0/content_hash.txt",
       "prompt": "/8f/e06580c92e/0/prompt.txt"
+    },
+    {
+      "metadata": "/8f/e06580c92e/1/metadata.json",
+      "transcript": "/8f/e06580c92e/1/full.jsonl",
+      "context": "/8f/e06580c92e/1/context.md",
+      "content_hash": "/8f/e06580c92e/1/content_hash.txt",
+      "prompt": "/8f/e06580c92e/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 482,
-    "cache_creation_tokens": 157267,
-    "cache_read_tokens": 956422,
-    "output_tokens": 1716,
-    "api_call_count": 23
+    "input_tokens": 4030,
+    "cache_creation_tokens": 2500279,
+    "cache_read_tokens": 33898506,
+    "output_tokens": 25734,
+    "api_call_count": 376
   }
 }

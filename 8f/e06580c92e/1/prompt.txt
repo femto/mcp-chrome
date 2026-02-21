@@ -1,0 +1,1256 @@
+2026-02-19 14:51:31.181 [info] [fetch] Adding new MCP server from updated configuration
+2026-02-19 14:51:31.181 [info] [fetch] Registering MCP server and starting connection
+2026-02-19 14:51:31.181 [info] [filesystem] Adding new MCP server from updated configuration
+2026-02-19 14:51:31.181 [info] [filesystem] Registering MCP server and starting connection
+2026-02-19 14:51:31.181 [info] [browsermcp] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [streamable-mcp-server] Adding new MCP server from updated configuration
+2026-02-19 14:51:31.181 [info] [streamable-mcp-server] Registering MCP server and starting connection
+2026-02-19 14:51:31.181 [info] [playwriter] Adding new MCP server from updated configuration
+2026-02-19 14:51:31.181 [info] [playwriter] Registering MCP server and starting connection
+2026-02-19 14:51:31.181 [info] [chrome-devtools] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [container-use] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [open-skills] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [deepwiki] Adding new MCP server from updated configuration
+2026-02-19 14:51:31.181 [info] [deepwiki] Registering MCP server and starting connection
+2026-02-19 14:51:31.181 [info] [browser-use] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [hybrid-browser] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [serena] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [power-postman-postman] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.181 [info] [power-figma-figma] New MCP server from updated configuration is disabled
+2026-02-19 14:51:31.285 [info] [streamable-mcp-server] MCP connection closed successfully
+2026-02-19 14:51:31.286 [error] [streamable-mcp-server] Error connecting to MCP server: Streamable HTTP error: Error POSTing to endpoint: {"error":"Already connected to a transport. Call close() before connecting to a new transport, or use a separate Protocol instance per connection."}
+2026-02-19 14:51:36.304 [warning] [fetch] Log from MCP Server: Installed 44 packages in 528ms
+
+2026-02-19 14:51:42.845 [info] [streamable-mcp-server] Reconnecting to server
+2026-02-19 14:51:42.845 [info] [streamable-mcp-server] Registering MCP server and starting connection
+2026-02-19 14:52:05.994 [info] [fetch] Connected to server with transport type: Stdio
+2026-02-19 14:52:06.004 [info] [fetch] Successfully connected and synced tools and resources for MCP server
+2026-02-19 14:52:07.009 [info] [deepwiki] MCP connection closed successfully
+2026-02-19 14:52:07.009 [error] [deepwiki] Error connecting to MCP server: SSE error: Non-200 status code (410)
+2026-02-19 14:52:27.858 [info] [streamable-mcp-server] MCP connection closed successfully
+2026-02-19 14:52:27.858 [error] [streamable-mcp-server] Error connecting to MCP server: Streamable HTTP error: Error POSTing to endpoint: {"error":"Already connected to a transport. Call close() before connecting to a new transport, or use a separate Protocol instance per connection."}
+2026-02-19 14:52:30.584 [info] [filesystem] MCP connection closed successfully
+2026-02-19 14:52:30.585 [error] [filesystem] Error connecting to MCP server: MCP error -32001: Request timed out
+2026-02-19 14:52:30.585 [info] [playwriter] MCP connection closed successfully
+2026-02-19 14:52:30.585 [error] [playwriter] Error connecting to MCP server: MCP error -32001: Request timed out
+2026-02-19 14:52:40.450 [info] [streamable-mcp-server] Reconnecting to server
+2026-02-19 14:52:40.450 [info] [streamable-mcp-server] Registering MCP server and starting connection
+2026-02-19 14:52:40.455 [info] [streamable-mcp-server] MCP connection closed successfully
+2026-02-19 14:52:40.456 [error] [streamable-mcp-server] Error connecting to MCP server: fetch failed
+2026-02-19 14:52:43.437 [info] [streamable-mcp-server] Reconnecting to server
+2026-02-19 14:52:43.438 [info] [streamable-mcp-server] Registering MCP server and starting connection
+2026-02-19 14:52:43.503 [info] [streamable-mcp-server] Connected to server with transport type: StreamableHTTP
+2026-02-19 14:52:43.518 [info] [streamable-mcp-server] Successfully connected and synced tools and resources for MCP server
+
+---
+
+之前为什么fail?transport不能复用?你自己claude mcp list也连不上啊，现在kiro连上了。
+
+---
+
+是啊，就是这个仓库
+
+---
+
+ok,我kiro里断开了，你能连上12306看看tools list么
+
+---
+
+我kiro disable了。为啥还是不能连
+
+---
+
+// server/index.ts:226-230
+  transport.onclose = () => {
+    // 只从 map 中删除了 transport
+    this.transportsMap.delete(transport.sessionId);
+    // 但没有调用 mcpServer.close() 来重置连接状态！
+  }; 这个估计不太对，对应transport关了，不是得把对应的close()掉?
+
+---
+
+ok,重连了，有多少个tool
+
+---
+
+奇怪了，那为啥webmcp_*没了
+
+---
+
+现在呢
+
+---
+
+现在呢
+
+---
+
+[Request interrupted by user]
+
+---
+
+/mcp
+
+L Failed to reconnect to chrome-mcp-server.又连不上?
+
+---
+
+Searched for 4 patterns, read 3 files (ctrl+o to expand)
+
+⏺ 版本不匹配！packages/shared 是 1.0.1，但 native-server 依赖 ^1.0.2。那就依赖没打包进去?得重新打包?
+
+---
+
+ok,可以帮我release一下么
+
+---
+
+github 上面release的是对的么
+
+---
+
+https://www.npmjs.com/package/chrome-mcp-shared?activeTab=readme 
+目前 chrome-mcp-shared这个包好像不是我们控制的，会有问题么
+得改个包名?
+
+---
+
+好.
+
+---
+
+好.
+
+---
+
+为啥现在连不上了
+
+---
+
+如何修复?
+
+---
+
+方案二
+
+---
+
+不行
+
+---
+
+或者临时用本地版本测试.
+
+---
+
+貌似可以，测试一下，随便访问个站点
+
+---
+
+pnpm publish │ 自动替换为实际版本号（如 ^1.0.0） 可是你构建中的打包是workspace:*的? publish仅仅上去替换一下版本号?
+
+---
+
+<task-notification>
+<task-id>b444439</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Find native messaging host config" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+workspace:*是pnpm语法，npm不支持?
+
+---
+
+本地build呢
+
+---
+
+本地build呢文件没了？
+
+---
+
+无法访问您的文件
+该文件可能已被移至别处、修改或删除。
+ERR_FILE_NOT_FOUND 本地插件 .output/chrome-mv3
+
+---
+
+pnpm publish其实是调用npm publish?
+
+---
+
+https://registry.uipkg.com/是?
+
+---
+
+git remote add origin git@github.com:femto/skills.git
+git branch -M main
+git push -u origin main
+我们发布点skills,你平级目录创建skills
+然后skills/worldbook 说明怎么用worldbook ~/python-project/worldbook worldbook-cli
+skills/browser-automation 说明怎么使用我们这个mcp-chrome
+参考https://github.com/vercel-labs/skills/tree/main/skills/find-skills
+
+---
+
+多了一层skills嵌套，仓库名skills, 不需要额外目录skills
+
+---
+
+奇怪. 我看https://github.com/vercel-labs/skills https://github.com/vercel-labs/agent-skills/tree/main这些又是有嵌套一个skills folder
+什么格式能被skills.sh索引到? 能帮我搜一下么，npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-best-practices
+或者看一下这里的实现原理 --skill vercel-react-best-practices
+
+---
+
+搜索顺序：
+  1. 根目录的 SKILL.md（单 skill 仓库）
+  2. skills/ 目录下的子目录
+  3. .claude/skills/、.cursor/skills/ 等 IDE 目录
+  4. 递归搜索所有目录 不过哪怕不是嵌套. 顶层的目录也会在第4步被搜索?
+
+---
+
+// Fall back to recursive search if nothing found, or if fullDepth is set
+  if (skills.length === 0 || options?.fullDepth) {
+    const allSkillDirs = await findSkillDirs(searchPath);
+    // ...
+  } .fullDepth是啥，命令行参数?
+
+---
+
+3. .claude/skills/、.cursor/skills/ 等 IDE 目录 awesome-claude-skills / composio-skills / claude-plugin / marketplace.json https://github.REDACTED.claude-plugin/marketplace.json#L602 这里是claude code插件 也能找到? 
+1 2 3 4是不是1找到了就不找2 2找到了就不找3?
+.网上有任何地方说skills.sh 啥时候索引么
+
+---
+
+skills.sh 索引机制：
+  - 不需要手动提交！
+  - 基于 npx skills CLI 的匿名遥测数据自动收集
+  - 当用户运行 npx skills add femto/skills@worldbook 时，会向 skills.sh 发送安装事件
+  - 排行榜基于安装次数
+
+  API 端点：
+  // 搜索 API
+  https://skills.sh/api/search?q=react&limit=10
+
+  所以你的 skill 会在第一次被安装后自动出现在 skills.sh 索引中！ 那我们自己本地安装一次吧
+
+---
+
+browser-automation竞争激烈,mcp-chrome少一点，但也太少了，估计用户不搜, playwright也挺多的
+
+---
+
+我们本身就叫mcp-chrome,当然是改成mcp-chrome.但是问题是用户不搜啊，太少了.
+
+---
+
+description会在skill.sh里搜索出现?可是也用在agent本身的skill progressive disclosure啊
+你这SEO破坏agent本身的skill progressive disclosure了吧
+
+---
+
+然后skills.sh上的安装数据是散落在不同别名下?
+
+---
+
+npm mcp-chrome-bridger,话说你觉得这名字好么，我们是mcp chrome native host
+
+---
+
+分析 bridger.这倒还好.这是我们自己chrome插件装完，得告诉用户也装npm包，
+所以暂时不考虑skills.sh排名问题.就自己包名有点意义，用户安装扩展的时候follow说明不太confuse
+
+---
+
+用户跟着说明 copy-paste，不太需要"理解"包名.是的. mcp-chrome-server虽然好一点，但是其实也差不太多?
+
+---
+
+bridger → server │ 略清晰一点点 │ deprecate、更新文档、用户困惑 │.现在用户也不多，我刚刚做.
+
+---
+
+mcp-chrome-server包名先抢注
+
+---
+
+好,你刚才装femto/skills命令是啥，我去其他机器也装一下，涨涨数据
+
+---
+
+语法不是npx skills add https://github.com/femto/skills --skill worldbook @worldbook也支持?
+
+---
+
+ok. X上可以发个帖子，说worldbook支持skills模式了
+
+---
+
+ok.skills前面有点问题 ## Installation
+
+```bash
+pip install worldbook-cli
+```
+
+Or install from source:
+
+```bash
+cd ~/python-project/worldbook
+pip install -e .
+```
+pip install worldbook 或者npm i -g worldbook 
+git clone 应该是这地址https://github.com/femto/worldbook-cli
+
+---
+
+```bash
+# Python
+pip install worldbook
+
+# Node.js
+npm i -g worldbook
+```
+不是并列，是or 用户有python环境就pip install, 有node环境就npm i
+### Query Knowledge
+
+Search the worldbook knowledge base:
+
+```bash
+worldbook query "What is the capital of France?"
+worldbook query "How to deploy a Next.js app"
+```
+这个本身我们的worldbook是不是不支持自然语言query啊? 目前应该是关键字query.
+可以让agent本身发送相关的关键字 看一下 ~/python-project/worldbook 
+实现应该是不支持，或者当然我们server也可以跑一个简单的llm ?
+
+---
+
+worldbook get github.其实已经拿回一段文本，就是agent call的result了，这些就会注入到上下文
+教agent如何使用 worldbook get stripe stripe不存在所以去掉. worldbook use stripe create-payment也没这个命令.
+worldbook get github 这些就会注入到上下文. 让关于自然语言 query：
+  - 当前 query 是 placeholder
+  - 可以后续加 LLM 把自然语言转关键词
+  - 或者让 Agent 自己做这层转换（Agent 本身就是 LLM）,让Agent自己转换关键字
+就行了，但是从关键字->book name好像worldbook还没实现?得实现?
+
+---
+
+ok. query当前实现是?
+
+---
+
+服务端 API 搜索 search又是怎么实现的?
+
+---
+
+https://skills.sh/vercel-labs/skills/find-skills 这是通过关键字么Skills
+▧
+AGENT LAB: SKILLS — FEB 26 NY
+Audits
+New
+Docs
+skills
+/
+vercel-labs
+/
+skills
+/
+find-skills
+find-skills
+
+$ npx skills add https://github.com/vercel-labs/skills --skill find-skills
+SKILL.md
+Find Skills
+This skill helps you discover and install skills from the open agent skills ecosystem.
+
+When to Use This Skill
+Use this skill when the user:
+
+Asks "how do I do X" where X might be a common task with an existing skill
+Says "find a skill for X" or "is there a skill for X"
+Asks "can you do X" where X is a specialized capability
+Expresses interest in extending agent capabilities
+Wants to search for tools, templates, or workflows
+Mentions they wish they had help with a specific domain (design, testing, deployment, etc.)
+What is the Skills CLI?
+The Skills CLI (npx skills) is the package manager for the open agent skills ecosystem. Skills are modular packages that extend agent capabilities with specialized knowledge, workflows, and tools.
+
+Key commands:
+
+npx skills find [query] - Search for skills interactively or by keyword
+npx skills add <package> - Install a skill from GitHub or other sources
+npx skills check - Check for skill updates
+npx skills update - Update all installed skills
+Browse skills at: https://skills.sh/
+
+How to Help Users Find Skills
+Step 1: Understand What They Need
+When a user asks for help with something, identify:
+
+The domain (e.g., React, testing, design, deployment)
+The specific task (e.g., writing tests, creating animations, reviewing PRs)
+Whether this is a common enough task that a skill likely exists
+Step 2: Search for Skills
+Run the find command with a relevant query:
+
+npx skills find [query]
+For example:
+
+User asks "how do I make my React app faster?" → npx skills find react performance
+User asks "can you help me with PR reviews?" → npx skills find pr review
+User asks "I need to create a changelog" → npx skills find changelog
+The command will return results like:
+
+Install with npx skills add <owner/repo@skill>
+
+vercel-labs/agent-skills@vercel-react-best-practices
+└ https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices
+Step 3: Present Options to the User
+When you find relevant skills, present them to the user with:
+
+The skill name and what it does
+The install command they can run
+A link to learn more at skills.sh
+Example response:
+
+I found a skill that might help! The "vercel-react-best-practices" skill provides
+React and Next.js performance optimization guidelines from Vercel Engineering.
+
+To install it:
+npx skills add vercel-labs/agent-skills@vercel-react-best-practices
+
+Learn more: https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices
+Step 4: Offer to Install
+If the user wants to proceed, you can install the skill for them:
+
+npx skills add <owner/repo@skill> -g -y
+The -g flag installs globally (user-level) and -y skips confirmation prompts.
+
+Common Skill Categories
+When searching, consider these common categories:
+
+Category    Example Queries
+Web Development    react, nextjs, typescript, css, tailwind
+Testing    testing, jest, playwright, e2e
+DevOps    deploy, docker, kubernetes, ci-cd
+Documentation    docs, readme, changelog, api-docs
+Code Quality    review, lint, refactor, best-practices
+Design    ui, ux, design-system, accessibility
+Productivity    workflow, automation, git
+Tips for Effective Searches
+Use specific keywords: "react testing" is better than just "testing"
+Try alternative terms: If "deploy" doesn't work, try "deployment" or "ci-cd"
+Check popular sources: Many skills come from vercel-labs/agent-skills or ComposioHQ/awesome-claude-skills
+When No Skills Are Found
+If no relevant skills exist:
+
+Acknowledge that no existing skill was found
+Offer to help with the task directly using your general capabilities
+Suggest the user could create their own skill with npx skills init
+Example:
+
+I searched for skills related to "xyz" but didn't find any matches.
+I can still help you with this task directly! Would you like me to proceed?
+
+If this is something you do often, you could create your own skill:
+npx skills init my-xyz-skill
+Weekly Installs
+271.6K
+Repository
+vercel-labs/skills
+First Seen
+Jan 26, 2026
+Security Audits
+Gen Agent Trust Hub
+Pass
+Socket
+Pass
+Snyk
+Warn
+Installed on
+opencode
+239.8K
+codex
+235.3K
+gemini-cli
+224.5K
+github-copilot
+221.4K
+amp
+213.6K
+kimi-cli
+197.0K
+find-skills by vercel-labs/skills
+
+---
+
+"searchType": "fuzzy",  // 模糊搜索 什么意思?
+
+---
+
+所以得server实现?server得存数据库吧?
+
+---
+
+femto:~/web-project/skills (main)$ npx skills find "do you know any good browser-automation library?"
+
+███████╗██╗  ██╗██╗██╗     ██╗     ███████╗
+██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝
+███████╗█████╔╝ ██║██║     ██║     ███████╗
+╚════██║██╔═██╗ ██║██║     ██║     ╚════██║
+███████║██║  ██╗██║███████╗███████╗███████║
+╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝
+
+Install with npx skills add <owner/repo@skill>
+
+inference-sh/skills@agentic-browser 34 installs
+└ https://skills.sh/inference-sh/skills/agentic-browser
+
+teachingai/full-stack-skills@agent-browser 23 installs
+└ https://skills.sh/teachingai/full-stack-skills/agent-browser
+
+manaflow-ai/cloudrouter@agent-browser 14 installs
+└ https://skills.sh/manaflow-ai/cloudrouter/agent-browser
+
+different-ai/opencode-browser@browser-automation 13 installs
+└ https://skills.sh/different-ai/opencode-browser/browser-automation
+
+partme-ai/full-stack-skills@agent-browser 12 installs
+└ https://skills.sh/partme-ai/full-stack-skills/agent-browser
+
+drshailesh88/integrated_content_os@browser-automation 12 installs
+└ https://skills.sh/drshailesh88/integrated_content_os/browser-automation find支持自然语言?
+
+---
+
+"searchType": "semantic"/"fuzzy"你从哪里知道的? find-skills源码?
+
+---
+
+你curl一下
+
+---
+
+worldbook 也要支持 semantic search 吗
+
+---
+
+ok.那么X帖子发一下
+
+---
+
+你帮我点发送
+
+---
+
+[Request interrupted by user]
+
+---
+
+npx skills add femto/skills -y 应该这句说明也要把，这样别人通过npx skills add femto/skills可以涨涨安装量
+
+---
+
+我们盖好的skills push了么
+
+---
+
+push again.
+
+---
+
+@~/python-project/minion-mind-website有og, X可以渲染card. https://worldbook.it.com没有
+能帮我加一下么
+
+---
+
+部署把，应该push就能触发github workflow?
+
+---
+
+Tagline below in smaller elegant text: 'Human uses GUI, We uses CLI.'这个去掉，这只是最近的说法
+长期不需要
+
+---
+
+#颜色，以及</>这些不能再图片上，看了太confusing
+
+---
+
+哪个好
+
+---
+
+这些呢
+
+---
+
+我感觉第1个不错
+
+---
+
+下载了，og-image.jpeg ，是这个,
+
+---
+
+worldbook/web/static/og-image.jpeg
+
+---
+
+一个回复只能一个card?第二个override掉第一个了?
+
+---
+
+那先把第二个og拿掉吧,minion-mind那个更好看
+
+---
+
+不。我的意思吧worldbook push一下，去掉og image.
+
+---
+
+那我发完过一段时间会自动变成第一个card么，还是说reply就变成不正常显示?
+
+---
+
+Skills
+▣
+AGENT LAB: SKILLS — FEB 26 NYC
+Audits
+New
+Docs
+skills
+/
+composiohq
+/
+awesome-claude-skills
+/
+twitter-algorithm-optimizer
+twitter-algorithm-optimizer
+
+$ npx skills add https://github.com/composiohq/awesome-claude-skills --skill twitter-algorithm-optimizer
+SKILL.md
+Twitter Algorithm Optimizer
+When to Use This Skill
+Use this skill when you need to:
+
+Optimize tweet drafts for maximum reach and engagement
+Understand why a tweet might not perform well algorithmically
+Rewrite tweets to align with Twitter's ranking mechanisms
+Improve content strategy based on the actual ranking algorithms
+Debug underperforming content and increase visibility
+Maximize engagement signals that Twitter's algorithms track
+What This Skill Does
+Analyzes tweets against Twitter's core recommendation algorithms
+Identifies optimization opportunities based on engagement signals
+Rewrites and edits tweets to improve algorithmic ranking
+Explains the "why" behind recommendations using algorithm insights
+Applies Real-graph, SimClusters, and TwHIN principles to content strategy
+Provides engagement-boosting tactics grounded in Twitter's actual systems
+How It Works: Twitter's Algorithm Architecture
+Twitter's recommendation system uses multiple interconnected models:
+
+Core Ranking Models
+Real-graph: Predicts interaction likelihood between users
+
+Determines if your followers will engage with your content
+Affects how widely Twitter shows your tweet to others
+Key signal: Will followers like, reply, or retweet this?
+SimClusters: Community detection with sparse embeddings
+
+Identifies communities of users with similar interests
+Determines if your tweet resonates within specific communities
+Key strategy: Make content that appeals to tight communities who will engage
+TwHIN: Knowledge graph embeddings for users and posts
+
+Maps relationships between users and content topics
+Helps Twitter understand if your tweet fits your follower interests
+Key strategy: Stay in your niche or clearly signal topic shifts
+Tweepcred: User reputation/authority scoring
+
+Higher-credibility users get more distribution
+Your past engagement history affects current tweet reach
+Key strategy: Build reputation through consistent engagement
+Engagement Signals Tracked
+Twitter's Unified User Actions service tracks both explicit and implicit signals:
+
+Explicit Signals (high weight):
+
+Likes (direct positive signal)
+Replies (indicates valuable content worth discussing)
+Retweets (strongest signal - users want to share it)
+Quote tweets (engaged discussion)
+Implicit Signals (also weighted):
+
+Profile visits (curiosity about the author)
+Clicks/link clicks (content deemed useful enough to explore)
+Time spent (users reading/considering your tweet)
+Saves/bookmarks (plan to return later)
+Negative Signals:
+
+Block/report (Twitter penalizes this heavily)
+Mute/unfollow (person doesn't want your content)
+Skip/scroll past quickly (low engagement)
+The Feed Generation Process
+Your tweet reaches users through this pipeline:
+
+Candidate Retrieval - Multiple sources find candidate tweets:
+
+Search Index (relevant keyword matches)
+UTEG (timeline engagement graph - following relationships)
+Tweet-mixer (trending/viral content)
+Ranking - ML models rank candidates by predicted engagement:
+
+Will THIS user engage with THIS tweet?
+How quickly will engagement happen?
+Will it spread to non-followers?
+Filtering - Remove blocked content, apply preferences
+
+Delivery - Show ranked feed to user
+
+Optimization Strategies Based on Algorithm Insights
+1. Maximize Real-graph (Follower Engagement)
+Strategy: Make content your followers WILL engage with
+
+Know your audience: Reference topics they care about
+Ask questions: Direct questions get more replies than statements
+Create controversy (safely): Debate attracts engagement (but avoid blocks/reports)
+Tag related creators: Increases visibility through networks
+Post when followers are active: Better early engagement means better ranking
+Example Optimization:
+
+❌ "I think climate policy is important"
+✅ "Hot take: Current climate policy ignores nuclear energy. Thoughts?" (triggers replies)
+2. Leverage SimClusters (Community Resonance)
+Strategy: Find and serve tight communities deeply interested in your topic
+
+Pick ONE clear topic: Don't confuse the algorithm with mixed messages
+Use community language: Reference shared memes, inside jokes, terminology
+Provide value to the niche: Be genuinely useful to that specific community
+Encourage community-to-community sharing: Quotes that spark discussion
+Build in your lane: Consistency helps algorithm understand your topic
+Example Optimization:
+
+❌ "I use many programming languages"
+✅ "Rust's ownership system is the most underrated feature. Here's why..." (targets specific dev community)
+3. Improve TwHIN Mapping (Content-User Fit)
+Strategy: Make your content clearly relevant to your established identity
+
+Signal your expertise: Lead with domain knowledge
+Consistency matters: Stay in your lanes (or clearly announce a new direction)
+Use specific terminology: Helps algorithm categorize you correctly
+Reference your past wins: "Following up on my tweet about X..."
+Build topical authority: Multiple tweets on same topic strengthen the connection
+Example Optimization:
+
+❌ "I like lots of things" (vague, confuses algorithm)
+✅ "My 3rd consecutive framework review as a full-stack engineer" (establishes authority)
+4. Boost Tweepcred (Authority/Credibility)
+Strategy: Build reputation through engagement consistency
+
+Reply to top creators: Interaction with high-credibility accounts boosts visibility
+Quote interesting tweets: Adds value and signals engagement
+Avoid engagement bait: Doesn't build real credibility
+Be consistent: Regular quality posting beats sporadic viral attempts
+Engage deeply: Quality replies and discussions matter more than volume
+Example Optimization:
+
+❌ "RETWEET IF..." (engagement bait, damages credibility over time)
+✅ "Thoughtful critique of the approach in [linked tweet]" (builds authority)
+5. Maximize Engagement Signals
+Explicit Signal Triggers:
+
+For Likes:
+
+Novel insights or memorable phrasing
+Validation of audience beliefs
+Useful/actionable information
+Strong opinions with supporting evidence
+For Replies:
+
+Ask a direct question
+Create a debate
+Request opinions
+Share incomplete thoughts (invites completion)
+For Retweets:
+
+Useful information people want to share
+Representational value (tweet speaks for them)
+Entertainment that entertains their followers
+Information advantage (breaking news first)
+For Bookmarks/Saves:
+
+Tutorials or how-tos
+Data/statistics they'll reference later
+Inspiration or motivation
+Jokes/entertainment they'll want to see again
+Example Optimization:
+
+❌ "Check out this tool" (passive)
+✅ "This tool saved me 5 hours this week. Here's how to set it up..." (actionable, retweet-worthy)
+6. Prevent Negative Signals
+Avoid:
+
+Inflammatory content likely to be reported
+Targeted harassment (gets algorithmic penalty)
+Misleading/false claims (damages credibility)
+Off-brand pivots (confuses the algorithm)
+Reply-guy syndrome (too many low-value replies)
+How to Optimize Your Tweets
+Step 1: Identify the Core Message
+What's the single most important thing this tweet communicates?
+Who should care about this?
+What action/engagement do you want?
+Step 2: Map to Algorithm Strategy
+Which Real-graph follower segment will engage? (Followers who care about X)
+Which SimCluster community? (Niche interested in Y)
+How does this fit your TwHIN identity? (Your established expertise)
+Does this boost or hurt Tweepcred?
+Step 3: Optimize for Signals
+Does it trigger replies? (Ask a question, create debate)
+Is it retweet-worthy? (Usefulness, entertainment, representational value)
+Will followers like it? (Novel, validating, actionable)
+Could it go viral? (Community resonance + network effects)
+Step 4: Check Against Negatives
+Any blocks/reports risk?
+Any confusion about your identity?
+Any engagement bait that damages credibility?
+Any inflammatory language that hurts Tweepcred?
+Example Optimizations
+Example 1: Developer Tweet
+Original:
+
+"I fixed a bug today"
+
+Algorithm Analysis:
+
+No clear audience - too generic
+No engagement signals - statements don't trigger replies
+No Real-graph trigger - followers won't engage strongly
+No SimCluster resonance - could apply to any developer
+Optimized:
+
+"Spent 2 hours debugging, turned out I was missing one semicolon. The best part? The linter didn't catch it.
+
+What's your most embarrassing bug? Drop it in replies 👇"
+
+Why It Works:
+
+SimCluster trigger: Specific developer community
+Real-graph trigger: Direct question invites replies
+Tweepcred: Relatable vulnerability builds connection
+Engagement: Likely replies (others share embarrassing bugs)
+Example 2: Product Launch Tweet
+Original:
+
+"We launched a new feature today. Check it out."
+
+Algorithm Analysis:
+
+Passive voice - doesn't indicate impact
+No specific benefit - followers don't know why to care
+No community resonance - generic
+Engagement bait risk if it feels like self-promotion
+Optimized:
+
+"Spent 6 months on the one feature our users asked for most: export to PDF.
+
+10x improvement in report generation time. Already live.
+
+What export format do you want next?"
+
+Why It Works:
+
+Real-graph: Followers in your product space will engage
+Specificity: "PDF export" + "10x improvement" triggers bookmarks (useful info)
+Question: Ends with engagement trigger
+Authority: You spent 6 months (shows credibility)
+SimCluster: Product management/SaaS community resonates
+Example 3: Opinion Tweet
+Original:
+
+"I think remote work is better than office work"
+
+Algorithm Analysis:
+
+Vague opinion - doesn't invite engagement
+Could be debated either way - no clear position
+No Real-graph hooks - followers unclear if they should care
+Generic topic - dilutes your personal brand
+Optimized:
+
+"Hot take: remote work works great for async tasks but kills creative collaboration.
+
+We're now hybrid: deep focus days remote, collab days in office.
+
+What's your team's balance? Genuinely curious what works."
+
+Why It Works:
+
+Clear position: Not absolutes, nuanced stance
+Debate trigger: "Hot take" signals discussion opportunity
+Question: Direct engagement request
+Real-graph: Followers in your industry will have opinions
+SimCluster: CTOs, team leads, engineering managers will relate
+Tweepcred: Nuanced thinking builds authority
+Best Practices for Algorithm Optimization
+Quality Over Virality: Consistent engagement from your community beats occasional viral moments
+Community First: Deep resonance with 100 engaged followers beats shallow reach to 10,000
+Authenticity Matters: The algorithm rewards genuine engagement, not manipulation
+Timing Helps: Engage early when tweet is fresh (first hour critical)
+Build Threads: Threaded tweets often get more engagement than single tweets
+Follow Up: Reply to replies quickly - Twitter's algorithm favors active conversation
+Avoid Spam: Engagement pods and bots hurt long-term credibility
+Track Your Performance: Notice what YOUR audience engages with and iterate
+Common Pitfalls to Avoid
+Generic statements: Doesn't trigger algorithm (too vague)
+Pure engagement bait: "Like if you agree" - hurts credibility long-term
+Unclear audience: Who should care? If unclear, algorithm won't push it far
+Off-brand pivots: Confuses algorithm about your identity
+Over-frequency: Spamming hurts engagement rate metrics
+Toxicity: Blocks/reports heavily penalize future reach
+No calls to action: Passive tweets underperform
+When to Ask for Algorithm Optimization
+Use this skill when:
+
+You've drafted a tweet and want to maximize reach
+A tweet underperformed and you want to understand why
+You're launching important content and want algorithm advantage
+You're building audience in a specific niche
+You want to become known for something specific
+You're debugging inconsistent engagement rates
+Use Claude without this skill for:
+
+General writing and grammar fixes
+Tone adjustments not related to algorithm
+Off-Twitter content (LinkedIn, Medium, blogs, etc.)
+Personal conversations and casual tweets
+Weekly Installs
+443
+Repository
+composiohq/awesome-claude-skills
+First Seen
+Jan 21, 2026
+Security Audits
+Gen Agent Trust Hub
+Pass
+Socket
+Pass
+Snyk
+Pass
+Installed on
+claude-code
+351
+opencode
+326
+gemini-cli
+281
+codex
+262
+cursor
+223
+antigravity
+221
+twitter-algorithm-optimizer by composiohq/awesome-claude-skills
+ 他这明显用了https://skills.sh/composiohq/awesome-claude-skills/twitter-algorithm-optimizer 
+我们也发一条类似的?符合worldbook  invite的people(那些agent)
+
+---
+
+Tired of MCP complexity
+  → Want CLI-first tools 这个问题在于,我们随后的webmcp就是走mcp协议了。。
+
+---
+
+Hey @X algorithm,
+
+  Only show this to people who are:
+
+  → Building AI agents
+  → Working with Claude Code / Cursor / Kiro
+  → Tired of MCP complexity
+  → Want CLI-first tools
+
+  Let's build the AI-accessible web together! 🤖
+
+  npx skills add femto/skills -y 第一条就第一条吧，这条没有https://worldbook.it.com link，能加么
+twitter优化算法没关系吧，多加一个link?
+
+---
+
+link先还是npx skills add femto/skills -y先?
+
+---
+
+https://worldbook.it.com加上了还有card缓存，视觉上并不好感觉?
+
+---
+
+ok.前面X skills帖子转成中文，我微信群发
+
+---
+
+worldbook我们不是刚刚去除了og, discord里头可以显示card，是缓存，还是discord支持?
+
+---
+
+目前仅仅23 views,我等下21:00 repost么,还是等明天repost?
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze this conversation:
+
+1. **Multi-client MCP support implementation**:
+   - User wanted to support multiple clients (Claude Code, Kiro, Cursor) connecting simultaneously
+   - Created factory function `createMcpServer()` instead of singleton
+   - Added `registerServer()` and `unregisterServer()` functions
+   - Modified `server/index.ts` to create new MCP server per connection
+   - Had to switch from global npm package to local build for testing
+
+2. **Package naming and publishing**:
+   - Renamed `chrome-mcp-shared` to `mcp-chrome-shared` to avoid npm conflicts
+   - Published `mcp-chrome-shared@1.0.0` to npm
+   - Published `mcp-chrome-bridger@1.0.10` with multi-client support
+   - Discussed `workspace:*` pnpm syntax (auto-converts to version on publish)
+   - Reserved `mcp-chrome-server` package name for potential future rename
+
+3. **Skills repository creation**:
+   - Created `https://github.com/femto/skills` repository
+   - Initially created flat structure, then corrected to `skills/` nested structure for CLI compatibility
+   - Two skills: `worldbook` and `browser-automation`
+   - Learned skills CLI searches: root SKILL.md → skills/ dir → IDE dirs (.claude/skills, etc.) → recursive fallback
+   - Installed skills locally to trigger skills.sh indexing
+
+4. **Skills.sh analysis**:
+   - API endpoint: `https://skills.sh/api/search?q=...`
+   - Two search types: `fuzzy` (keywords, 18ms) and `semantic` (natural language, 416ms)
+   - Ranking based on install counts
+   - Telemetry-based indexing (no manual submission needed)
+
+5. **Worldbook SKILL.md corrections**:
+   - Fixed installation instructions (pip install worldbook OR npm i -g worldbook)
+   - Corrected CLI commands (query and get are the actual commands, not use/search)
+   - Added `worldbook --help` hint
+   - Source is https://github.com/femto/worldbook-cli
+
+6. **Worldbook query implementation**:
+   - CLI `query` calls `https://worldbook.it.com/api/search` API
+   - Server-side: simple string matching with weighted scoring (title +10, description +5, content +2)
+   - Mock data (hardcoded worldbooks)
+   - Decided semantic search not needed (agents can extract keywords themselves)
+
+7. **Twitter/X posting and OG tags**:
+   - Posted worldbook skills announcement
+   - Added OG tags to worldbook landing.html
+   - Generated og-image.png programmatically, then replaced with Grok-generated og-image.jpeg
+   - Removed OG tags temporarily because Twitter only shows one card per tweet (last link wins)
+   - Discord uses fallback to `<title>` and `<meta description>` when no OG
+
+8. **Twitter algorithm optimization discussion**:
+   - Referenced composiohq's twitter-algorithm-optimizer skill
+   - Created algorithm-optimized tweet targeting AI agent builders
+   - Discussed link placement and card behavior
+
+Summary:
+1. Primary Request and Intent:
+   - Implement multi-client support for MCP Chrome server (Claude Code, Kiro, Cursor simultaneously)
+   - Create and publish skills repository with worldbook and browser-automation skills
+   - Add OG tags to worldbook.it.com for Twitter card preview
+   - Post promotional tweets for worldbook skills
+   - Various npm package management and naming discussions
+
+2. Key Technical Concepts:
+   - MCP Server multi-client architecture (factory pattern vs singleton)
+   - pnpm `workspace:*` protocol (auto-converts to version on publish)
+   - Skills CLI search order: root SKILL.md → skills/ dir → IDE dirs → recursive
+   - skills.sh indexing via telemetry (install events)
+   - Search types: `fuzzy` vs `semantic` (embedding-based)
+   - Twitter OG tags and card caching behavior
+   - Discord fallback to `<title>` and `<meta description>` when no OG
+
+3. Files and Code Sections:
+   - `/app/native-server/src/mcp/mcp-server.ts` - Changed from singleton to factory pattern
+     ```typescript
+     export function createMcpServer(): Server { ... }
+     export function registerServer(server: Server): void { ... }
+     export function unregisterServer(server: Server): void { ... }
+     export function getActiveServers(): Set<Server> { ... }
+     ```
+   
+   - `/app/native-server/src/server/index.ts` - Creates new MCP server per connection
+   
+   - `/Users/femtozheng/web-project/skills/skills/worldbook/SKILL.md` - Worldbook skill definition
+     - Fixed installation: `pip install worldbook` OR `npm i -g worldbook`
+     - Commands: `worldbook query <keyword>` and `worldbook get <book-name>`
+   
+   - `/Users/femtozheng/web-project/skills/skills/browser-automation/SKILL.md` - Chrome MCP skill
+     - Added `mcp-chrome-bridger register` command
+   
+   - `/Users/femtozheng/python-project/worldbook/worldbook/web/templates/landing.html` - OG tags added then removed
+     - Currently has `<title>` and `<meta description>` only (OG removed for Twitter caching issue)
+
+4. Errors and fixes:
+   - Global npm package being used instead of local build: Updated native messaging host config to point to local dist
+   - Chrome extension build failed (missing WASM file): Manually copied workers files to .output directory
+   - Skills directory structure wrong (flat vs nested): Changed to `skills/worldbook/` structure for CLI compatibility
+   - Twitter card caching: Removed OG tags from worldbook to avoid showing card (user preferred minion-mind card)
+
+5. Problem Solving:
+   - Multi-client MCP: Each connection now gets its own Server instance, tracked in activeServers Set
+   - Package naming: Reserved `mcp-chrome-server` on npm for potential future rename from `mcp-chrome-bridger`
+   - Skills indexing: Installed skills locally to trigger telemetry and appear on skills.sh
+   - OG image: Generated programmatically, then user provided Grok-generated image
+
+6. All user messages:
+   - Discussion about multi-client MCP support implementation
+   - Questions about workspace:* pnpm syntax and npm publish behavior
+   - Request to create skills repository at femto/skills
+   - Corrections about worldbook CLI commands and installation
+   - Question about skills.sh search/indexing mechanism
+   - Request to add OG tags to worldbook.it.com
+   - OG image selection from Grok-generated options
+   - Request to remove OG tags due to Twitter card conflict
+   - Twitter post drafting for algorithm optimization
+   - Chinese translation request for WeChat
+   - Question about Discord card display (fallback behavior)
+   - Question about repost timing (21:00 or tomorrow)
+
+7. Pending Tasks:
+   - User asked about repost timing (21:00 tonight vs tomorrow) - awaiting decision
+   - Twitter card cache will eventually clear for worldbook
+
+8. Current Work:
+   User posted a tweet promoting worldbook skills with 23 views after 6 hours. They asked:
+   "目前仅仅23 views,我等下21:00 repost么,还是等明天repost?"
+   (Currently only 23 views, should I repost at 21:00 or wait until tomorrow?)
+
+9. Optional Next Step:
+   Advise user on optimal repost timing based on Twitter algorithm insights (evening vs next day engagement patterns). The user is deciding between reposting at 21:00 tonight or waiting until tomorrow for better reach.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/femtozheng/.REDACTED.jsonl
+Please continue the conversation from where we left it off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+whttps://www.youtube.com/watch?v=V2qjnBDZZ7A 你看一下Better Stack .
+我们要不要留言怎么submit 东西给他们讲，比如worldbook 里头的cli book支持
+
+---
+
+哦.原来如此啊，其实我是想submit worldbook让better stack 发youtube的，你的意思让他们submit better stack cli?
+
+---
+
+well.“其实我是想submit worldbook让better stack 发youtube的”，目前你这发的又长，又self promotion,可能不太好，要么回到前面的反过来让他们submit cli,
+如果他们hook了反馈到时候再提要求?
+
+---
+
+奇怪，我发的comment没啦，被删除了? 是不是youtube自动删?他们自己不可能那么快看到的
+
+---
+
+Great analysis! This aligns with what we're building at worldbook.it.com - a knowledge base where AI agents can query CLI instructions for any service.
+
+The CLI approach wins because:
+1. Less token overhead (as you showed, 18% savings)
+2. Universal - every agent understands stdin/stdout
+3. No protocol setup needed
+
+We have a worldbook for Playwright CLI: `worldbook get playwright`
+
+Would love to submit a worldbook entry for Better Stack's tools if you have CLI documentation we could reference!
+
+Check it out: worldbook.it.com这样呢，Link去了
+
+---
+
+Great analysis! This aligns with what we're building at worldbook.it.com - a knowledge base where AI agents can query CLI instructions for any service.
+
+The CLI approach wins because:
+1. Less token overhead (as you showed, 18% savings)
+2. Universal - every agent understands stdin/stdout
+3. No protocol setup needed
+
+We have a worldbook for Playwright CLI: `worldbook get playwright`
+
+Would love to submit a worldbook entry for Better Stack's tools if you have CLI documentation we could reference!
+
+Check it out: worldbook.it.com 第一个就被youtube转成link了.
+
+---
+
+Worldbook搜不到啊，就是原世界之书
+
+---
+
+Great analysis! This aligns with what we're building at worldbook.it.com - a knowledge base where AI agents can query CLI instructions for any service.
+
+The CLI approach wins because:
+1. Less token overhead (as you showed, 18% savings)
+2. Universal - every agent understands stdin/stdout
+3. No protocol setup needed
+
+We have a worldbook for Playwright CLI: `worldbook get playwright`
+
+Would love to submit a worldbook entry for Better Stack's tools if you have CLI documentation we could reference!这个也被删.
+
+---
+
+Great analysis! The CLI approach wins - we built a knowledge base for this at github.com/femto/worldbook-cli
+
+  Would love to add Better Stack's tools if you have CLI docs!这个呢
+
+---
+
+不行，还是被删.
+
+---
+
+如果youtube dm他们呢
+
+---
+
+hello@betterstack.com
+
+---
+
+既然email，就强调站点本身, github.com/femto/worldbook-cli可以后置? or?
+
+---
+
+你这复制有不可见字符?输出到临时文件
+
+---
+
+<bash-input>pwd</bash-input>
+
+---
+
+<bash-stdout>/Users/femtozheng/web-project/mcp-chrome</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+这个npm 包装了不需要register命令么?
+
+---
+
+不是.本来不是有npm postinstall 脚本么?
+
+---
+
+SKILL.md?哪里有写?
+
+---
+
+可是我npm install -g mcp-chrome-bridger 不会写native host 注册脚本啊?
