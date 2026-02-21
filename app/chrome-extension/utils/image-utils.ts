@@ -163,6 +163,8 @@ export async function compressImage(
     format?: 'image/jpeg' | 'image/webp';
     maxDimension?: number;
     devicePixelRatio?: number; // DPR to convert device pixels to CSS pixels for coordinate calculation
+    sourceCssWidth?: number; // CSS width of the source image (preferred for coordinate conversion)
+    sourceCssHeight?: number; // CSS height of the source image (preferred for coordinate conversion)
   },
 ): Promise<{
   dataUrl: string;
@@ -172,6 +174,8 @@ export async function compressImage(
   scaledWidth: number;
   scaledHeight: number;
   scale: number;
+  scaleX: number;
+  scaleY: number;
 }> {
   const {
     scale = 1.0,
@@ -179,14 +183,22 @@ export async function compressImage(
     format = 'image/jpeg',
     maxDimension,
     devicePixelRatio = 1,
+    sourceCssWidth,
+    sourceCssHeight,
   } = options;
 
   // 1. Create an ImageBitmap from the original data URL for efficient drawing.
   const imageBitmap = await createImageBitmapFromUrl(imageDataUrl);
 
-  // Report dimensions in CSS pixels (device pixels / DPR) for accurate click coordinate conversion
-  const originalWidth = Math.round(imageBitmap.width / devicePixelRatio);
-  const originalHeight = Math.round(imageBitmap.height / devicePixelRatio);
+  // Report dimensions in CSS pixels (preferred: DOM-provided CSS size)
+  const originalWidth =
+    typeof sourceCssWidth === 'number' && Number.isFinite(sourceCssWidth) && sourceCssWidth > 0
+      ? sourceCssWidth
+      : imageBitmap.width / devicePixelRatio;
+  const originalHeight =
+    typeof sourceCssHeight === 'number' && Number.isFinite(sourceCssHeight) && sourceCssHeight > 0
+      ? sourceCssHeight
+      : imageBitmap.height / devicePixelRatio;
 
   // 2. Calculate the new dimensions based on the scale factor.
   let actualScale = scale;
@@ -231,7 +243,8 @@ export async function compressImage(
 
   // Calculate CSS-based scale ratio for coordinate conversion
   // This represents the ratio between compressed image coordinates and CSS pixel coordinates
-  const cssScale = newWidth / originalWidth;
+  const cssScaleX = newWidth / originalWidth;
+  const cssScaleY = newHeight / originalHeight;
 
   return {
     dataUrl,
@@ -240,6 +253,8 @@ export async function compressImage(
     originalHeight,
     scaledWidth: newWidth,
     scaledHeight: newHeight,
-    scale: cssScale,
+    scale: cssScaleX,
+    scaleX: cssScaleX,
+    scaleY: cssScaleY,
   };
 }

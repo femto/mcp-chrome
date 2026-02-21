@@ -106,16 +106,31 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       });
       originalScroll = { x: pageDetails.currentScrollX, y: pageDetails.currentScrollY };
 
+      let sourceCssWidth: number | undefined;
+      let sourceCssHeight: number | undefined;
+
       if (fullPage) {
         this.logInfo('Capturing full page...');
-        finalImageDataUrl = await this._captureFullPage(tab.id!, args, pageDetails);
+        const fullPageResult = await this._captureFullPage(tab.id!, args, pageDetails);
+        finalImageDataUrl = fullPageResult.dataUrl;
+        sourceCssWidth = fullPageResult.cssWidth;
+        sourceCssHeight = fullPageResult.cssHeight;
       } else if (selector) {
         this.logInfo(`Capturing element: ${selector}`);
-        finalImageDataUrl = await this._captureElement(tab.id!, args, pageDetails.devicePixelRatio);
+        const elementResult = await this._captureElement(
+          tab.id!,
+          args,
+          pageDetails.devicePixelRatio,
+        );
+        finalImageDataUrl = elementResult.dataUrl;
+        sourceCssWidth = elementResult.cssWidth;
+        sourceCssHeight = elementResult.cssHeight;
       } else {
         // Visible area only
         this.logInfo('Capturing visible area...');
         finalImageDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+        sourceCssWidth = pageDetails.viewportWidth;
+        sourceCssHeight = pageDetails.viewportHeight;
       }
 
       if (!finalImageDataUrl) {
@@ -132,6 +147,8 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
           format: 'image/jpeg', // JPEG for better compression
           maxDimension: SCREENSHOT_CONSTANTS.MAX_BASE64_DIMENSION_PX, // Ensure within API limits
           devicePixelRatio: pageDetails.devicePixelRatio || 1, // Convert device pixels to CSS pixels
+          sourceCssWidth,
+          sourceCssHeight,
         });
 
         // Include base64 data in response (without prefix)
@@ -139,10 +156,12 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         results.base64 = base64Data;
 
         // Build scale info for AI to convert coordinates (CSS pixels)
-        const scaleInfo =
-          compressed.scale < 1
-            ? `\n\nIMPORTANT: This screenshot has been scaled down to ${Math.round(compressed.scale * 100)}% of original size (${compressed.originalWidth}x${compressed.originalHeight} CSS pixels → ${compressed.scaledWidth}x${compressed.scaledHeight}). To click on a position you see in this image, multiply the coordinates by ${(1 / compressed.scale).toFixed(2)}. For example, if you see an element at (100, 200) in this image, the actual CSS pixel coordinates for clicking are (${Math.round(100 / compressed.scale)}, ${Math.round(200 / compressed.scale)}). Alternatively, use chrome_get_interactive_elements to get accurate coordinates.`
-            : '';
+        const scaleX = compressed.scaleX ?? compressed.scale;
+        const scaleY = compressed.scaleY ?? compressed.scale;
+        const scaleChanged = Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01;
+        const scaleInfo = scaleChanged
+          ? `\n\nIMPORTANT: This screenshot has been rescaled relative to the page CSS size.\nImage: ${Math.round(compressed.scaledWidth)}x${Math.round(compressed.scaledHeight)} px\nPage CSS: ${Math.round(compressed.originalWidth)}x${Math.round(compressed.originalHeight)} px\nConvert image coords → CSS coords: x_css = x_img / ${scaleX.toFixed(4)}, y_css = y_img / ${scaleY.toFixed(4)}.\nExample: (100, 200) → (${Math.round(100 / scaleX)}, ${Math.round(200 / scaleY)}).\nAlternatively, use chrome_get_interactive_elements to get accurate coordinates.`
+          : '';
 
         return {
           content: [
@@ -252,7 +271,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
     tabId: number,
     options: ScreenshotToolParams,
     pageDpr: number,
-  ): Promise<string> {
+  ): Promise<{ dataUrl: string; cssWidth: number; cssHeight: number }> {
     const elementDetails = await this.sendMessageToTab(tabId, {
       action: TOOL_MESSAGE_TYPES.SCREENSHOT_GET_ELEMENT_DETAILS,
       selector: options.selector,
@@ -284,7 +303,16 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       options.width, // Target output width in CSS pixels
       options.height, // Target output height in CSS pixels
     );
-    return canvasToDataURL(croppedCanvas);
+    const dataUrl = await canvasToDataURL(croppedCanvas);
+    const cssWidth =
+      typeof options.width === 'number' && Number.isFinite(options.width)
+        ? options.width
+        : elementDetails.rect.width;
+    const cssHeight =
+      typeof options.height === 'number' && Number.isFinite(options.height)
+        ? options.height
+        : elementDetails.rect.height;
+    return { dataUrl, cssWidth, cssHeight };
   }
 
   /**
@@ -294,7 +322,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
     tabId: number,
     options: ScreenshotToolParams,
     initialPageDetails: any,
-  ): Promise<string> {
+  ): Promise<{ dataUrl: string; cssWidth: number; cssHeight: number }> {
     const dpr = initialPageDetails.devicePixelRatio;
     const totalWidthCss = options.width || initialPageDetails.totalWidth; // Use option width if provided
     const totalHeightCss = initialPageDetails.totalHeight; // Full page always uses actual height
@@ -413,7 +441,24 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       }
     }
 
-    return canvasToDataURL(outputCanvas);
+    const dataUrl = await canvasToDataURL(outputCanvas);
+    let cssWidth: number;
+    let cssHeight: number;
+    if (options.width && !options.height) {
+      cssWidth = options.width;
+      cssHeight = options.width * (limitedHeightCss / totalWidthCss);
+    } else if (options.height && !options.width) {
+      cssHeight = options.height;
+      cssWidth = options.height * (totalWidthCss / limitedHeightCss);
+    } else if (options.width && options.height) {
+      cssWidth = options.width;
+      cssHeight = options.height;
+    } else {
+      cssWidth = totalWidthCss;
+      cssHeight = limitedHeightCss;
+    }
+
+    return { dataUrl, cssWidth, cssHeight };
   }
 }
 

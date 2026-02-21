@@ -72,8 +72,8 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
     // Prepare page for capture
     else if (request.action === 'preparePageForCapture') {
       originalOverflowStyle = document.documentElement.style.overflow;
-      document.documentElement.style.overflow = 'hidden'; // Hide main scrollbar
       if (request.options?.fullPage) {
+        document.documentElement.style.overflow = 'hidden'; // Hide main scrollbar for full-page capture
         // Only hide fixed elements for full page to avoid flicker
         hideFixedElements();
       }
