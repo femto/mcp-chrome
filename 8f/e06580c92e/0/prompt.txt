@@ -1,0 +1,104 @@
+arc, chrome canary也能装，然后native host server配置路径一致么
+
+---
+
+可是我arc居然能用?
+
+---
+
+com.chromemcp.nativehost.json 这个的话，native host跟源作者的文件名一致，是不是意味着原作者的就不能用了
+
+---
+
+<bash-input>pwd</bash-input>
+
+---
+
+<bash-stdout>/Users/femtozheng/web-project/mcp-chrome</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+ok. key为空build一个新的软件包for chrome商店.或者加一个package.json task
+
+---
+
+好.build吧. pnpm zip:webstore和pnpm zip构建的最终产物名字相同?
+
+---
+
+<bash-input>open .</bash-input>
+
+---
+
+<bash-stdout></bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+<bash-input>pwd</bash-input>
+
+---
+
+<bash-stdout>/Users/femtozheng/web-project/mcp-chrome/app/chrome-extension</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+好，full path给我一下，我chrome商店审批
+
+---
+
+Chrome MCP Server — AI-Powered Browser Automation via Model Context Protocol
+
+  The best MCP server for Chrome browser automation. Transform your Chrome browser into a fully-featured MCP (Model Context Protocol) server, enabling AI coding assistants to interact with your browser in real
+  time.
+
+  🔧 PREREQUISITES
+  - Node.js ≥ 20.0.0
+  - Chrome or Chromium browser
+
+  📦 QUICK SETUP (3 steps)
+
+  1. Install the native bridge:
+     npm install -g mcp-chrome-bridger
+     Then run: mcp-chrome-bridger register
+    Or pnpm install -g mcp-chrome-bridger
+    Then run: mcp-chrome-bridger register
+
+  2. Load this extension and click "Connect" in the popup.
+
+  3. Add to your MCP client config (Claude Code / Cursor / Windsurf / Kiro / Cline etc), 
+following the info in your popup:
+   {
+     "mcpServers": {
+       "mcp-chrome": {
+         "type": "http",
+         "url": "http://127.0.0.1:12306/mcp"
+       }
+     }
+   }
+
+  ✨ KEY FEATURES
+  - Navigate and control browser tabs programmatically
+  - Take full-page or viewport screenshots
+  - Extract and parse page content (text, HTML, DOM)
+  - Interact with page elements — click, scroll, hover
+  - Fill and submit forms automatically
+  - Capture and inspect network requests
+  - Search browsing history and bookmarks
+  - Multi-tab management and coordination
+
+  🤖 COMPATIBLE AI CLIENTS
+  Works with any MCP-compatible AI assistant:
+
+  🔒 PRIVACY & SECURITY
+  This extension only communicates with a local native bridge on your own machine (127.0.0.1). No data is sent to external servers by the extension itself.
+
+  📖 OPEN SOURCE
+  Full source code and documentation available on GitHub:
+  https://github.com/femto/mcp-chrome
+
+  ⚠️ REQUIREMENT: The mcp-chrome-bridger npm package must be installed on your system for full functionality.
+我加了following the info in your popup:语法有点不对，帮我格式化一下
+
+---
+
+Load this extension and click "Connect" in the popup.完了是有信息的，所以第3条应该是follow the info ..啥的
