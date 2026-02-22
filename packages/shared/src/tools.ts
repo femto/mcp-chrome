@@ -363,6 +363,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'number',
           description: 'Delay between key sequences in milliseconds (optional, default: 0)',
         },
+        useCDP: {
+          type: 'boolean',
+          description:
+            'Use Chrome DevTools Protocol for trusted key events (more reliable for PageUp/PageDown/Home/End)',
+        },
       },
       required: ['keys'],
     },
