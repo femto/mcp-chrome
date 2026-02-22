@@ -122,6 +122,8 @@ if (window.__SCREENSHOT_HELPER_INITIALIZED__) {
           sendResponse({
             rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
             devicePixelRatio: window.devicePixelRatio || 1,
+            scrollX: window.scrollX,
+            scrollY: window.scrollY,
           });
         }, 200); // Increased delay for scrollIntoView
         return true; // Async response

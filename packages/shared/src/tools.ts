@@ -203,6 +203,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           },
           required: ['x', 'y'],
         },
+        fromScreenshot: {
+          type: 'boolean',
+          description:
+            'If true, interpret coordinates as coming from the most recent screenshot and auto-convert to viewport coordinates',
+        },
         waitForNavigation: {
           type: 'boolean',
           description: 'Wait for page navigation to complete after click (default: false)',

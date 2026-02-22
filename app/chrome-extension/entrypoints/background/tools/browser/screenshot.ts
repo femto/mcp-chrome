@@ -10,6 +10,7 @@ import {
   stitchImages,
   compressImage,
 } from '../../../../utils/image-utils';
+import { setLastScreenshotContext, type ScreenshotScope } from './screenshot-context';
 
 // Screenshot-specific constants
 const SCREENSHOT_CONSTANTS = {
@@ -108,6 +109,21 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
       let sourceCssWidth: number | undefined;
       let sourceCssHeight: number | undefined;
+      let scope: ScreenshotScope = 'viewport';
+      let elementRect:
+        | {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+          }
+        | undefined;
+      let elementScroll:
+        | {
+            x: number;
+            y: number;
+          }
+        | undefined;
 
       if (fullPage) {
         this.logInfo('Capturing full page...');
@@ -115,6 +131,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         finalImageDataUrl = fullPageResult.dataUrl;
         sourceCssWidth = fullPageResult.cssWidth;
         sourceCssHeight = fullPageResult.cssHeight;
+        scope = 'fullPage';
       } else if (selector) {
         this.logInfo(`Capturing element: ${selector}`);
         const elementResult = await this._captureElement(
@@ -125,12 +142,16 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         finalImageDataUrl = elementResult.dataUrl;
         sourceCssWidth = elementResult.cssWidth;
         sourceCssHeight = elementResult.cssHeight;
+        elementRect = elementResult.elementRect;
+        elementScroll = elementResult.elementScroll;
+        scope = 'element';
       } else {
         // Visible area only
         this.logInfo('Capturing visible area...');
         finalImageDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
         sourceCssWidth = pageDetails.viewportWidth;
         sourceCssHeight = pageDetails.viewportHeight;
+        scope = 'viewport';
       }
 
       if (!finalImageDataUrl) {
@@ -158,10 +179,34 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         // Build scale info for AI to convert coordinates (CSS pixels)
         const scaleX = compressed.scaleX ?? compressed.scale;
         const scaleY = compressed.scaleY ?? compressed.scale;
+        setLastScreenshotContext(tab.id!, {
+          scope,
+          scaleX,
+          scaleY,
+          cssWidth: compressed.originalWidth,
+          cssHeight: compressed.originalHeight,
+          scaledWidth: compressed.scaledWidth,
+          scaledHeight: compressed.scaledHeight,
+          scrollX: originalScroll.x,
+          scrollY: originalScroll.y,
+          elementRect,
+          elementScrollX: elementScroll?.x,
+          elementScrollY: elementScroll?.y,
+          timestamp: Date.now(),
+        });
+        const scopeNote =
+          scope === 'element'
+            ? 'Note: this is an element-only screenshot; coordinates are relative to that element.'
+            : scope === 'fullPage'
+              ? 'Note: this is a full-page screenshot; coordinates are page-relative and may require scrolling.'
+              : '';
         const scaleChanged = Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01;
         const scaleInfo = scaleChanged
           ? `\n\nIMPORTANT: This screenshot has been rescaled relative to the page CSS size.\nImage: ${Math.round(compressed.scaledWidth)}x${Math.round(compressed.scaledHeight)} px\nPage CSS: ${Math.round(compressed.originalWidth)}x${Math.round(compressed.originalHeight)} px\nConvert image coords → CSS coords: x_css = x_img / ${scaleX.toFixed(4)}, y_css = y_img / ${scaleY.toFixed(4)}.\nExample: (100, 200) → (${Math.round(100 / scaleX)}, ${Math.round(200 / scaleY)}).\nAlternatively, use chrome_get_interactive_elements to get accurate coordinates.`
           : '';
+        const screenshotHint =
+          '\nIf you pass coordinates from this screenshot to chrome_click_element, set fromScreenshot: true to auto-convert.';
+        const scopeInfo = scopeNote ? `\n${scopeNote}` : '';
 
         return {
           content: [
@@ -172,7 +217,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
             },
             {
               type: 'text',
-              text: `Screenshot captured successfully.${scaleInfo}`,
+              text: `Screenshot captured successfully.${scaleInfo}${screenshotHint}${scopeInfo}`,
             },
           ],
           isError: false,
@@ -271,7 +316,13 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
     tabId: number,
     options: ScreenshotToolParams,
     pageDpr: number,
-  ): Promise<{ dataUrl: string; cssWidth: number; cssHeight: number }> {
+  ): Promise<{
+    dataUrl: string;
+    cssWidth: number;
+    cssHeight: number;
+    elementRect: { x: number; y: number; width: number; height: number };
+    elementScroll: { x: number; y: number };
+  }> {
     const elementDetails = await this.sendMessageToTab(tabId, {
       action: TOOL_MESSAGE_TYPES.SCREENSHOT_GET_ELEMENT_DETAILS,
       selector: options.selector,
@@ -312,7 +363,13 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
       typeof options.height === 'number' && Number.isFinite(options.height)
         ? options.height
         : elementDetails.rect.height;
-    return { dataUrl, cssWidth, cssHeight };
+    return {
+      dataUrl,
+      cssWidth,
+      cssHeight,
+      elementRect: elementDetails.rect,
+      elementScroll: { x: elementDetails.scrollX || 0, y: elementDetails.scrollY || 0 },
+    };
   }
 
   /**

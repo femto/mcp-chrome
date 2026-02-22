@@ -3,6 +3,7 @@ import { BaseBrowserToolExecutor } from '../base-browser';
 import { TOOL_NAMES } from 'mcp-chrome-shared';
 import { TOOL_MESSAGE_TYPES } from '@/common/message-types';
 import { TIMEOUTS, ERROR_MESSAGES } from '@/common/constants';
+import { getLastScreenshotContext } from './screenshot-context';
 
 interface Coordinates {
   x: number;
@@ -12,6 +13,7 @@ interface Coordinates {
 interface ClickToolParams {
   selector?: string; // CSS selector for the element to click
   coordinates?: Coordinates; // Coordinates to click at (x, y relative to viewport)
+  fromScreenshot?: boolean; // If true, coordinates are from the last screenshot and need conversion
   waitForNavigation?: boolean; // Whether to wait for navigation to complete after click
   timeout?: number; // Timeout in milliseconds for waiting for the element or navigation
 }
@@ -29,6 +31,7 @@ class ClickTool extends BaseBrowserToolExecutor {
     const {
       selector,
       coordinates,
+      fromScreenshot = false,
       waitForNavigation = false,
       timeout = TIMEOUTS.DEFAULT_WAIT * 5,
     } = args;
@@ -55,11 +58,21 @@ class ClickTool extends BaseBrowserToolExecutor {
 
       await this.injectContentScript(tab.id, ['inject-scripts/click-helper.js']);
 
+      let resolvedCoordinates = coordinates;
+      let adjustedFromScreenshot = false;
+      if (coordinates) {
+        const adjusted = adjustCoordinatesFromScreenshot(tab.id, coordinates, fromScreenshot);
+        if (adjusted) {
+          resolvedCoordinates = adjusted.coords;
+          adjustedFromScreenshot = adjusted.adjusted;
+        }
+      }
+
       // Send click message to content script
       const result = await this.sendMessageToTab(tab.id, {
         action: TOOL_MESSAGE_TYPES.CLICK_ELEMENT,
         selector,
-        coordinates,
+        coordinates: resolvedCoordinates,
         waitForNavigation,
         timeout,
       });
@@ -69,7 +82,13 @@ class ClickTool extends BaseBrowserToolExecutor {
       parts.push(result.message || 'Click operation successful');
 
       if (coordinates) {
-        parts.push(`Clicked at coordinates (${coordinates.x}, ${coordinates.y})`);
+        const coordText = resolvedCoordinates
+          ? `Clicked at coordinates (${resolvedCoordinates.x}, ${resolvedCoordinates.y})`
+          : `Clicked at coordinates (${coordinates.x}, ${coordinates.y})`;
+        parts.push(coordText);
+        if (adjustedFromScreenshot) {
+          parts.push('Coordinates were converted from the last screenshot');
+        }
       } else if (selector) {
         parts.push(`Clicked element: ${selector}`);
       }
@@ -100,6 +119,52 @@ class ClickTool extends BaseBrowserToolExecutor {
       );
     }
   }
+}
+
+const SCREENSHOT_COORD_MAX_AGE_MS = 2 * 60 * 1000;
+
+type AdjustedCoords = { coords: Coordinates; adjusted: boolean };
+
+/**
+ * Convert screenshot-space coordinates to viewport coordinates when possible.
+ */
+function adjustCoordinatesFromScreenshot(
+  tabId: number,
+  coords: Coordinates,
+  force: boolean,
+): AdjustedCoords | null {
+  const ctx = getLastScreenshotContext(tabId);
+  if (!ctx) return null;
+
+  if (Date.now() - ctx.timestamp > SCREENSHOT_COORD_MAX_AGE_MS) {
+    return null;
+  }
+
+  // Only auto-adjust for viewport screenshots; element/fullPage require explicit opt-in.
+  if (!force && ctx.scope !== 'viewport') return null;
+
+  const withinScaled =
+    coords.x >= 0 && coords.y >= 0 && coords.x <= ctx.scaledWidth && coords.y <= ctx.scaledHeight;
+
+  if (!force && !withinScaled) return null;
+
+  let xCss = coords.x / (ctx.scaleX || 1);
+  let yCss = coords.y / (ctx.scaleY || 1);
+
+  if (ctx.scope === 'element' && ctx.elementRect) {
+    const scrollAtCaptureX = ctx.elementScrollX || 0;
+    const scrollAtCaptureY = ctx.elementScrollY || 0;
+    xCss = ctx.elementRect.x + scrollAtCaptureX + xCss - (ctx.scrollX || 0);
+    yCss = ctx.elementRect.y + scrollAtCaptureY + yCss - (ctx.scrollY || 0);
+  } else if (ctx.scope === 'fullPage') {
+    xCss = xCss - (ctx.scrollX || 0);
+    yCss = yCss - (ctx.scrollY || 0);
+  }
+
+  return {
+    coords: { x: Math.round(xCss), y: Math.round(yCss) },
+    adjusted: true,
+  };
 }
 
 export const clickTool = new ClickTool();
