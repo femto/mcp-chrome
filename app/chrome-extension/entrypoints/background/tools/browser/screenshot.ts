@@ -163,7 +163,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         // Compress image for base64 output to reduce size
         // Pass devicePixelRatio so originalWidth/Height are reported in CSS pixels (for click coordinates)
         const compressed = await compressImage(finalImageDataUrl, {
-          scale: 1.0, // Keep original size unless maxDimension forces downscale
+          scale: 0.7, // Reduce dimensions by 30%
           quality: 0.8, // 80% quality for good balance
           format: 'image/jpeg', // JPEG for better compression
           maxDimension: SCREENSHOT_CONSTANTS.MAX_BASE64_DIMENSION_PX, // Ensure within API limits
