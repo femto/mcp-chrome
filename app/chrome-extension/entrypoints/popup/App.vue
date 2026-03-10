@@ -109,25 +109,6 @@
               >Fetch site tools config from Worldbook API when enabled</p
             >
           </div>
-
-          <div class="webmcp-option">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                v-model="debugClickPosition"
-                @change="saveDebugClickPositionPreference"
-              />
-              <span class="checkbox-text">Debug Click Position</span>
-              <span
-                class="help-icon"
-                title="When enabled, screenshots will show a red marker at the last click position. Useful for debugging coordinate conversions."
-                >?</span
-              >
-            </label>
-            <p class="option-description"
-              >Show click position marker on screenshots (for debugging)</p
-            >
-          </div>
         </div>
       </div>
 
@@ -354,7 +335,6 @@ const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('un
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
 const worldbookWebMCPEnabled = ref<boolean>(true); // Worldbook WebMCP enabled by default
-const debugClickPosition = ref<boolean>(false); // Debug click position marker, off by default
 
 const serverStatus = ref<{
   isRunning: boolean;
@@ -1007,32 +987,6 @@ const loadWorldbookWebMCPPreference = async () => {
   }
 };
 
-const saveDebugClickPositionPreference = async () => {
-  try {
-    // eslint-disable-next-line no-undef
-    await chrome.storage.local.set({ debugClickPosition: debugClickPosition.value });
-    console.log(`Debug click position preference saved: ${debugClickPosition.value}`);
-  } catch (error) {
-    console.error('Failed to save debug click position preference:', error);
-  }
-};
-
-const loadDebugClickPositionPreference = async () => {
-  try {
-    // eslint-disable-next-line no-undef
-    const result = await chrome.storage.local.get(['debugClickPosition']);
-    // Default to false
-    if (result.debugClickPosition !== undefined) {
-      debugClickPosition.value = result.debugClickPosition;
-    } else {
-      debugClickPosition.value = false; // Disabled by default
-    }
-    console.log(`Debug click position preference loaded: ${debugClickPosition.value}`);
-  } catch (error) {
-    console.error('Failed to load debug click position preference:', error);
-  }
-};
-
 const saveModelState = async () => {
   try {
     const modelState = {
@@ -1337,7 +1291,6 @@ const setupServerStatusListener = () => {
 onMounted(async () => {
   await loadPortPreference();
   await loadWorldbookWebMCPPreference();
-  await loadDebugClickPositionPreference();
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();

@@ -103,18 +103,6 @@ class ClickTool extends BaseBrowserToolExecutor {
         parts.push('Navigation occurred after click');
       }
 
-      // Save last click position for debug visualization
-      if (resolvedCoordinates) {
-        await chrome.storage.local.set({
-          lastClickPosition: {
-            x: resolvedCoordinates.x,
-            y: resolvedCoordinates.y,
-            timestamp: Date.now(),
-            tabId: tab.id,
-          },
-        });
-      }
-
       return {
         content: [
           {
