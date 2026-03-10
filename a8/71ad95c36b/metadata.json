@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "a871ad95c36b",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/chrome-extension/common/message-types.ts",
+    "app/chrome-extension/entrypoints/background/native-host.ts",
+    "app/chrome-extension/entrypoints/popup/App.vue",
+    "app/chrome-extension/inject-scripts/coordinate-helper.js"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a8/71ad95c36b/0/metadata.json",
+      "transcript": "/a8/71ad95c36b/0/full.jsonl",
+      "context": "/a8/71ad95c36b/0/context.md",
+      "content_hash": "/a8/71ad95c36b/0/content_hash.txt",
+      "prompt": "/a8/71ad95c36b/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2136,
+    "cache_creation_tokens": 238342,
+    "cache_read_tokens": 3131568,
+    "output_tokens": 17657,
+    "api_call_count": 58
+  }
+}
