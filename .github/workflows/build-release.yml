@@ -142,25 +142,25 @@ jobs:
       run: pnpm --filter mcp-chrome-bridger build
 
     - name: Publish mcp-chrome-shared
-      working-directory: packages/shared
       run: |
-        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        PACKAGE_VERSION=$(node -p "require('./packages/shared/package.json').version")
         if npm view mcp-chrome-shared@$PACKAGE_VERSION version 2>/dev/null; then
           echo "mcp-chrome-shared@$PACKAGE_VERSION already published, skipping"
         else
-          npm publish --provenance --access public
+          pnpm --filter mcp-chrome-shared publish --provenance --access public --no-git-checks
         fi
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Publish mcp-chrome-bridger
-      working-directory: app/native-server
       run: |
-        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        PACKAGE_VERSION=$(node -p "require('./app/native-server/package.json').version")
         if npm view mcp-chrome-bridger@$PACKAGE_VERSION version 2>/dev/null; then
           echo "mcp-chrome-bridger@$PACKAGE_VERSION already published, skipping"
         else
-          npm publish --provenance --access public
+          pnpm --filter mcp-chrome-bridger publish --provenance --access public --no-git-checks
         fi
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
