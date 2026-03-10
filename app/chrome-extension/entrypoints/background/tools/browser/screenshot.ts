@@ -232,11 +232,11 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
               ? 'Note: this is a full-page screenshot; coordinates are page-relative and may require scrolling.'
               : '';
         const scaleChanged = Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01;
-        const scaleInfo = scaleChanged
-          ? `\n\nIMPORTANT: This screenshot has been rescaled relative to the page CSS size.\nImage: ${Math.round(compressed.scaledWidth)}x${Math.round(compressed.scaledHeight)} px\nPage CSS: ${Math.round(compressed.originalWidth)}x${Math.round(compressed.originalHeight)} px\nConvert image coords → CSS coords: x_css = x_img / ${scaleX.toFixed(4)}, y_css = y_img / ${scaleY.toFixed(4)}.\nExample: (100, 200) → (${Math.round(100 / scaleX)}, ${Math.round(200 / scaleY)}).\nAlternatively, use chrome_get_interactive_elements to get accurate coordinates.`
-          : '';
+        const dimensionInfo = scaleChanged
+          ? `\nImage: ${Math.round(compressed.scaledWidth)}x${Math.round(compressed.scaledHeight)} px (CSS: ${Math.round(compressed.originalWidth)}x${Math.round(compressed.originalHeight)} px)`
+          : `\nImage: ${Math.round(compressed.scaledWidth)}x${Math.round(compressed.scaledHeight)} px`;
         const screenshotHint =
-          '\nIf you pass coordinates from this screenshot to chrome_click_element, set fromScreenshot: true to auto-convert.';
+          '\nTo click on this screenshot, use chrome_click_element with fromScreenshot: true for auto coordinate conversion.';
         const scopeInfo = scopeNote ? `\n${scopeNote}` : '';
 
         return {
@@ -248,7 +248,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
             },
             {
               type: 'text',
-              text: `Screenshot captured successfully.${scaleInfo}${screenshotHint}${scopeInfo}`,
+              text: `Screenshot captured successfully.${dimensionInfo}${screenshotHint}${scopeInfo}`,
             },
           ],
           isError: false,

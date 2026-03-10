@@ -9,54 +9,15 @@ import { colorText, tryRegisterUserLevelHost } from './utils';
 // Check if this script is run directly
 const isDirectRun = require.main === module;
 
-// Detect global installation for both npm and pnpm
-function detectGlobalInstall(): boolean {
-  // npm uses npm_config_global
-  if (process.env.npm_config_global === 'true') {
+// Check if we're in a monorepo/workspace development environment
+function isWorkspaceDev(): boolean {
+  // If we're inside a .pnpm store or node_modules of a workspace, skip auto-register
+  // This prevents overwriting developer's local native host config during pnpm install
+  if (__dirname.includes('/node_modules/.pnpm/') || __dirname.includes('\\node_modules\\.pnpm\\')) {
     return true;
   }
-
-  // pnpm detection methods
-  // Method 1: Check if PNPM_HOME is set and current path contains it
-  if (process.env.PNPM_HOME && __dirname.includes(process.env.PNPM_HOME)) {
-    return true;
-  }
-
-  // Method 2: Check if we're in a global pnpm directory structure
-  // pnpm global packages are typically installed in ~/.local/share/pnpm/global/5/node_modules
-  // Windows: %APPDATA%\pnpm\global\5\node_modules
-  const globalPnpmPatterns =
-    process.platform === 'win32'
-      ? ['\\pnpm\\global\\', '\\pnpm-global\\', '\\AppData\\Roaming\\pnpm\\']
-      : ['/pnpm/global/', '/.local/share/pnpm/', '/pnpm-global/'];
-
-  if (globalPnpmPatterns.some((pattern) => __dirname.includes(pattern))) {
-    return true;
-  }
-
-  // Method 3: Check npm_config_prefix for pnpm
-  if (process.env.npm_config_prefix && __dirname.includes(process.env.npm_config_prefix)) {
-    return true;
-  }
-
-  // Method 4: Windows-specific global installation paths
-  if (process.platform === 'win32') {
-    const windowsGlobalPatterns = [
-      '\\npm\\node_modules\\',
-      '\\AppData\\Roaming\\npm\\node_modules\\',
-      '\\Program Files\\nodejs\\node_modules\\',
-      '\\nodejs\\node_modules\\',
-    ];
-
-    if (windowsGlobalPatterns.some((pattern) => __dirname.includes(pattern))) {
-      return true;
-    }
-  }
-
   return false;
 }
-
-const isGlobalInstall = detectGlobalInstall();
 
 /**
  * Write Node.js path for run_host scripts to avoid fragile relative paths
@@ -159,38 +120,29 @@ async function tryRegisterNativeHost(): Promise<void> {
   try {
     console.log(colorText('Attempting to register Chrome Native Messaging host...', 'blue'));
 
-    // Always ensure execution permissions, regardless of installation type
+    // Always ensure execution permissions
     await ensureExecutionPermissions();
 
-    if (isGlobalInstall) {
-      // First try user-level installation (no elevated permissions required)
-      const userLevelSuccess = await tryRegisterUserLevelHost();
+    // Try user-level installation (no elevated permissions required)
+    const userLevelSuccess = await tryRegisterUserLevelHost();
 
-      if (!userLevelSuccess) {
-        // User-level installation failed, suggest using register command
-        console.log(
-          colorText(
-            'User-level installation failed, system-level installation may be needed',
-            'yellow',
-          ),
-        );
-        console.log(
-          colorText('Please run the following command for system-level installation:', 'blue'),
-        );
-        console.log(`  ${COMMAND_NAME} register --system`);
-        printManualInstructions();
-      }
-    } else {
-      // Local installation mode, don't attempt automatic registration
+    if (!userLevelSuccess) {
       console.log(
-        colorText('Local installation detected, skipping automatic registration', 'yellow'),
+        colorText(
+          'User-level installation failed, system-level installation may be needed',
+          'yellow',
+        ),
       );
+      console.log(
+        colorText('Please run the following command for system-level installation:', 'blue'),
+      );
+      console.log(`  ${COMMAND_NAME} register --system`);
       printManualInstructions();
     }
   } catch (error) {
     console.log(
       colorText(
-        `注册过程中出现错误: ${error instanceof Error ? error.message : String(error)}`,
+        `Registration error: ${error instanceof Error ? error.message : String(error)}`,
         'red',
       ),
     );
@@ -205,43 +157,18 @@ function printManualInstructions(): void {
   console.log('\n' + colorText('===== Manual Registration Guide =====', 'blue'));
 
   console.log(colorText('1. Try user-level installation (recommended):', 'yellow'));
-  if (isGlobalInstall) {
-    console.log(`  ${COMMAND_NAME} register`);
-  } else {
-    console.log(`  npx ${COMMAND_NAME} register`);
-  }
+  console.log(`  ${COMMAND_NAME} register`);
 
   console.log(
     colorText('\n2. If user-level installation fails, try system-level installation:', 'yellow'),
   );
 
-  console.log(colorText('   Use --system parameter (auto-elevate permissions):', 'yellow'));
-  if (isGlobalInstall) {
+  if (os.platform() === 'win32') {
+    console.log(colorText('   Run Command Prompt as Administrator:', 'yellow'));
     console.log(`  ${COMMAND_NAME} register --system`);
   } else {
-    console.log(`  npx ${COMMAND_NAME} register --system`);
-  }
-
-  console.log(colorText('\n   Or use administrator privileges directly:', 'yellow'));
-  if (os.platform() === 'win32') {
-    console.log(
-      colorText(
-        '   Please run Command Prompt or PowerShell as administrator and execute:',
-        'yellow',
-      ),
-    );
-    if (isGlobalInstall) {
-      console.log(`  ${COMMAND_NAME} register`);
-    } else {
-      console.log(`  npx ${COMMAND_NAME} register`);
-    }
-  } else {
-    console.log(colorText('   Please run the following command in terminal:', 'yellow'));
-    if (isGlobalInstall) {
-      console.log(`  sudo ${COMMAND_NAME} register`);
-    } else {
-      console.log(`  sudo npx ${COMMAND_NAME} register`);
-    }
+    console.log(colorText('   Run with sudo:', 'yellow'));
+    console.log(`  sudo ${COMMAND_NAME} register`);
   }
 
   console.log(
@@ -259,13 +186,12 @@ function printManualInstructions(): void {
 async function main(): Promise<void> {
   console.log(colorText(`Installing ${COMMAND_NAME}...`, 'green'));
 
-  // Debug information
-  console.log(colorText('Installation environment debug info:', 'blue'));
-  console.log(`  __dirname: ${__dirname}`);
-  console.log(`  npm_config_global: ${process.env.npm_config_global}`);
-  console.log(`  PNPM_HOME: ${process.env.PNPM_HOME}`);
-  console.log(`  npm_config_prefix: ${process.env.npm_config_prefix}`);
-  console.log(`  isGlobalInstall: ${isGlobalInstall}`);
+  // Skip auto-registration in workspace/monorepo development
+  if (isWorkspaceDev()) {
+    console.log(colorText('Workspace development detected, skipping auto-registration', 'yellow'));
+    console.log(colorText(`Run "${COMMAND_NAME} register" manually if needed`, 'blue'));
+    return;
+  }
 
   // Always ensure execution permissions first
   await ensureExecutionPermissions();
@@ -273,16 +199,14 @@ async function main(): Promise<void> {
   // Write Node.js path for run_host scripts to use
   await writeNodePath();
 
-  // If global installation, try automatic registration
-  if (isGlobalInstall) {
-    await tryRegisterNativeHost();
-  } else {
-    console.log(colorText('Local installation detected', 'yellow'));
-    printManualInstructions();
-  }
+  // Always try to register - user-level registration is safe and what users expect
+  await tryRegisterNativeHost();
 }
 
-// Only execute main function when running this script directly
+// Export main for use by postinstall-check.js
+export { main };
+
+// Execute main function when running this script directly
 if (isDirectRun) {
   main().catch((error) => {
     console.error(

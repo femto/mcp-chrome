@@ -9,6 +9,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+// Get version from package.json
+const packageJsonPath = path.join(__dirname, '..', 'package.json');
+let NATIVE_HOST_VERSION = '0.0.0';
+try {
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  NATIVE_HOST_VERSION = packageJson.version || '0.0.0';
+} catch {
+  // Fallback if package.json cannot be read
+}
+
 // Simple file logger for debugging
 const LOG_FILE = path.join(os.tmpdir(), 'mcp-chrome-native.log');
 function logToFile(msg: string) {
@@ -138,6 +148,14 @@ export class NativeMessagingHost {
           logToFile(
             `After WEBMCP_TOOLS_UPDATE: serverStarting=${this.serverStarting}, isRunning=${this.associatedServer?.isRunning}`,
           );
+          break;
+        case NativeMessageType.GET_VERSION:
+          // Return native host version
+          logToFile(`Received GET_VERSION request, returning version: ${NATIVE_HOST_VERSION}`);
+          this.sendMessage({
+            type: NativeMessageType.VERSION_INFO,
+            payload: { version: NATIVE_HOST_VERSION },
+          });
           break;
         default:
           // Double check when message type is not supported

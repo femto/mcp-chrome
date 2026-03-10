@@ -215,12 +215,16 @@ type AdjustedCoords = { coords: Coordinates; adjusted: boolean };
 
 /**
  * Convert screenshot-space coordinates to viewport coordinates when possible.
+ * Only converts when force (fromScreenshot) is explicitly true.
  */
 function adjustCoordinatesFromScreenshot(
   tabId: number,
   coords: Coordinates,
   force: boolean,
 ): AdjustedCoords | null {
+  // Only adjust coordinates when explicitly requested via fromScreenshot: true
+  if (!force) return null;
+
   const ctx = getLastScreenshotContext(tabId);
   if (!ctx) return null;
 
@@ -228,13 +232,19 @@ function adjustCoordinatesFromScreenshot(
     return null;
   }
 
-  // Only auto-adjust for viewport screenshots; element/fullPage require explicit opt-in.
-  if (!force && ctx.scope !== 'viewport') return null;
-
   const withinScaled =
     coords.x >= 0 && coords.y >= 0 && coords.x <= ctx.scaledWidth && coords.y <= ctx.scaledHeight;
 
-  if (!force && !withinScaled) return null;
+  // Warn if coordinates seem outside the screenshot bounds
+  if (!withinScaled) {
+    console.warn(
+      'Coordinates may be outside screenshot bounds:',
+      coords,
+      'scaled:',
+      ctx.scaledWidth,
+      ctx.scaledHeight,
+    );
+  }
 
   let xCss = coords.x / (ctx.scaleX || 1);
   let yCss = coords.y / (ctx.scaleY || 1);

@@ -7,6 +7,7 @@
 export const NATIVE_HOST = {
   NAME: 'com.chromemcp.nativehost',
   DEFAULT_PORT: 12306,
+  MIN_VERSION: '1.0.13', // Minimum required native host version
 } as const;
 
 // Chrome Extension Icons
@@ -103,6 +104,7 @@ export const STORAGE_KEYS = {
   USER_PREFERENCES: 'userPreferences',
   VECTOR_INDEX: 'vectorIndex',
   AUTO_CONNECT_ENABLED: 'autoConnectEnabled',
+  NATIVE_HOST_VERSION: 'nativeHostVersion',
 } as const;
 
 // Notification Configuration

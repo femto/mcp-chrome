@@ -19,6 +19,9 @@ export enum NativeMessageType {
   DISCONNECT_NATIVE = 'disconnect_native',
   // WebMCP dynamic tools
   WEBMCP_TOOLS_UPDATE = 'webmcp_tools_update',
+  // Version check
+  GET_VERSION = 'get_version',
+  VERSION_INFO = 'version_info',
 }
 
 export interface NativeMessage<P = any, E = any> {
