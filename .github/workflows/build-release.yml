@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write  # Required for npm trusted publishing (OIDC)
 
 jobs:
   build-extension:
@@ -106,3 +107,56 @@ jobs:
           app/chrome-extension/.output/*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to npm when a tag is pushed (using Trusted Publishing / OIDC)
+  publish-npm:
+    needs: build-extension
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for npm provenance / Trusted Publishing
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build shared packages
+      run: pnpm --filter mcp-chrome-shared build
+
+    - name: Build Native server
+      run: pnpm --filter mcp-chrome-bridger build
+
+    - name: Publish mcp-chrome-shared
+      working-directory: packages/shared
+      run: |
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        if npm view mcp-chrome-shared@$PACKAGE_VERSION version 2>/dev/null; then
+          echo "mcp-chrome-shared@$PACKAGE_VERSION already published, skipping"
+        else
+          npm publish --provenance --access public
+        fi
+
+    - name: Publish mcp-chrome-bridger
+      working-directory: app/native-server
+      run: |
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        if npm view mcp-chrome-bridger@$PACKAGE_VERSION version 2>/dev/null; then
+          echo "mcp-chrome-bridger@$PACKAGE_VERSION already published, skipping"
+        else
+          npm publish --provenance --access public
+        fi
