@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "f33cf56578e9",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/background/tools/browser/interaction.ts",
+    "app/chrome-extension/entrypoints/background/tools/browser/screenshot.ts",
+    "app/chrome-extension/entrypoints/popup/App.vue",
+    "app/chrome-extension/utils/image-utils.ts",
+    "packages/shared/src/tools.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f3/3cf56578e9/0/metadata.json",
+      "transcript": "/f3/3cf56578e9/0/full.jsonl",
+      "context": "/f3/3cf56578e9/0/context.md",
+      "content_hash": "/f3/3cf56578e9/0/content_hash.txt",
+      "prompt": "/f3/3cf56578e9/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2136,
+    "cache_creation_tokens": 238342,
+    "cache_read_tokens": 3131568,
+    "output_tokens": 17657,
+    "api_call_count": 58
+  }
+}
