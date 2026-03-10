@@ -150,6 +150,8 @@ jobs:
         else
           npm publish --provenance --access public
         fi
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     - name: Publish mcp-chrome-bridger
       working-directory: app/native-server
@@ -160,3 +162,5 @@ jobs:
         else
           npm publish --provenance --access public
         fi
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
