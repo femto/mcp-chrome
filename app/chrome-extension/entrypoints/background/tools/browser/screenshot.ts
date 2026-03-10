@@ -9,6 +9,7 @@ import {
   cropAndResizeImage,
   stitchImages,
   compressImage,
+  drawClickMarker,
 } from '../../../../utils/image-utils';
 import { setLastScreenshotContext, type ScreenshotScope } from './screenshot-context';
 
@@ -156,6 +157,36 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
       if (!finalImageDataUrl) {
         throw new Error('Failed to capture image data');
+      }
+
+      // Check if debug click position is enabled and draw marker if applicable
+      try {
+        const debugSettings = await chrome.storage.local.get([
+          'debugClickPosition',
+          'lastClickPosition',
+        ]);
+        if (debugSettings.debugClickPosition && debugSettings.lastClickPosition) {
+          const clickPos = debugSettings.lastClickPosition;
+          // Only draw if click was recent (within 60 seconds) and for the same tab
+          const isRecent = Date.now() - clickPos.timestamp < 60000;
+          const isSameTab = clickPos.tabId === tab.id;
+          if (isRecent && isSameTab) {
+            const dpr = pageDetails.devicePixelRatio || 1;
+            // Convert CSS coordinates to device pixels for drawing on the captured image
+            const deviceX = clickPos.x * dpr;
+            const deviceY = clickPos.y * dpr;
+            this.logInfo(
+              `Drawing debug click marker at CSS(${clickPos.x}, ${clickPos.y}) -> Device(${deviceX}, ${deviceY})`,
+            );
+            finalImageDataUrl = await drawClickMarker(finalImageDataUrl, deviceX, deviceY, {
+              color: '#FF0000',
+              size: 25,
+              lineWidth: 3,
+            });
+          }
+        }
+      } catch (debugErr) {
+        console.warn('Failed to draw debug click marker:', debugErr);
       }
 
       // 2. Process output

@@ -33,6 +33,29 @@
             </div>
           </div>
 
+          <!-- Native Host Version Warning -->
+          <div v-if="nativeHostVersion?.isOutdated" class="version-warning">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-content">
+              <p class="warning-title">Native Host Outdated</p>
+              <p class="warning-message">
+                Installed: v{{ nativeHostVersion.version }} | Required: v{{
+                  nativeHostVersion.minRequired
+                }}
+              </p>
+              <p class="warning-command">Run: <code>npm update -g mcp-chrome-bridger</code></p>
+            </div>
+          </div>
+
+          <!-- Native Host Version Info (when connected and up to date) -->
+          <div
+            v-else-if="nativeHostVersion && nativeConnectionStatus === 'connected'"
+            class="version-info"
+          >
+            <span class="version-label">Native Host:</span>
+            <span class="version-value">v{{ nativeHostVersion.version }}</span>
+          </div>
+
           <div v-if="showMcpConfig" class="mcp-config-section">
             <div class="mcp-config-header">
               <p class="mcp-config-label">{{ getMessage('mcpServerConfigLabel') }}</p>
@@ -84,6 +107,25 @@
             </label>
             <p class="option-description"
               >Fetch site tools config from Worldbook API when enabled</p
+            >
+          </div>
+
+          <div class="webmcp-option">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="debugClickPosition"
+                @change="saveDebugClickPositionPreference"
+              />
+              <span class="checkbox-text">Debug Click Position</span>
+              <span
+                class="help-icon"
+                title="When enabled, screenshots will show a red marker at the last click position. Useful for debugging coordinate conversions."
+                >?</span
+              >
+            </label>
+            <p class="option-description"
+              >Show click position marker on screenshots (for debugging)</p
             >
           </div>
         </div>
@@ -312,6 +354,7 @@ const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('un
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
 const worldbookWebMCPEnabled = ref<boolean>(true); // Worldbook WebMCP enabled by default
+const debugClickPosition = ref<boolean>(false); // Debug click position marker, off by default
 
 const serverStatus = ref<{
   isRunning: boolean;
@@ -321,6 +364,13 @@ const serverStatus = ref<{
   isRunning: false,
   lastUpdated: Date.now(),
 });
+
+// Native host version info
+const nativeHostVersion = ref<{
+  version: string;
+  isOutdated: boolean;
+  minRequired: string;
+} | null>(null);
 
 const showMcpConfig = computed(() => {
   return nativeConnectionStatus.value === 'connected' && serverStatus.value.isRunning;
@@ -748,6 +798,24 @@ const refreshServerStatus = async () => {
   }
 };
 
+const checkNativeHostVersion = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.GET_NATIVE_HOST_VERSION,
+    });
+    if (response?.success && response.versionInfo) {
+      nativeHostVersion.value = {
+        version: response.versionInfo.version,
+        isOutdated: response.versionInfo.isOutdated,
+        minRequired: response.minRequired,
+      };
+    }
+  } catch (error) {
+    console.error('获取 Native Host 版本失败:', error);
+  }
+};
+
 const copyMcpConfig = async () => {
   try {
     await navigator.clipboard.writeText(mcpConfigJson.value);
@@ -936,6 +1004,32 @@ const loadWorldbookWebMCPPreference = async () => {
     console.log(`Worldbook WebMCP preference loaded: ${worldbookWebMCPEnabled.value}`);
   } catch (error) {
     console.error('Failed to load Worldbook WebMCP preference:', error);
+  }
+};
+
+const saveDebugClickPositionPreference = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    await chrome.storage.local.set({ debugClickPosition: debugClickPosition.value });
+    console.log(`Debug click position preference saved: ${debugClickPosition.value}`);
+  } catch (error) {
+    console.error('Failed to save debug click position preference:', error);
+  }
+};
+
+const loadDebugClickPositionPreference = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    const result = await chrome.storage.local.get(['debugClickPosition']);
+    // Default to false
+    if (result.debugClickPosition !== undefined) {
+      debugClickPosition.value = result.debugClickPosition;
+    } else {
+      debugClickPosition.value = false; // Disabled by default
+    }
+    console.log(`Debug click position preference loaded: ${debugClickPosition.value}`);
+  } catch (error) {
+    console.error('Failed to load debug click position preference:', error);
   }
 };
 
@@ -1243,9 +1337,11 @@ const setupServerStatusListener = () => {
 onMounted(async () => {
   await loadPortPreference();
   await loadWorldbookWebMCPPreference();
+  await loadDebugClickPositionPreference();
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();
+  await checkNativeHostVersion();
   await refreshStorageStats();
   await loadCacheStats();
 
@@ -1708,6 +1804,70 @@ onUnmounted(() => {
   font-size: 12px;
   color: #9ca3af;
   margin-top: 4px;
+}
+
+.version-warning {
+  display: flex;
+  gap: 12px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.warning-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.warning-content {
+  flex: 1;
+}
+
+.warning-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  margin: 0 0 4px 0;
+}
+
+.warning-message {
+  font-size: 12px;
+  color: #a16207;
+  margin: 0 0 8px 0;
+}
+
+.warning-command {
+  font-size: 12px;
+  color: #78350f;
+  margin: 0;
+}
+
+.warning-command code {
+  background: #fde68a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 11px;
+}
+
+.version-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.version-label {
+  color: #94a3b8;
+}
+
+.version-value {
+  color: #10b981;
+  font-weight: 500;
 }
 
 .mcp-config-section {
