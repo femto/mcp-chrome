@@ -122,6 +122,25 @@
             </label>
             <p class="option-description">Show mouse coordinates on page (for debugging)</p>
           </div>
+
+          <div class="webmcp-option">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="showLastClickOnScreenshot"
+                @change="saveShowLastClickPreference"
+              />
+              <span class="checkbox-text">Show Last Click on Screenshot</span>
+              <span
+                class="help-icon"
+                title="When enabled, screenshots will show a red marker at the last click position. Useful for debugging coordinate conversions."
+                >?</span
+              >
+            </label>
+            <p class="option-description"
+              >Mark last click position on screenshots (for debugging)</p
+            >
+          </div>
         </div>
       </div>
 
@@ -349,6 +368,7 @@ const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
 const worldbookWebMCPEnabled = ref<boolean>(true); // Worldbook WebMCP enabled by default
 const debugCoordinates = ref<boolean>(false); // Debug coordinates display, off by default
+const showLastClickOnScreenshot = ref<boolean>(false); // Show last click position on screenshot, off by default
 
 const serverStatus = ref<{
   isRunning: boolean;
@@ -1003,6 +1023,11 @@ const loadWorldbookWebMCPPreference = async () => {
 
 const toggleDebugCoordinates = async () => {
   try {
+    // Save preference to storage
+    // eslint-disable-next-line no-undef
+    await chrome.storage.local.set({ debugCoordinates: debugCoordinates.value });
+    console.log(`Debug coordinates preference saved: ${debugCoordinates.value}`);
+
     // eslint-disable-next-line no-undef
     const response = await chrome.runtime.sendMessage({
       type: BACKGROUND_MESSAGE_TYPES.TOGGLE_COORDINATE_DISPLAY,
@@ -1014,11 +1039,53 @@ const toggleDebugCoordinates = async () => {
       console.error('Failed to toggle debug coordinates:', response?.error);
       // Revert the checkbox if failed
       debugCoordinates.value = !debugCoordinates.value;
+      // eslint-disable-next-line no-undef
+      await chrome.storage.local.set({ debugCoordinates: debugCoordinates.value });
     }
   } catch (error) {
     console.error('Failed to toggle debug coordinates:', error);
     // Revert the checkbox if failed
     debugCoordinates.value = !debugCoordinates.value;
+  }
+};
+
+const loadDebugCoordinatesPreference = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    const result = await chrome.storage.local.get(['debugCoordinates']);
+    if (result.debugCoordinates !== undefined) {
+      debugCoordinates.value = result.debugCoordinates;
+    } else {
+      debugCoordinates.value = false; // Disabled by default
+    }
+    console.log(`Debug coordinates preference loaded: ${debugCoordinates.value}`);
+  } catch (error) {
+    console.error('Failed to load debug coordinates preference:', error);
+  }
+};
+
+const saveShowLastClickPreference = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    await chrome.storage.local.set({ showLastClickOnScreenshot: showLastClickOnScreenshot.value });
+    console.log(`Show last click preference saved: ${showLastClickOnScreenshot.value}`);
+  } catch (error) {
+    console.error('Failed to save show last click preference:', error);
+  }
+};
+
+const loadShowLastClickPreference = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    const result = await chrome.storage.local.get(['showLastClickOnScreenshot']);
+    if (result.showLastClickOnScreenshot !== undefined) {
+      showLastClickOnScreenshot.value = result.showLastClickOnScreenshot;
+    } else {
+      showLastClickOnScreenshot.value = false; // Disabled by default
+    }
+    console.log(`Show last click preference loaded: ${showLastClickOnScreenshot.value}`);
+  } catch (error) {
+    console.error('Failed to load show last click preference:', error);
   }
 };
 
@@ -1326,6 +1393,8 @@ const setupServerStatusListener = () => {
 onMounted(async () => {
   await loadPortPreference();
   await loadWorldbookWebMCPPreference();
+  await loadDebugCoordinatesPreference();
+  await loadShowLastClickPreference();
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();

@@ -217,6 +217,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'Timeout in milliseconds for waiting for the element or navigation (default: 5000)',
         },
+        useCDP: {
+          type: 'boolean',
+          description:
+            'Use Chrome DevTools Protocol for clicking. This enables clicking through Shadow DOM (including closed shadow roots). Requires coordinates to be provided. Use this for sites with custom web components like Reddit that use Shadow DOM. (default: false)',
+        },
       },
       required: [],
     },

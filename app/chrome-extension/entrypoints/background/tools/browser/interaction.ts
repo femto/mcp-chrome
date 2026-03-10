@@ -16,6 +16,7 @@ interface ClickToolParams {
   fromScreenshot?: boolean; // If true, coordinates are from the last screenshot and need conversion
   waitForNavigation?: boolean; // Whether to wait for navigation to complete after click
   timeout?: number; // Timeout in milliseconds for waiting for the element or navigation
+  useCDP?: boolean; // Use Chrome DevTools Protocol for clicking (pierces shadow DOM)
 }
 
 /**
@@ -34,6 +35,7 @@ class ClickTool extends BaseBrowserToolExecutor {
       fromScreenshot = false,
       waitForNavigation = false,
       timeout = TIMEOUTS.DEFAULT_WAIT * 5,
+      useCDP = false,
     } = args;
 
     console.log(`Starting click operation with options:`, args);
@@ -56,8 +58,6 @@ class ClickTool extends BaseBrowserToolExecutor {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
       }
 
-      await this.injectContentScript(tab.id, ['inject-scripts/click-helper.js']);
-
       let resolvedCoordinates = coordinates;
       let adjustedFromScreenshot = false;
       if (coordinates) {
@@ -67,6 +67,13 @@ class ClickTool extends BaseBrowserToolExecutor {
           adjustedFromScreenshot = adjusted.adjusted;
         }
       }
+
+      // Use CDP for clicking (pierces shadow DOM)
+      if (useCDP && resolvedCoordinates) {
+        return await this.clickWithCDP(tab.id, resolvedCoordinates, adjustedFromScreenshot);
+      }
+
+      await this.injectContentScript(tab.id, ['inject-scripts/click-helper.js']);
 
       // Send click message to content script
       const result = await this.sendMessageToTab(tab.id, {
@@ -103,6 +110,18 @@ class ClickTool extends BaseBrowserToolExecutor {
         parts.push('Navigation occurred after click');
       }
 
+      // Save last click position for debug visualization
+      if (resolvedCoordinates) {
+        await chrome.storage.local.set({
+          lastClickPosition: {
+            x: resolvedCoordinates.x,
+            y: resolvedCoordinates.y,
+            timestamp: Date.now(),
+            tabId: tab.id,
+          },
+        });
+      }
+
       return {
         content: [
           {
@@ -116,6 +135,75 @@ class ClickTool extends BaseBrowserToolExecutor {
       console.error('Error in click operation:', error);
       return createErrorResponse(
         `Error performing click: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Click using Chrome DevTools Protocol - pierces shadow DOM
+   */
+  private async clickWithCDP(
+    tabId: number,
+    coordinates: Coordinates,
+    fromScreenshot: boolean,
+  ): Promise<ToolResult> {
+    try {
+      // Attach debugger
+      await chrome.debugger.attach({ tabId }, '1.3');
+
+      try {
+        const x = coordinates.x;
+        const y = coordinates.y;
+
+        // Dispatch mousePressed event
+        await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchMouseEvent', {
+          type: 'mousePressed',
+          x,
+          y,
+          button: 'left',
+          clickCount: 1,
+        });
+
+        // Small delay between press and release
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        // Dispatch mouseReleased event
+        await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchMouseEvent', {
+          type: 'mouseReleased',
+          x,
+          y,
+          button: 'left',
+          clickCount: 1,
+        });
+
+        const parts: string[] = [];
+        parts.push('CDP click successful (shadow DOM piercing enabled)');
+        parts.push(`Clicked at coordinates (${x}, ${y})`);
+        if (fromScreenshot) {
+          parts.push('Coordinates were converted from the last screenshot');
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: parts.join('\n'),
+            },
+          ],
+          isError: false,
+        };
+      } finally {
+        // Always detach debugger
+        try {
+          await chrome.debugger.detach({ tabId });
+        } catch (e) {
+          console.warn('Failed to detach debugger:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error in CDP click:', error);
+      return createErrorResponse(
+        `CDP click error: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
