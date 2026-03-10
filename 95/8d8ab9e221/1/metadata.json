@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "958d8ab9e221",
+  "session_id": "ea768b3f-4ab0-42af-9881-5865c3dec7dc",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T07:45:07.480364Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/chrome-extension/common/constants.ts",
+    "app/native-server/src/native-messaging-host.ts",
+    "packages/shared/src/types.ts"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "d9f71c65d384",
+  "transcript_identifier_at_start": "5a4c53df-7c37-4b8e-9055-bfe570415fb7",
+  "token_usage": {
+    "input_tokens": 934,
+    "cache_creation_tokens": 460424,
+    "cache_read_tokens": 10154362,
+    "output_tokens": 31838,
+    "api_call_count": 115
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-10T07:45:06.454857Z",
+    "agent_lines": 23,
+    "human_added": 63,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 86,
+    "agent_percentage": 26.744186046511626
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/ea768b3f-4ab0-42af-9881-5865c3dec7dc.jsonl"
+}
