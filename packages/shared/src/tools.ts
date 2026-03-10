@@ -240,6 +240,11 @@ export const TOOL_SCHEMAS: Tool[] = [
           description:
             'Use Chrome DevTools Protocol for trusted input. Enable this for complex editors (like Lexical, ProseMirror) or sites with strict CSP (like Twitter, Reddit). Bypasses Content Security Policy restrictions. (default: false)',
         },
+        pierceShadow: {
+          type: 'boolean',
+          description:
+            'Pierce through Shadow DOM (including closed shadow roots) when finding elements. Requires useCDP=true. Use this for sites with custom web components like Reddit, that use Shadow DOM to encapsulate their inputs. (default: false)',
+        },
       },
       required: ['selector', 'value'],
     },

@@ -173,6 +173,7 @@ interface FillToolParams {
   selector: string;
   value: string;
   useCDP?: boolean; // Use Chrome DevTools Protocol for trusted input (bypasses CSP)
+  pierceShadow?: boolean; // Pierce through Shadow DOM (including closed shadow roots)
 }
 
 /**
@@ -185,7 +186,7 @@ class FillTool extends BaseBrowserToolExecutor {
    * Execute fill operation
    */
   async execute(args: FillToolParams): Promise<ToolResult> {
-    const { selector, value, useCDP = false } = args;
+    const { selector, value, useCDP = false, pierceShadow = false } = args;
 
     console.log(`Starting fill operation with options:`, args);
 
@@ -207,6 +208,11 @@ class FillTool extends BaseBrowserToolExecutor {
       const tab = tabs[0];
       if (!tab.id) {
         return createErrorResponse(ERROR_MESSAGES.TAB_NOT_FOUND + ': Active tab has no ID');
+      }
+
+      // Pierce Shadow DOM requires CDP
+      if (pierceShadow) {
+        return await this.fillWithCDPPiercingShadow(tab.id, selector, value);
       }
 
       // Use CDP for trusted input (bypasses CSP, works with complex editors like Lexical)
@@ -463,6 +469,312 @@ class FillTool extends BaseBrowserToolExecutor {
       console.error('Error in CDP fill operation:', error);
       return createErrorResponse(
         `Error filling element (CDP): ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Fill element using CDP with Shadow DOM piercing
+   * This can find elements inside closed shadow roots (like Reddit's custom components)
+   */
+  private async fillWithCDPPiercingShadow(
+    tabId: number,
+    selector: string,
+    value: string,
+  ): Promise<ToolResult> {
+    const DEBUGGER_VERSION = '1.3';
+
+    try {
+      // Check if debugger is already attached
+      const targets = await chrome.debugger.getTargets();
+      const existingTarget = targets.find(
+        (t) => t.tabId === tabId && t.attached && t.type === 'page',
+      );
+
+      if (existingTarget && !existingTarget.extensionId) {
+        return createErrorResponse(
+          'Debugger is already attached to this tab (possibly by DevTools). Please close DevTools and try again.',
+        );
+      }
+
+      // Attach debugger
+      await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION);
+
+      try {
+        // Enable DOM domain for shadow DOM piercing
+        await chrome.debugger.sendCommand({ tabId }, 'DOM.enable');
+
+        // Get document with shadow DOM piercing enabled
+        await chrome.debugger.sendCommand({ tabId }, 'DOM.getDocument', {
+          pierce: true,
+          depth: -1, // Get entire tree including shadow roots
+        });
+
+        // Try to find the element using DOM.performSearch (works across shadow roots)
+        let nodeId: number | undefined;
+        let nodeName = 'unknown';
+
+        // First try DOM.performSearch with CSS selector
+        try {
+          const searchResult = (await chrome.debugger.sendCommand({ tabId }, 'DOM.performSearch', {
+            query: selector,
+            includeUserAgentShadowDOM: true,
+          })) as { searchId: string; resultCount: number };
+
+          if (searchResult.resultCount > 0) {
+            const nodeResults = (await chrome.debugger.sendCommand(
+              { tabId },
+              'DOM.getSearchResults',
+              {
+                searchId: searchResult.searchId,
+                fromIndex: 0,
+                toIndex: 1,
+              },
+            )) as { nodeIds: number[] };
+
+            nodeId = nodeResults.nodeIds[0];
+
+            // Clean up search
+            await chrome.debugger.sendCommand({ tabId }, 'DOM.discardSearchResults', {
+              searchId: searchResult.searchId,
+            });
+
+            // Get node info
+            const nodeInfo = (await chrome.debugger.sendCommand({ tabId }, 'DOM.describeNode', {
+              nodeId,
+            })) as { node: { nodeName: string; localName?: string } };
+            nodeName = nodeInfo.node.localName || nodeInfo.node.nodeName;
+          }
+        } catch (searchError) {
+          console.log('DOM.performSearch failed, falling back to recursive search:', searchError);
+        }
+
+        // Fallback: recursively search through shadow roots using Runtime.evaluate
+        if (!nodeId) {
+          const findResult = (await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+            expression: `
+              (function() {
+                // Recursive function to find element in shadow DOMs
+                function querySelectorDeep(selector, root = document) {
+                  // Try in current root
+                  let el = root.querySelector(selector);
+                  if (el) return el;
+
+                  // Search in all shadow roots (including closed ones via TreeWalker)
+                  const walker = document.createTreeWalker(
+                    root === document ? document.documentElement : root,
+                    NodeFilter.SHOW_ELEMENT
+                  );
+
+                  let node;
+                  while (node = walker.nextNode()) {
+                    // Try to access shadow root (works for open, not closed)
+                    if (node.shadowRoot) {
+                      el = querySelectorDeep(selector, node.shadowRoot);
+                      if (el) return el;
+                    }
+                  }
+
+                  return null;
+                }
+
+                const element = querySelectorDeep('${selector.replace(/'/g, "\\'")}');
+                if (!element) {
+                  return { found: false, error: 'Element not found' };
+                }
+
+                // Get element position for clicking
+                const rect = element.getBoundingClientRect();
+                return {
+                  found: true,
+                  tagName: element.tagName,
+                  x: rect.x + rect.width / 2,
+                  y: rect.y + rect.height / 2
+                };
+              })()
+            `,
+            returnByValue: true,
+          })) as {
+            result: {
+              value: { found: boolean; error?: string; tagName?: string; x?: number; y?: number };
+            };
+          };
+
+          const findData = findResult.result?.value;
+
+          if (!findData?.found) {
+            // Last resort: use CDP to find by traversing DOM nodes
+            const flattenedDoc = (await chrome.debugger.sendCommand(
+              { tabId },
+              'DOM.getFlattenedDocument',
+              {
+                pierce: true,
+                depth: -1,
+              },
+            )) as { nodes: Array<{ nodeId: number; nodeName: string; attributes?: string[] }> };
+
+            // Parse selector to find matching node (simple attribute selector support)
+            const attrMatch = selector.match(/\[([^\]=]+)(?:=["']?([^"'\]]+)["']?)?\]/);
+            if (attrMatch) {
+              const attrName = attrMatch[1];
+              const attrValue = attrMatch[2];
+
+              for (const node of flattenedDoc.nodes) {
+                if (node.attributes) {
+                  for (let i = 0; i < node.attributes.length; i += 2) {
+                    if (node.attributes[i] === attrName) {
+                      if (!attrValue || node.attributes[i + 1] === attrValue) {
+                        nodeId = node.nodeId;
+                        nodeName = node.nodeName;
+                        break;
+                      }
+                    }
+                  }
+                }
+                if (nodeId) break;
+              }
+            }
+
+            // Try matching by tag name
+            if (!nodeId) {
+              const tagMatch = selector.match(/^([a-zA-Z][\w-]*)/);
+              if (tagMatch) {
+                const tagName = tagMatch[1].toUpperCase();
+                for (const node of flattenedDoc.nodes) {
+                  if (node.nodeName === tagName) {
+                    nodeId = node.nodeId;
+                    nodeName = node.nodeName;
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (!nodeId) {
+              throw new Error(`Element not found with selector: ${selector}`);
+            }
+          } else if (findData.x !== undefined && findData.y !== undefined) {
+            // Element found via JS, use click coordinates
+            nodeName = findData.tagName || 'unknown';
+
+            // Click at element center to focus
+            await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchMouseEvent', {
+              type: 'mousePressed',
+              x: findData.x,
+              y: findData.y,
+              button: 'left',
+              clickCount: 1,
+            });
+            await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchMouseEvent', {
+              type: 'mouseReleased',
+              x: findData.x,
+              y: findData.y,
+              button: 'left',
+              clickCount: 1,
+            });
+
+            // Wait for focus
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            // Select all and insert text
+            await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+              type: 'keyDown',
+              key: 'a',
+              code: 'KeyA',
+              modifiers: 2, // Ctrl/Cmd
+            });
+            await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+              type: 'keyUp',
+              key: 'a',
+              code: 'KeyA',
+              modifiers: 2,
+            });
+            await new Promise((resolve) => setTimeout(resolve, 50));
+
+            // Insert the text
+            await chrome.debugger.sendCommand({ tabId }, 'Input.insertText', {
+              text: value,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: [
+                    'Fill operation successful (CDP Shadow DOM piercing mode)',
+                    `Filled element: ${selector}`,
+                    `Value: "${value}"`,
+                    `Element: <${nodeName.toLowerCase()}>`,
+                  ].join('\n'),
+                },
+              ],
+              isError: false,
+            };
+          }
+        }
+
+        // If we found nodeId via DOM API, focus and type
+        if (nodeId) {
+          // Focus the node using DOM.focus
+          await chrome.debugger.sendCommand({ tabId }, 'DOM.focus', { nodeId });
+
+          // Wait for focus
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Select all (Ctrl+A)
+          await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+            type: 'keyDown',
+            key: 'a',
+            code: 'KeyA',
+            modifiers: 2, // Ctrl/Cmd
+          });
+          await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+            type: 'keyUp',
+            key: 'a',
+            code: 'KeyA',
+            modifiers: 2,
+          });
+          await new Promise((resolve) => setTimeout(resolve, 50));
+
+          // Insert the text
+          await chrome.debugger.sendCommand({ tabId }, 'Input.insertText', {
+            text: value,
+          });
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: [
+                  'Fill operation successful (CDP Shadow DOM piercing mode)',
+                  `Filled element: ${selector}`,
+                  `Value: "${value}"`,
+                  `Element: <${nodeName.toLowerCase()}>`,
+                ].join('\n'),
+              },
+            ],
+            isError: false,
+          };
+        }
+
+        throw new Error(`Element not found with selector: ${selector}`);
+      } finally {
+        // Always disable DOM and detach debugger
+        try {
+          await chrome.debugger.sendCommand({ tabId }, 'DOM.disable');
+        } catch (e) {
+          console.warn('Error disabling DOM:', e);
+        }
+        try {
+          await chrome.debugger.detach({ tabId });
+        } catch (e) {
+          console.warn('Error detaching debugger:', e);
+        }
+      }
+    } catch (error) {
+      console.error('Error in CDP Shadow DOM fill operation:', error);
+      return createErrorResponse(
+        `Error filling element (CDP Shadow DOM): ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
