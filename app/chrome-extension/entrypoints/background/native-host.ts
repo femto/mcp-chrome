@@ -35,6 +35,56 @@ interface ServerStatus {
   lastUpdated: number;
 }
 
+/**
+ * Native host version info
+ */
+interface NativeHostVersionInfo {
+  version: string;
+  isOutdated: boolean;
+  minRequired: string;
+  lastChecked: number;
+}
+
+let currentVersionInfo: NativeHostVersionInfo | null = null;
+
+/**
+ * Compare semantic versions (returns -1 if a < b, 0 if equal, 1 if a > b)
+ */
+function compareVersions(a: string, b: string): number {
+  const partsA = a.split('.').map(Number);
+  const partsB = b.split('.').map(Number);
+  const maxLen = Math.max(partsA.length, partsB.length);
+
+  for (let i = 0; i < maxLen; i++) {
+    const numA = partsA[i] || 0;
+    const numB = partsB[i] || 0;
+    if (numA < numB) return -1;
+    if (numA > numB) return 1;
+  }
+  return 0;
+}
+
+/**
+ * Save version info to storage
+ */
+async function saveVersionInfo(info: NativeHostVersionInfo): Promise<void> {
+  try {
+    await chrome.storage.local.set({ [STORAGE_KEYS.NATIVE_HOST_VERSION]: info });
+    currentVersionInfo = info;
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Failed to save version info:`, error);
+  }
+}
+
+/**
+ * Request version from native host
+ */
+function requestNativeHostVersion(): void {
+  if (nativePort) {
+    nativePort.postMessage({ type: NativeMessageType.GET_VERSION });
+  }
+}
+
 let currentServerStatus: ServerStatus = {
   isRunning: false,
   lastUpdated: Date.now(),
@@ -286,6 +336,25 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
         chrome.runtime.sendMessage(message).catch(() => {
           // Ignore if no listeners
         });
+      } else if (message.type === NativeMessageType.VERSION_INFO) {
+        // Handle version info from native host
+        const version = message.payload?.version || '0.0.0';
+        const isOutdated = compareVersions(version, NATIVE_HOST.MIN_VERSION) < 0;
+        const versionInfo: NativeHostVersionInfo = {
+          version,
+          isOutdated,
+          minRequired: NATIVE_HOST.MIN_VERSION,
+          lastChecked: Date.now(),
+        };
+        void saveVersionInfo(versionInfo);
+        console.log(
+          `${LOG_PREFIX} Native host version: ${version}, required: ${NATIVE_HOST.MIN_VERSION}, outdated: ${isOutdated}`,
+        );
+        if (isOutdated) {
+          console.warn(
+            `${LOG_PREFIX} Native host is outdated! Please run: npm update -g mcp-chrome-bridger`,
+          );
+        }
       }
     });
 
@@ -313,6 +382,8 @@ export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): bool
     });
 
     nativePort.postMessage({ type: NativeMessageType.START, payload: { port } });
+    // Request version info after connection
+    requestNativeHostVersion();
     return true;
   } catch (error) {
     console.error(ERROR_MESSAGES.NATIVE_CONNECTION_FAILED, error);
@@ -445,6 +516,66 @@ export const initNativeHostListener = () => {
         console.log('[NativeHost] Cannot forward - native host not connected');
         sendResponse({ success: false, error: 'Native host not connected' });
       }
+      return true;
+    }
+
+    // Get native host version info
+    if (message.type === BACKGROUND_MESSAGE_TYPES.GET_NATIVE_HOST_VERSION) {
+      chrome.storage.local
+        .get([STORAGE_KEYS.NATIVE_HOST_VERSION])
+        .then((result) => {
+          const versionInfo = result[STORAGE_KEYS.NATIVE_HOST_VERSION] || null;
+          sendResponse({
+            success: true,
+            versionInfo,
+            minRequired: NATIVE_HOST.MIN_VERSION,
+          });
+        })
+        .catch((error) => {
+          sendResponse({
+            success: false,
+            error: String(error),
+            minRequired: NATIVE_HOST.MIN_VERSION,
+          });
+        });
+      return true;
+    }
+
+    // Toggle coordinate display for debugging
+    if (message.type === BACKGROUND_MESSAGE_TYPES.TOGGLE_COORDINATE_DISPLAY) {
+      const enabled = message.enabled;
+      (async () => {
+        try {
+          // Get active tab
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          const tab = tabs[0];
+          if (!tab?.id) {
+            sendResponse({ success: false, error: 'No active tab' });
+            return;
+          }
+
+          if (enabled) {
+            // Inject the coordinate helper script
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['inject-scripts/coordinate-helper.js'],
+            });
+            sendResponse({ success: true, enabled: true });
+          } else {
+            // Remove the coordinate helper by sending cleanup message
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              func: () => {
+                window.postMessage({ type: '__MCP_CHROME_COORDINATE_HELPER_CLEANUP__' }, '*');
+              },
+            });
+            sendResponse({ success: true, enabled: false });
+          }
+        } catch (error) {
+          console.error('Failed to toggle coordinate display:', error);
+          sendResponse({ success: false, error: String(error) });
+        }
+      })();
       return true;
     }
   });

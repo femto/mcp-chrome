@@ -109,6 +109,19 @@
               >Fetch site tools config from Worldbook API when enabled</p
             >
           </div>
+
+          <div class="webmcp-option">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="debugCoordinates" @change="toggleDebugCoordinates" />
+              <span class="checkbox-text">Debug Coordinates</span>
+              <span
+                class="help-icon"
+                title="When enabled, shows a floating display with mouse coordinates as you move the cursor. Useful for debugging click positions."
+                >?</span
+              >
+            </label>
+            <p class="option-description">Show mouse coordinates on page (for debugging)</p>
+          </div>
         </div>
       </div>
 
@@ -335,6 +348,7 @@ const nativeConnectionStatus = ref<'unknown' | 'connected' | 'disconnected'>('un
 const isConnecting = ref(false);
 const nativeServerPort = ref<number>(12306);
 const worldbookWebMCPEnabled = ref<boolean>(true); // Worldbook WebMCP enabled by default
+const debugCoordinates = ref<boolean>(false); // Debug coordinates display, off by default
 
 const serverStatus = ref<{
   isRunning: boolean;
@@ -984,6 +998,27 @@ const loadWorldbookWebMCPPreference = async () => {
     console.log(`Worldbook WebMCP preference loaded: ${worldbookWebMCPEnabled.value}`);
   } catch (error) {
     console.error('Failed to load Worldbook WebMCP preference:', error);
+  }
+};
+
+const toggleDebugCoordinates = async () => {
+  try {
+    // eslint-disable-next-line no-undef
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.TOGGLE_COORDINATE_DISPLAY,
+      enabled: debugCoordinates.value,
+    });
+    if (response?.success) {
+      console.log(`Debug coordinates ${debugCoordinates.value ? 'enabled' : 'disabled'}`);
+    } else {
+      console.error('Failed to toggle debug coordinates:', response?.error);
+      // Revert the checkbox if failed
+      debugCoordinates.value = !debugCoordinates.value;
+    }
+  } catch (error) {
+    console.error('Failed to toggle debug coordinates:', error);
+    // Revert the checkbox if failed
+    debugCoordinates.value = !debugCoordinates.value;
   }
 };
 

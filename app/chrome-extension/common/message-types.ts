@@ -21,6 +21,8 @@ export const BACKGROUND_MESSAGE_TYPES = {
   REFRESH_SERVER_STATUS: 'refresh_server_status',
   SERVER_STATUS_CHANGED: 'server_status_changed',
   INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
+  GET_NATIVE_HOST_VERSION: 'get_native_host_version',
+  TOGGLE_COORDINATE_DISPLAY: 'toggle_coordinate_display',
 } as const;
 
 // Offscreen message types
