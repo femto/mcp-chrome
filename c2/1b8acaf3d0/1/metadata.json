@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "c21b8acaf3d0",
+  "session_id": "ea768b3f-4ab0-42af-9881-5865c3dec7dc",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-10T06:21:35.299263Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/popup/App.vue"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "d9f71c65d384",
+  "transcript_identifier_at_start": "5a4c53df-7c37-4b8e-9055-bfe570415fb7",
+  "token_usage": {
+    "input_tokens": 934,
+    "cache_creation_tokens": 460424,
+    "cache_read_tokens": 10154362,
+    "output_tokens": 31838,
+    "api_call_count": 115
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-10T06:21:34.710428Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 47,
+    "total_committed": 0,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/ea768b3f-4ab0-42af-9881-5865c3dec7dc.jsonl"
+}
