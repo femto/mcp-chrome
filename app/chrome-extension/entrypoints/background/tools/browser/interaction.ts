@@ -331,22 +331,20 @@ class FillTool extends BaseBrowserToolExecutor {
         // Longer delay to ensure focus is fully established (complex editors need time)
         await new Promise((resolve) => setTimeout(resolve, 200));
 
-        // For contenteditable, use Ctrl+A to select all via CDP keyboard (more reliable)
-        if (focusData.isContentEditable) {
-          await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
-            type: 'keyDown',
-            key: 'a',
-            code: 'KeyA',
-            modifiers: 2, // Ctrl/Cmd
-          });
-          await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
-            type: 'keyUp',
-            key: 'a',
-            code: 'KeyA',
-            modifiers: 2,
-          });
-          await new Promise((resolve) => setTimeout(resolve, 50));
-        }
+        // Always use Ctrl+A to select all via CDP keyboard (works for custom elements too)
+        await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+          type: 'keyDown',
+          key: 'a',
+          code: 'KeyA',
+          modifiers: 2, // Ctrl/Cmd
+        });
+        await chrome.debugger.sendCommand({ tabId }, 'Input.dispatchKeyEvent', {
+          type: 'keyUp',
+          key: 'a',
+          code: 'KeyA',
+          modifiers: 2,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         // Strategy 1: Try Input.insertText first (fast, one-shot, more natural)
         await chrome.debugger.sendCommand({ tabId }, 'Input.insertText', {
@@ -381,11 +379,16 @@ class FillTool extends BaseBrowserToolExecutor {
         const insertedContent = verifyData?.content || '';
 
         // Check if insertText worked (content should contain our value)
+        // For custom elements (not INPUT/TEXTAREA), we can't reliably read shadow DOM content,
+        // so we assume insertText worked if we can't verify
+        const isStandardInput = ['INPUT', 'TEXTAREA'].includes(focusData.tagName);
         const insertTextWorked =
-          insertedContent.includes(value) || insertedContent.length >= value.length * 0.8; // Allow some tolerance
+          insertedContent.includes(value) ||
+          insertedContent.length >= value.length * 0.8 ||
+          (!isStandardInput && insertedContent === ''); // Custom element - can't read shadow DOM, assume success
 
         // Strategy 2: Fall back to character-by-character if insertText didn't work
-        if (!insertTextWorked && verifyData?.found) {
+        if (!insertTextWorked && verifyData?.found && isStandardInput) {
           console.log('insertText failed, falling back to character-by-character input');
 
           // Helper for random delay (mimics human typing variance)
