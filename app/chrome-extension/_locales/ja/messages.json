@@ -1,6 +1,6 @@
 {
   "extensionName": {
-    "message": "Mcp Chrome Server - AI ブラウザ制御"
+    "message": "MCP Chrome Extension - AI ブラウザ制御"
   },
   "extensionDescription": {
     "message": "ChromeをMCPサーバーに変換。Claude/CodexなどのAIアシスタントがブラウザを制御 - ナビゲート、クリック、フォーム入力、スクリーンショット。"
