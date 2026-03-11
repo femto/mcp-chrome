@@ -56,28 +56,41 @@ export class NativeMessagingHost {
     let buffer = Buffer.alloc(0);
     let expectedLength = -1;
 
-    stdin.on('readable', () => {
-      let chunk;
-      while ((chunk = stdin.read()) !== null) {
-        buffer = Buffer.concat([buffer, chunk]);
+    const processBufferedMessages = () => {
+      // Drain every complete native-messaging frame already buffered.
+      // Multiple extension responses can arrive in a single readable event.
+      while (true) {
+        if (expectedLength === -1) {
+          if (buffer.length < 4) {
+            return;
+          }
 
-        if (expectedLength === -1 && buffer.length >= 4) {
           expectedLength = buffer.readUInt32LE(0);
           buffer = buffer.slice(4);
         }
 
-        if (expectedLength !== -1 && buffer.length >= expectedLength) {
-          const messageBuffer = buffer.slice(0, expectedLength);
-          buffer = buffer.slice(expectedLength);
-
-          try {
-            const message = JSON.parse(messageBuffer.toString());
-            this.handleMessage(message);
-          } catch (error: any) {
-            this.sendError(`Failed to parse message: ${error.message}`);
-          }
-          expectedLength = -1; // reset to get next data
+        if (buffer.length < expectedLength) {
+          return;
         }
+
+        const messageBuffer = buffer.slice(0, expectedLength);
+        buffer = buffer.slice(expectedLength);
+        expectedLength = -1;
+
+        try {
+          const message = JSON.parse(messageBuffer.toString());
+          this.handleMessage(message);
+        } catch (error: any) {
+          this.sendError(`Failed to parse message: ${error.message}`);
+        }
+      }
+    };
+
+    stdin.on('readable', () => {
+      let chunk;
+      while ((chunk = stdin.read()) !== null) {
+        buffer = Buffer.concat([buffer, chunk]);
+        processBufferedMessages();
       }
     });
 

@@ -266,6 +266,11 @@ export class Server {
         logToFile(`[mcp] Handling request...`);
         await transport.handleRequest(request.raw, reply.raw, request.body);
         logToFile(`[mcp] Request handled successfully`);
+        if (!reply.sent) {
+          // Streamable HTTP keeps the raw response open and completes it later
+          // when the MCP response is ready. Tell Fastify not to auto-finalize it.
+          reply.hijack();
+        }
       } catch (error: any) {
         logToFile(`[mcp] Error handling request: ${error.message}\n${error.stack}`);
         if (!reply.sent) {

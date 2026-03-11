@@ -85,7 +85,8 @@ export default defineConfig({
           },
         ],
         structured: false,
-        hook: 'writeBundle',
+        // Copy static files before WXT's post-build validation runs.
+        hook: 'generateBundle',
       }) as any,
     ],
     build: {

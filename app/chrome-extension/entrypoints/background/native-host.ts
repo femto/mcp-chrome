@@ -137,9 +137,12 @@ async function loadAutoConnectEnabled(): Promise<boolean> {
  * Save auto-connect preference to storage
  */
 async function saveAutoConnectEnabled(enabled: boolean): Promise<void> {
+  // Update in-memory state first so a manual connect/disconnect does not
+  // race with ensureNativeConnected() reading stale storage.
+  autoConnectEnabled = enabled;
+  autoConnectLoaded = true;
   try {
     await chrome.storage.local.set({ [STORAGE_KEYS.AUTO_CONNECT_ENABLED]: enabled });
-    autoConnectEnabled = enabled;
   } catch (error) {
     console.error(`${LOG_PREFIX} Failed to save auto-connect setting:`, error);
   }
