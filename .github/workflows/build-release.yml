@@ -53,7 +53,7 @@ jobs:
       run: pnpm --filter mcp-chrome-shared build
 
     - name: Build Chrome extension
-      run: pnpm --filter chrome-mcp-server build
+      run: pnpm --filter mcp-chrome-extension build
       env:
         CHROME_EXTENSION_KEY: ${{ secrets.CHROME_EXTENSION_KEY }}
 
