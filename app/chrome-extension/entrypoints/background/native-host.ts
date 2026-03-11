@@ -14,6 +14,9 @@ import { resendAllToolsToNative } from '@/webmcp/webmcp-manager';
 
 let nativePort: chrome.runtime.Port | null = null;
 export const HOST_NAME = NATIVE_HOST.NAME;
+const HOST_NAMES = [NATIVE_HOST.NAME, ...NATIVE_HOST.LEGACY_NAMES];
+const CONNECTION_VALIDATION_TIMEOUT_MS = 250;
+let connectedHostName: string | null = null;
 
 const LOG_PREFIX = '[NativeHost]';
 
@@ -225,7 +228,7 @@ async function ensureNativeConnected(trigger: string, portOverride?: unknown): P
     const port = await getPreferredPort(portOverride);
     console.log(`${LOG_PREFIX} Attempting connection on port ${port} (trigger=${trigger})`);
 
-    const ok = connectNativeHost(port);
+    const ok = await connectNativeHost(port);
     if (!ok) {
       scheduleReconnect(trigger);
       return false;
@@ -258,140 +261,200 @@ function broadcastServerStatusChange(status: ServerStatus): void {
  * Connect to the native messaging host
  * @returns true if connection initiated successfully, false otherwise
  */
-export function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): boolean {
-  if (nativePort) {
-    return true; // Already connected
-  }
+async function validateNativePortConnection(hostName: string): Promise<chrome.runtime.Port | null> {
+  let candidatePort: chrome.runtime.Port;
 
   try {
-    nativePort = chrome.runtime.connectNative(HOST_NAME);
+    candidatePort = chrome.runtime.connectNative(hostName);
+  } catch (error) {
+    console.error(`${LOG_PREFIX} Failed to open native host ${hostName}:`, error);
+    return null;
+  }
 
-    nativePort.onMessage.addListener(async (message) => {
-      // chrome.notifications.create({
-      //   type: NOTIFICATIONS.TYPE,
-      //   iconUrl: chrome.runtime.getURL(ICONS.NOTIFICATION),
-      //   title: 'Message from native host',
-      //   message: `Received data from host: ${JSON.stringify(message)}`,
-      //   priority: NOTIFICATIONS.PRIORITY,
-      // });
+  return new Promise((resolve) => {
+    let settled = false;
 
-      if (message.type === NativeMessageType.PROCESS_DATA && message.requestId) {
-        const requestId = message.requestId;
-        const requestPayload = message.payload;
+    const cleanup = () => {
+      candidatePort.onDisconnect.removeListener(handleDisconnect);
+    };
 
+    const finish = (port: chrome.runtime.Port | null) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(port);
+    };
+
+    const handleDisconnect = () => {
+      const error = chrome.runtime.lastError;
+      console.warn(`${LOG_PREFIX} Native host ${hostName} validation failed:`, error?.message);
+      finish(null);
+    };
+
+    candidatePort.onDisconnect.addListener(handleDisconnect);
+
+    setTimeout(() => {
+      finish(candidatePort);
+    }, CONNECTION_VALIDATION_TIMEOUT_MS);
+  });
+}
+
+function attachNativePortListeners(portName: string, port: number): void {
+  if (!nativePort) {
+    return;
+  }
+
+  connectedHostName = portName;
+
+  nativePort.onMessage.addListener(async (message) => {
+    // chrome.notifications.create({
+    //   type: NOTIFICATIONS.TYPE,
+    //   iconUrl: chrome.runtime.getURL(ICONS.NOTIFICATION),
+    //   title: 'Message from native host',
+    //   message: `Received data from host: ${JSON.stringify(message)}`,
+    //   priority: NOTIFICATIONS.PRIORITY,
+    // });
+
+    if (message.type === NativeMessageType.PROCESS_DATA && message.requestId) {
+      const requestId = message.requestId;
+      const requestPayload = message.payload;
+
+      nativePort?.postMessage({
+        responseToRequestId: requestId,
+        payload: {
+          status: 'success',
+          message: SUCCESS_MESSAGES.TOOL_EXECUTED,
+          data: requestPayload,
+        },
+      });
+    } else if (message.type === NativeMessageType.CALL_TOOL && message.requestId) {
+      const requestId = message.requestId;
+      try {
+        const result = await handleCallTool(message.payload);
         nativePort?.postMessage({
           responseToRequestId: requestId,
           payload: {
             status: 'success',
             message: SUCCESS_MESSAGES.TOOL_EXECUTED,
-            data: requestPayload,
+            data: result,
           },
         });
-      } else if (message.type === NativeMessageType.CALL_TOOL && message.requestId) {
-        const requestId = message.requestId;
-        try {
-          const result = await handleCallTool(message.payload);
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: {
-              status: 'success',
-              message: SUCCESS_MESSAGES.TOOL_EXECUTED,
-              data: result,
-            },
-          });
-        } catch (error) {
-          nativePort?.postMessage({
-            responseToRequestId: requestId,
-            payload: {
-              status: 'error',
-              message: ERROR_MESSAGES.TOOL_EXECUTION_FAILED,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          });
-        }
-      } else if (message.type === NativeMessageType.SERVER_STARTED) {
-        const port = message.payload?.port;
-        currentServerStatus = {
-          isRunning: true,
-          port: port,
-          lastUpdated: Date.now(),
-        };
-        await saveServerStatus(currentServerStatus);
-        broadcastServerStatusChange(currentServerStatus);
-        console.log(`${SUCCESS_MESSAGES.SERVER_STARTED} on port ${port}`);
-
-        // Resend all registered WebMCP tools to native server
-        // This ensures tools are available after server restart
-        resendAllToolsToNative();
-      } else if (message.type === NativeMessageType.SERVER_STOPPED) {
-        currentServerStatus = {
-          isRunning: false,
-          port: currentServerStatus.port, // Keep last known port for reconnection
-          lastUpdated: Date.now(),
-        };
-        await saveServerStatus(currentServerStatus);
-        broadcastServerStatusChange(currentServerStatus);
-        console.log(SUCCESS_MESSAGES.SERVER_STOPPED);
-      } else if (message.type === NativeMessageType.ERROR_FROM_NATIVE_HOST) {
-        console.error('Error from native host:', message.payload?.message || 'Unknown error');
-      } else if (message.type === 'file_operation_response') {
-        // Forward file operation response back to the requesting tool
-        chrome.runtime.sendMessage(message).catch(() => {
-          // Ignore if no listeners
+      } catch (error) {
+        nativePort?.postMessage({
+          responseToRequestId: requestId,
+          payload: {
+            status: 'error',
+            message: ERROR_MESSAGES.TOOL_EXECUTION_FAILED,
+            error: error instanceof Error ? error.message : String(error),
+          },
         });
-      } else if (message.type === NativeMessageType.VERSION_INFO) {
-        // Handle version info from native host
-        const version = message.payload?.version || '0.0.0';
-        const isOutdated = compareVersions(version, NATIVE_HOST.MIN_VERSION) < 0;
-        const versionInfo: NativeHostVersionInfo = {
-          version,
-          isOutdated,
-          minRequired: NATIVE_HOST.MIN_VERSION,
-          lastChecked: Date.now(),
-        };
-        void saveVersionInfo(versionInfo);
-        console.log(
-          `${LOG_PREFIX} Native host version: ${version}, required: ${NATIVE_HOST.MIN_VERSION}, outdated: ${isOutdated}`,
-        );
-        if (isOutdated) {
-          console.warn(
-            `${LOG_PREFIX} Native host is outdated! Please run: npm update -g mcp-chrome-bridger`,
-          );
-        }
       }
-    });
+    } else if (message.type === NativeMessageType.SERVER_STARTED) {
+      const messagePort = message.payload?.port;
+      currentServerStatus = {
+        isRunning: true,
+        port: messagePort,
+        lastUpdated: Date.now(),
+      };
+      await saveServerStatus(currentServerStatus);
+      broadcastServerStatusChange(currentServerStatus);
+      console.log(`${SUCCESS_MESSAGES.SERVER_STARTED} on port ${messagePort}`);
 
-    nativePort.onDisconnect.addListener(() => {
-      const error = chrome.runtime.lastError;
-      console.error(`${LOG_PREFIX} Disconnected!`, {
-        error: error?.message || 'no error',
-        timestamp: new Date().toISOString(),
-      });
-      nativePort = null;
-
-      // Update server status
+      resendAllToolsToNative();
+    } else if (message.type === NativeMessageType.SERVER_STOPPED) {
       currentServerStatus = {
         isRunning: false,
         port: currentServerStatus.port,
         lastUpdated: Date.now(),
       };
-      void saveServerStatus(currentServerStatus);
+      await saveServerStatus(currentServerStatus);
       broadcastServerStatusChange(currentServerStatus);
-
-      // Schedule reconnection if auto-connect is enabled
-      if (autoConnectEnabled) {
-        scheduleReconnect('disconnect');
+      console.log(SUCCESS_MESSAGES.SERVER_STOPPED);
+    } else if (message.type === NativeMessageType.ERROR_FROM_NATIVE_HOST) {
+      console.error('Error from native host:', message.payload?.message || 'Unknown error');
+    } else if (message.type === 'file_operation_response') {
+      chrome.runtime.sendMessage(message).catch(() => {});
+    } else if (message.type === NativeMessageType.VERSION_INFO) {
+      const version = message.payload?.version || '0.0.0';
+      const isOutdated = compareVersions(version, NATIVE_HOST.MIN_VERSION) < 0;
+      const versionInfo: NativeHostVersionInfo = {
+        version,
+        isOutdated,
+        minRequired: NATIVE_HOST.MIN_VERSION,
+        lastChecked: Date.now(),
+      };
+      void saveVersionInfo(versionInfo);
+      console.log(
+        `${LOG_PREFIX} Native host version: ${version}, required: ${NATIVE_HOST.MIN_VERSION}, outdated: ${isOutdated}`,
+      );
+      if (isOutdated) {
+        console.warn(
+          `${LOG_PREFIX} Native host is outdated! Please run: npm update -g mcp-chrome-bridger`,
+        );
       }
-    });
+    }
+  });
 
-    nativePort.postMessage({ type: NativeMessageType.START, payload: { port } });
-    // Request version info after connection
-    requestNativeHostVersion();
-    return true;
-  } catch (error) {
-    console.error(ERROR_MESSAGES.NATIVE_CONNECTION_FAILED, error);
-    return false;
+  nativePort.onDisconnect.addListener(() => {
+    const error = chrome.runtime.lastError;
+    const disconnectedHostName = connectedHostName;
+    console.error(`${LOG_PREFIX} Disconnected!`, {
+      hostName: disconnectedHostName,
+      error: error?.message || 'no error',
+      timestamp: new Date().toISOString(),
+    });
+    nativePort = null;
+    connectedHostName = null;
+
+    currentServerStatus = {
+      isRunning: false,
+      port: currentServerStatus.port,
+      lastUpdated: Date.now(),
+    };
+    void saveServerStatus(currentServerStatus);
+    broadcastServerStatusChange(currentServerStatus);
+
+    if (autoConnectEnabled) {
+      scheduleReconnect('disconnect');
+    }
+  });
+
+  nativePort.postMessage({ type: NativeMessageType.START, payload: { port } });
+  requestNativeHostVersion();
+}
+
+export async function connectNativeHost(port: number = NATIVE_HOST.DEFAULT_PORT): Promise<boolean> {
+  if (nativePort) {
+    return true; // Already connected
   }
+
+  for (const hostName of HOST_NAMES) {
+    const candidatePort = await validateNativePortConnection(hostName);
+    if (!candidatePort) {
+      continue;
+    }
+
+    try {
+      nativePort = candidatePort;
+      attachNativePortListeners(hostName, port);
+      console.log(`${LOG_PREFIX} Connected to native host ${hostName}`);
+      return true;
+    } catch (error) {
+      console.error(`${LOG_PREFIX} Failed to initialize native host ${hostName}:`, error);
+      try {
+        candidatePort.disconnect();
+      } catch {
+        // Ignore disconnect failures from a partially initialized native port.
+      }
+      nativePort = null;
+      connectedHostName = null;
+    }
+  }
+
+  console.error(ERROR_MESSAGES.NATIVE_CONNECTION_FAILED, {
+    attemptedHostNames: HOST_NAMES,
+  });
+  return false;
 }
 
 /**

@@ -69,7 +69,7 @@ export const TOOL_SCHEMAS: Tool[] = [
   {
     name: TOOL_NAMES.BROWSER.SCREENSHOT,
     description:
-      'Take a screenshot of the current page or a specific element(if you want to see the page, recommend to use chrome_get_web_content first)',
+      'Take a screenshot of the current page or a specific element. Base64 screenshots are normalized to CSS-pixel space when possible, so normal viewport screenshots usually use the same x/y coordinates as chrome_click_element.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -178,7 +178,8 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.CLICK,
-    description: 'Click on an element in the current page or at specific coordinates',
+    description:
+      'Click on an element in the current page or at specific coordinates. Coordinates are viewport CSS pixels by default.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -190,15 +191,15 @@ export const TOOL_SCHEMAS: Tool[] = [
         coordinates: {
           type: 'object',
           description:
-            'Coordinates to click at (relative to viewport). If provided, takes precedence over selector.',
+            'Coordinates to click at in viewport CSS pixels. If provided, takes precedence over selector.',
           properties: {
             x: {
               type: 'number',
-              description: 'X coordinate relative to the viewport',
+              description: 'X coordinate in viewport CSS pixels',
             },
             y: {
               type: 'number',
-              description: 'Y coordinate relative to the viewport',
+              description: 'Y coordinate in viewport CSS pixels',
             },
           },
           required: ['x', 'y'],
@@ -206,7 +207,7 @@ export const TOOL_SCHEMAS: Tool[] = [
         fromScreenshot: {
           type: 'boolean',
           description:
-            'If true, interpret coordinates as coming from the most recent screenshot and auto-convert to viewport coordinates',
+            'If true, interpret coordinates as coming from the most recent screenshot and map them back to viewport CSS pixels. Usually only needed for scaled screenshots or element/full-page screenshots.',
         },
         waitForNavigation: {
           type: 'boolean',

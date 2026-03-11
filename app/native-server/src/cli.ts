@@ -3,6 +3,7 @@
 import { program } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
+import { COMMAND_NAME } from './scripts/constant';
 import {
   tryRegisterUserLevelHost,
   colorText,
@@ -19,15 +20,16 @@ async function writeNodePath(): Promise<void> {
 
     console.log(colorText(`Writing Node.js path: ${nodePath}`, 'blue'));
     fs.writeFileSync(nodePathFile, nodePath, 'utf8');
-    console.log(colorText('✓ Node.js path written for run_host scripts', 'green'));
+    console.log(colorText('✓ Node.js path written for wrapper scripts', 'green'));
   } catch (error: any) {
     console.warn(colorText(`⚠️ Failed to write Node.js path: ${error.message}`, 'yellow'));
   }
 }
 
 program
+  .name(COMMAND_NAME)
   .version(require('../package.json').version)
-  .description('Mcp Chrome Bridge - Local service for communicating with Chrome extension');
+  .description('Mcp Chrome Server native host for communicating with the Chrome extension');
 
 // Register Native Messaging host
 program
@@ -39,7 +41,7 @@ program
   .option('-d, --detect', 'Auto-detect installed browsers')
   .action(async (options) => {
     try {
-      // Write Node.js path for run_host scripts
+      // Write Node.js path for wrapper scripts
       await writeNodePath();
 
       // Determine which browsers to register
@@ -126,8 +128,8 @@ program
               'yellow',
             ),
           );
-          console.log(colorText('  1. sudo mcp-chrome-bridge register', 'yellow'));
-          console.log(colorText('  2. mcp-chrome-bridge register --system', 'yellow'));
+          console.log(colorText(`  1. sudo ${COMMAND_NAME} register`, 'yellow'));
+          console.log(colorText(`  2. ${COMMAND_NAME} register --system`, 'yellow'));
           process.exit(1);
         }
       }

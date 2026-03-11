@@ -3,7 +3,7 @@
     <div class="header">
       <div class="header-content">
         <div class="header-title-group">
-          <h1 class="header-title">Chrome MCP Server</h1>
+          <h1 class="header-title">Mcp Chrome Server</h1>
           <span class="build-version">Build: 2026-01-02 16:10</span>
         </div>
       </div>
@@ -101,7 +101,7 @@
                 href="https://worldbook.it.com/"
                 target="_blank"
                 class="help-icon"
-                title="Worldbook is a community-driven registry of WebMCP site tools. When enabled, Chrome MCP Server fetches tool configurations from Worldbook API, giving you access to pre-configured tools for popular websites."
+                title="Worldbook is a community-driven registry of WebMCP site tools. When enabled, Mcp Chrome Server fetches tool configurations from Worldbook API, giving you access to pre-configured tools for popular websites."
                 >?</a
               >
             </label>

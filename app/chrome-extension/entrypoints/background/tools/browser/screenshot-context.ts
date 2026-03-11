@@ -1,7 +1,9 @@
 export type ScreenshotScope = 'viewport' | 'element' | 'fullPage';
+export type ScreenshotCoordinateSpace = 'css_pixels' | 'screenshot_pixels_scaled';
 
 export type ScreenshotContext = {
   scope: ScreenshotScope;
+  coordinateSpace: ScreenshotCoordinateSpace;
   scaleX: number;
   scaleY: number;
   cssWidth: number;

@@ -1,6 +1,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { COMMAND_NAME, LEGACY_WRAPPER_SCRIPT_BASENAMES, WRAPPER_SCRIPT_BASENAME } from './constant';
 
 const distDir = path.join(__dirname, '..', '..', 'dist');
 // 清理上次构建
@@ -44,32 +45,39 @@ try {
 console.log('准备package.json...');
 const packageJson = require('../../package.json');
 
-// 创建安装说明
+// Create install README
 const readmeContent = `# ${packageJson.name}
 
-本程序为Chrome扩展的Native Messaging主机端。
+This package provides the native messaging host used by the Chrome extension.
 
-## 安装说明
+## Installation
 
-1. 确保已安装Node.js
-2. 全局安装本程序:
+1. Make sure Node.js is installed.
+2. Install the package globally:
    \`\`\`
    npm install -g ${packageJson.name}
    \`\`\`
-3. 注册Native Messaging主机:
+3. Register the native messaging host:
    \`\`\`
-   # 用户级别安装（推荐）
-   ${packageJson.name} register
+   # User-level registration (recommended)
+   ${COMMAND_NAME} register
 
-   # 如果用户级别安装失败，可以尝试系统级别安装
-   ${packageJson.name} register --system
-   # 或者使用管理员权限
-   sudo ${packageJson.name} register
+   # If user-level registration fails, try system-level registration
+   ${COMMAND_NAME} register --system
+
+   # Or run with elevated privileges
+   sudo ${COMMAND_NAME} register
    \`\`\`
 
-## 使用方法
+## Compatibility
 
-此应用程序由Chrome扩展自动启动，无需手动运行。
+- The npm package name remains \`mcp-chrome-bridger\`
+- Registration writes both the new and legacy native host names
+- Build output contains both the new and legacy wrapper script names
+
+## Usage
+
+The Chrome extension starts this native host automatically. You do not run the server directly.
 `;
 
 fs.writeFileSync(path.join(distDir, 'README.md'), readmeContent);
@@ -78,23 +86,27 @@ console.log('复制包装脚本...');
 const scriptsSourceDir = path.join(__dirname, '.');
 const macOsWrapperSourcePath = path.join(scriptsSourceDir, 'run_host.sh');
 const windowsWrapperSourcePath = path.join(scriptsSourceDir, 'run_host.bat');
-
-const macOsWrapperDestPath = path.join(distDir, 'run_host.sh');
-const windowsWrapperDestPath = path.join(distDir, 'run_host.bat');
+const wrapperBaseNames = [WRAPPER_SCRIPT_BASENAME, ...LEGACY_WRAPPER_SCRIPT_BASENAMES];
 
 try {
-  if (fs.existsSync(macOsWrapperSourcePath)) {
-    fs.copyFileSync(macOsWrapperSourcePath, macOsWrapperDestPath);
-    console.log(`已将 ${macOsWrapperSourcePath} 复制到 ${macOsWrapperDestPath}`);
-  } else {
+  if (!fs.existsSync(macOsWrapperSourcePath)) {
     console.error(`错误: macOS 包装脚本源文件未找到: ${macOsWrapperSourcePath}`);
+  } else {
+    for (const wrapperBaseName of wrapperBaseNames) {
+      const destinationPath = path.join(distDir, `${wrapperBaseName}.sh`);
+      fs.copyFileSync(macOsWrapperSourcePath, destinationPath);
+      console.log(`已将 ${macOsWrapperSourcePath} 复制到 ${destinationPath}`);
+    }
   }
 
-  if (fs.existsSync(windowsWrapperSourcePath)) {
-    fs.copyFileSync(windowsWrapperSourcePath, windowsWrapperDestPath);
-    console.log(`已将 ${windowsWrapperSourcePath} 复制到 ${windowsWrapperDestPath}`);
-  } else {
+  if (!fs.existsSync(windowsWrapperSourcePath)) {
     console.error(`错误: Windows 包装脚本源文件未找到: ${windowsWrapperSourcePath}`);
+  } else {
+    for (const wrapperBaseName of wrapperBaseNames) {
+      const destinationPath = path.join(distDir, `${wrapperBaseName}.bat`);
+      fs.copyFileSync(windowsWrapperSourcePath, destinationPath);
+      console.log(`已将 ${windowsWrapperSourcePath} 复制到 ${destinationPath}`);
+    }
   }
 } catch (error) {
   console.error('复制包装脚本时出错:', error);
@@ -102,7 +114,11 @@ try {
 
 // 为关键JavaScript文件和macOS包装脚本添加可执行权限
 console.log('添加可执行权限...');
-const filesToMakeExecutable = ['index.js', 'cli.js', 'run_host.sh']; // cli.js 假设在 dist 根目录
+const filesToMakeExecutable = [
+  'index.js',
+  'cli.js',
+  ...wrapperBaseNames.map((wrapperBaseName) => `${wrapperBaseName}.sh`),
+];
 
 filesToMakeExecutable.forEach((file) => {
   const filePath = path.join(distDir, file); // filePath 现在是目标路径

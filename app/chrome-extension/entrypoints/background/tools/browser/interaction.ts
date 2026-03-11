@@ -12,8 +12,8 @@ interface Coordinates {
 
 interface ClickToolParams {
   selector?: string; // CSS selector for the element to click
-  coordinates?: Coordinates; // Coordinates to click at (x, y relative to viewport)
-  fromScreenshot?: boolean; // If true, coordinates are from the last screenshot and need conversion
+  coordinates?: Coordinates; // Coordinates in viewport CSS pixels by default
+  fromScreenshot?: boolean; // If true, map coordinates from the most recent screenshot back to viewport CSS pixels
   waitForNavigation?: boolean; // Whether to wait for navigation to complete after click
   timeout?: number; // Timeout in milliseconds for waiting for the element or navigation
   useCDP?: boolean; // Use Chrome DevTools Protocol for clicking (pierces shadow DOM)
@@ -214,8 +214,9 @@ const SCREENSHOT_COORD_MAX_AGE_MS = 2 * 60 * 1000;
 type AdjustedCoords = { coords: Coordinates; adjusted: boolean };
 
 /**
- * Convert screenshot-space coordinates to viewport coordinates when possible.
- * Only converts when force (fromScreenshot) is explicitly true.
+ * Convert screenshot coordinates back to viewport coordinates when explicitly requested.
+ * Normal viewport screenshots now default to CSS-pixel space, so conversion is only
+ * needed for scaled screenshots or non-viewport screenshot scopes.
  */
 function adjustCoordinatesFromScreenshot(
   tabId: number,
@@ -246,8 +247,20 @@ function adjustCoordinatesFromScreenshot(
     );
   }
 
-  let xCss = coords.x / (ctx.scaleX || 1);
-  let yCss = coords.y / (ctx.scaleY || 1);
+  if (ctx.scope === 'viewport' && ctx.coordinateSpace === 'css_pixels') {
+    return {
+      coords: { x: Math.round(coords.x), y: Math.round(coords.y) },
+      adjusted: false,
+    };
+  }
+
+  let xCss = coords.x;
+  let yCss = coords.y;
+
+  if (ctx.coordinateSpace === 'screenshot_pixels_scaled') {
+    xCss = coords.x / (ctx.scaleX || 1);
+    yCss = coords.y / (ctx.scaleY || 1);
+  }
 
   if (ctx.scope === 'element' && ctx.elementRect) {
     const scrollAtCaptureX = ctx.elementScrollX || 0;
@@ -259,9 +272,11 @@ function adjustCoordinatesFromScreenshot(
     yCss = yCss - (ctx.scrollY || 0);
   }
 
+  const resolved = { x: Math.round(xCss), y: Math.round(yCss) };
+
   return {
-    coords: { x: Math.round(xCss), y: Math.round(yCss) },
-    adjusted: true,
+    coords: resolved,
+    adjusted: resolved.x !== Math.round(coords.x) || resolved.y !== Math.round(coords.y),
   };
 }
 

@@ -9,6 +9,9 @@ import {
   EXTENSION_ID,
   EXTENSION_ID_WEBSTORE,
   HOST_NAME,
+  LEGACY_HOST_NAMES,
+  LEGACY_WRAPPER_SCRIPT_BASENAMES,
+  WRAPPER_SCRIPT_BASENAME,
 } from './constant';
 import { BrowserType, getBrowserConfig, detectInstalledBrowsers } from './browser-config';
 
@@ -34,7 +37,7 @@ export function colorText(text: string, color: string): string {
 /**
  * Get user-level manifest file path
  */
-export function getUserManifestPath(): string {
+export function getUserManifestPath(hostName: string = HOST_NAME): string {
   if (os.platform() === 'win32') {
     // Windows: %APPDATA%\Google\Chrome\NativeMessagingHosts\
     return path.join(
@@ -42,7 +45,7 @@ export function getUserManifestPath(): string {
       'Google',
       'Chrome',
       'NativeMessagingHosts',
-      `${HOST_NAME}.json`,
+      `${hostName}.json`,
     );
   } else if (os.platform() === 'darwin') {
     // macOS: ~/Library/Application Support/Google/Chrome/NativeMessagingHosts/
@@ -53,7 +56,7 @@ export function getUserManifestPath(): string {
       'Google',
       'Chrome',
       'NativeMessagingHosts',
-      `${HOST_NAME}.json`,
+      `${hostName}.json`,
     );
   } else {
     // Linux: ~/.config/google-chrome/NativeMessagingHosts/
@@ -62,7 +65,7 @@ export function getUserManifestPath(): string {
       '.config',
       'google-chrome',
       'NativeMessagingHosts',
-      `${HOST_NAME}.json`,
+      `${hostName}.json`,
     );
   }
 }
@@ -70,7 +73,7 @@ export function getUserManifestPath(): string {
 /**
  * Get system-level manifest file path
  */
-export function getSystemManifestPath(): string {
+export function getSystemManifestPath(hostName: string = HOST_NAME): string {
   if (os.platform() === 'win32') {
     // Windows: %ProgramFiles%\Google\Chrome\NativeMessagingHosts\
     return path.join(
@@ -78,15 +81,26 @@ export function getSystemManifestPath(): string {
       'Google',
       'Chrome',
       'NativeMessagingHosts',
-      `${HOST_NAME}.json`,
+      `${hostName}.json`,
     );
   } else if (os.platform() === 'darwin') {
     // macOS: /Library/Google/Chrome/NativeMessagingHosts/
-    return path.join('/Library', 'Google', 'Chrome', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+    return path.join('/Library', 'Google', 'Chrome', 'NativeMessagingHosts', `${hostName}.json`);
   } else {
     // Linux: /etc/opt/chrome/native-messaging-hosts/
-    return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${HOST_NAME}.json`);
+    return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${hostName}.json`);
   }
+}
+
+export function getAllHostNames(): string[] {
+  return [HOST_NAME, ...LEGACY_HOST_NAMES];
+}
+
+function getWrapperScriptNames(): string[] {
+  const ext = process.platform === 'win32' ? '.bat' : '.sh';
+  return [WRAPPER_SCRIPT_BASENAME, ...LEGACY_WRAPPER_SCRIPT_BASENAMES].map(
+    (baseName) => `${baseName}${ext}`,
+  );
 }
 
 /**
@@ -95,8 +109,14 @@ export function getSystemManifestPath(): string {
 export async function getMainPath(): Promise<string> {
   try {
     const packageDistDir = path.join(__dirname, '..');
-    const wrapperScriptName = process.platform === 'win32' ? 'run_host.bat' : 'run_host.sh';
-    const absoluteWrapperPath = path.resolve(packageDistDir, wrapperScriptName);
+    for (const wrapperScriptName of getWrapperScriptNames()) {
+      const absoluteWrapperPath = path.resolve(packageDistDir, wrapperScriptName);
+      if (fs.existsSync(absoluteWrapperPath)) {
+        return absoluteWrapperPath;
+      }
+    }
+
+    const absoluteWrapperPath = path.resolve(packageDistDir, getWrapperScriptNames()[0]);
     return absoluteWrapperPath;
   } catch (error) {
     console.log(colorText('Cannot find global package path, using current directory', 'yellow'));
@@ -120,7 +140,7 @@ export async function ensureExecutionPermissions(): Promise<void> {
     // Unix/Linux 平台处理
     const filesToCheck = [
       path.join(packageDistDir, 'index.js'),
-      path.join(packageDistDir, 'run_host.sh'),
+      ...getWrapperScriptNames().map((fileName) => path.join(packageDistDir, fileName)),
       path.join(packageDistDir, 'cli.js'),
     ];
 
@@ -154,7 +174,7 @@ export async function ensureExecutionPermissions(): Promise<void> {
 async function ensureWindowsFilePermissions(packageDistDir: string): Promise<void> {
   const filesToCheck = [
     path.join(packageDistDir, 'index.js'),
-    path.join(packageDistDir, 'run_host.bat'),
+    ...getWrapperScriptNames().map((fileName) => path.join(packageDistDir, fileName)),
     path.join(packageDistDir, 'cli.js'),
   ];
 
@@ -194,11 +214,11 @@ async function ensureWindowsFilePermissions(packageDistDir: string): Promise<voi
 /**
  * Create Native Messaging host manifest content
  */
-export async function createManifestContent(): Promise<any> {
+export async function createManifestContent(hostName: string = HOST_NAME): Promise<any> {
   const mainPath = await getMainPath();
 
   return {
-    name: HOST_NAME,
+    name: hostName,
     description: DESCRIPTION,
     path: mainPath, // Node.js可执行文件路径
     type: 'stdio',
@@ -254,7 +274,7 @@ export async function tryRegisterUserLevelHost(targetBrowsers?: BrowserType[]): 
     }
 
     // 3. 创建清单内容
-    const manifest = await createManifestContent();
+    const hostNames = getAllHostNames();
 
     let successCount = 0;
     const results: { browser: string; success: boolean; error?: string }[] = [];
@@ -265,27 +285,33 @@ export async function tryRegisterUserLevelHost(targetBrowsers?: BrowserType[]): 
       console.log(colorText(`\nRegistering for ${config.displayName}...`, 'blue'));
 
       try {
-        // 确保目录存在
-        await mkdir(path.dirname(config.userManifestPath), { recursive: true });
+        for (const hostName of hostNames) {
+          const hostConfig = getBrowserConfig(browserType, hostName);
+          const manifest = await createManifestContent(hostName);
 
-        // 写入清单文件
-        await writeFile(config.userManifestPath, JSON.stringify(manifest, null, 2));
-        console.log(colorText(`✓ Manifest written to ${config.userManifestPath}`, 'green'));
+          await mkdir(path.dirname(hostConfig.userManifestPath), { recursive: true });
+          await writeFile(hostConfig.userManifestPath, JSON.stringify(manifest, null, 2));
+          console.log(colorText(`✓ Manifest written to ${hostConfig.userManifestPath}`, 'green'));
 
-        // Windows需要额外注册表项
-        if (os.platform() === 'win32' && config.registryKey) {
-          try {
-            const escapedPath = config.userManifestPath.replace(/\\/g, '\\\\');
-            const regCommand = `reg add "${config.registryKey}" /ve /t REG_SZ /d "${escapedPath}" /f`;
-            execSync(regCommand, { stdio: 'pipe' });
+          if (os.platform() === 'win32' && hostConfig.registryKey) {
+            try {
+              const escapedPath = hostConfig.userManifestPath.replace(/\\/g, '\\\\');
+              const regCommand = `reg add "${hostConfig.registryKey}" /ve /t REG_SZ /d "${escapedPath}" /f`;
+              execSync(regCommand, { stdio: 'pipe' });
 
-            if (verifyWindowsRegistryEntry(config.registryKey, config.userManifestPath)) {
-              console.log(colorText(`✓ Registry entry created for ${config.displayName}`, 'green'));
-            } else {
-              throw new Error('Registry verification failed');
+              if (verifyWindowsRegistryEntry(hostConfig.registryKey, hostConfig.userManifestPath)) {
+                console.log(
+                  colorText(
+                    `✓ Registry entry created for ${config.displayName} (${hostName})`,
+                    'green',
+                  ),
+                );
+              } else {
+                throw new Error('Registry verification failed');
+              }
+            } catch (error: any) {
+              throw new Error(`Registry error for ${hostName}: ${error.message}`);
             }
-          } catch (error: any) {
-            throw new Error(`Registry error: ${error.message}`);
           }
         }
 
@@ -344,40 +370,50 @@ export async function registerWithElevatedPermissions(): Promise<void> {
     await ensureExecutionPermissions();
 
     // 2. 准备清单内容
-    const manifest = await createManifestContent();
-
-    // 3. 获取系统级清单路径
-    const manifestPath = getSystemManifestPath();
-
-    // 4. 创建临时清单文件
-    const tempManifestPath = path.join(os.tmpdir(), `${HOST_NAME}.json`);
-    await writeFile(tempManifestPath, JSON.stringify(manifest, null, 2));
+    const hostNames = getAllHostNames();
 
     // 5. 检测是否已经有管理员权限
     const isRoot = process.getuid && process.getuid() === 0; // Unix/Linux/Mac
     const hasAdminRights = process.platform === 'win32' ? isAdmin() : false; // Windows平台检测管理员权限
     const hasElevatedPermissions = isRoot || hasAdminRights;
 
-    // 准备命令
-    const command =
-      os.platform() === 'win32'
-        ? `if not exist "${path.dirname(manifestPath)}" mkdir "${path.dirname(manifestPath)}" && copy "${tempManifestPath}" "${manifestPath}"`
-        : `mkdir -p "${path.dirname(manifestPath)}" && cp "${tempManifestPath}" "${manifestPath}" && chmod 644 "${manifestPath}"`;
-
     if (hasElevatedPermissions) {
-      // 已经有管理员权限，直接执行命令
       try {
-        // 创建目录
-        if (!fs.existsSync(path.dirname(manifestPath))) {
-          fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-        }
+        for (const hostName of hostNames) {
+          const manifest = await createManifestContent(hostName);
+          const manifestPath = getSystemManifestPath(hostName);
+          const tempManifestPath = path.join(os.tmpdir(), `${hostName}.json`);
+          await writeFile(tempManifestPath, JSON.stringify(manifest, null, 2));
 
-        // 复制文件
-        fs.copyFileSync(tempManifestPath, manifestPath);
+          if (!fs.existsSync(path.dirname(manifestPath))) {
+            fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+          }
 
-        // 设置权限（非Windows平台）
-        if (os.platform() !== 'win32') {
-          fs.chmodSync(manifestPath, '644');
+          fs.copyFileSync(tempManifestPath, manifestPath);
+
+          if (os.platform() !== 'win32') {
+            fs.chmodSync(manifestPath, '644');
+          }
+
+          if (os.platform() === 'win32') {
+            const registryKey = `HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\${hostName}`;
+            const escapedPath = manifestPath.replace(/\\/g, '\\\\');
+            const regCommand = `reg add "${registryKey}" /ve /t REG_SZ /d "${escapedPath}" /f`;
+            execSync(regCommand, { stdio: 'pipe' });
+
+            if (verifyWindowsRegistryEntry(registryKey, manifestPath)) {
+              console.log(
+                colorText(`Windows registry entry created successfully for ${hostName}!`, 'green'),
+              );
+            } else {
+              console.log(
+                colorText(
+                  `⚠️ Registry entry created but verification failed for ${hostName}`,
+                  'yellow',
+                ),
+              );
+            }
+          }
         }
 
         console.log(colorText('System-level manifest registration successful!', 'green'));
@@ -401,10 +437,10 @@ export async function registerWithElevatedPermissions(): Promise<void> {
 
       if (os.platform() === 'win32') {
         console.log(colorText('  1. Open Command Prompt as Administrator and run:', 'blue'));
-        console.log(colorText(`     ${command}`, 'cyan'));
+        console.log(colorText(`     ${COMMAND_NAME} register --system`, 'cyan'));
       } else {
         console.log(colorText('  1. Run with sudo:', 'blue'));
-        console.log(colorText(`     sudo ${command}`, 'cyan'));
+        console.log(colorText(`     sudo ${COMMAND_NAME} register`, 'cyan'));
       }
 
       console.log(
@@ -413,56 +449,6 @@ export async function registerWithElevatedPermissions(): Promise<void> {
       console.log(colorText(`     sudo ${COMMAND_NAME} register --system`, 'cyan'));
 
       throw new Error('Administrator privileges required for system-level installation');
-    }
-
-    // 6. Windows特殊处理 - 设置系统级注册表
-    if (os.platform() === 'win32') {
-      const registryKey = `HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\${HOST_NAME}`;
-      // 确保路径使用正确的转义格式
-      const escapedPath = manifestPath.replace(/\\/g, '\\\\');
-      const regCommand = `reg add "${registryKey}" /ve /t REG_SZ /d "${escapedPath}" /f`;
-
-      console.log(colorText(`Creating system registry entry: ${registryKey}`, 'blue'));
-      console.log(colorText(`Manifest path: ${manifestPath}`, 'blue'));
-
-      if (hasElevatedPermissions) {
-        // 已经有管理员权限，直接执行注册表命令
-        try {
-          execSync(regCommand, { stdio: 'pipe' });
-
-          // 验证注册表项是否创建成功
-          if (verifyWindowsRegistryEntry(registryKey, manifestPath)) {
-            console.log(colorText('Windows registry entry created successfully!', 'green'));
-          } else {
-            console.log(colorText('⚠️ Registry entry created but verification failed', 'yellow'));
-          }
-        } catch (error: any) {
-          console.error(
-            colorText(`Windows registry entry creation failed: ${error.message}`, 'red'),
-          );
-          console.error(colorText(`Command: ${regCommand}`, 'red'));
-          throw error;
-        }
-      } else {
-        // 没有管理员权限，打印手动操作提示
-        console.log(
-          colorText(
-            '⚠️ Administrator privileges required for Windows registry modification',
-            'yellow',
-          ),
-        );
-        console.log(colorText('Please run the following command as Administrator:', 'blue'));
-        console.log(colorText(`  ${regCommand}`, 'cyan'));
-        console.log(colorText('Or run the registration command with elevated privileges:', 'blue'));
-        console.log(
-          colorText(
-            `  Run Command Prompt as Administrator and execute: ${COMMAND_NAME} register --system`,
-            'cyan',
-          ),
-        );
-
-        throw new Error('Administrator privileges required for Windows registry modification');
-      }
     }
   } catch (error: any) {
     console.error(colorText(`注册失败: ${error.message}`, 'red'));

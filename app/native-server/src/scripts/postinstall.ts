@@ -3,7 +3,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { COMMAND_NAME } from './constant';
+import { COMMAND_NAME, LEGACY_WRAPPER_SCRIPT_BASENAMES, WRAPPER_SCRIPT_BASENAME } from './constant';
 import { colorText, tryRegisterUserLevelHost } from './utils';
 
 // Check if this script is run directly
@@ -20,7 +20,7 @@ function isWorkspaceDev(): boolean {
 }
 
 /**
- * Write Node.js path for run_host scripts to avoid fragile relative paths
+ * Write Node.js path for wrapper scripts to avoid fragile relative paths
  */
 async function writeNodePath(): Promise<void> {
   try {
@@ -29,10 +29,16 @@ async function writeNodePath(): Promise<void> {
 
     console.log(colorText(`Writing Node.js path: ${nodePath}`, 'blue'));
     fs.writeFileSync(nodePathFile, nodePath, 'utf8');
-    console.log(colorText('✓ Node.js path written for run_host scripts', 'green'));
+    console.log(colorText('✓ Node.js path written for wrapper scripts', 'green'));
   } catch (error: any) {
     console.warn(colorText(`⚠️ Failed to write Node.js path: ${error.message}`, 'yellow'));
   }
+}
+
+function getWrapperScriptPaths(extension: '.sh' | '.bat'): string[] {
+  return [WRAPPER_SCRIPT_BASENAME, ...LEGACY_WRAPPER_SCRIPT_BASENAMES].map((baseName) =>
+    path.join(__dirname, '..', `${baseName}${extension}`),
+  );
 }
 
 /**
@@ -48,7 +54,7 @@ async function ensureExecutionPermissions(): Promise<void> {
   // Unix/Linux 平台处理
   const filesToCheck = [
     path.join(__dirname, '..', 'index.js'),
-    path.join(__dirname, '..', 'run_host.sh'),
+    ...getWrapperScriptPaths('.sh'),
     path.join(__dirname, '..', 'cli.js'),
   ];
 
@@ -79,7 +85,7 @@ async function ensureExecutionPermissions(): Promise<void> {
 async function ensureWindowsFilePermissions(): Promise<void> {
   const filesToCheck = [
     path.join(__dirname, '..', 'index.js'),
-    path.join(__dirname, '..', 'run_host.bat'),
+    ...getWrapperScriptPaths('.bat'),
     path.join(__dirname, '..', 'cli.js'),
   ];
 
@@ -196,7 +202,7 @@ async function main(): Promise<void> {
   // Always ensure execution permissions first
   await ensureExecutionPermissions();
 
-  // Write Node.js path for run_host scripts to use
+  // Write Node.js path for wrapper scripts to use
   await writeNodePath();
 
   // Always try to register - user-level registration is safe and what users expect

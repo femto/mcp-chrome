@@ -6,4 +6,4 @@
 export { initWebMCPListener, getConfiguredSites } from './webmcp-manager';
 export { listWebMCPToolsTool, detectWebMCPToolsTool, callWebMCPToolTool } from './webmcp-tool';
 export { siteToolsConfig, matchSiteConfig } from './site-tools-config';
-export type { SiteConfig, SiteTool, SiteToolParam } from './site-tools-config';
+export type { SiteConfig, SiteTool, InputSchema } from './site-tools-config';

@@ -149,10 +149,10 @@ export async function canvasToDataURL(
  *
  * @param {string} imageDataUrl - The original image data URL (e.g., from captureVisibleTab).
  * @param {object} options - Compression options.
- * @param {number} [options.scale=1.0] - The scaling factor for dimensions (e.g., 0.7 for 70%).
+ * @param {number} [options.scale=1.0] - The scaling factor applied in CSS pixel space.
  * @param {number} [options.quality=0.8] - The quality for lossy formats like JPEG (0.0 to 1.0).
  * @param {string} [options.format='image/jpeg'] - The target image format.
- * @param {number} [options.maxDimension] - Maximum dimension (width or height) in pixels. If the scaled image exceeds this, it will be further scaled down.
+ * @param {number} [options.maxDimension] - Maximum output dimension in CSS pixels.
  * @returns {Promise<{dataUrl: string, mimeType: string}>} A promise that resolves to the compressed image data URL and its MIME type.
  */
 export async function compressImage(
@@ -200,23 +200,22 @@ export async function compressImage(
       ? sourceCssHeight
       : imageBitmap.height / devicePixelRatio;
 
-  // 2. Calculate the new dimensions based on the scale factor.
-  let actualScale = scale;
+  // 2. Normalize the output into CSS-pixel space first so AI coordinates can
+  // match viewport coordinates whenever the CSS dimensions fit within limits.
+  let targetCssWidth = originalWidth * scale;
+  let targetCssHeight = originalHeight * scale;
 
-  // If maxDimension is set, ensure output dimensions don't exceed the limit
   if (maxDimension) {
-    const scaledWidth = imageBitmap.width * scale;
-    const scaledHeight = imageBitmap.height * scale;
-    const maxScaledDim = Math.max(scaledWidth, scaledHeight);
-
-    if (maxScaledDim > maxDimension) {
-      // Further scale down to fit within maxDimension
-      actualScale = maxDimension / Math.max(imageBitmap.width, imageBitmap.height);
+    const maxCssDim = Math.max(targetCssWidth, targetCssHeight);
+    if (maxCssDim > maxDimension) {
+      const limitScale = maxDimension / maxCssDim;
+      targetCssWidth *= limitScale;
+      targetCssHeight *= limitScale;
     }
   }
 
-  const newWidth = Math.round(imageBitmap.width * actualScale);
-  const newHeight = Math.round(imageBitmap.height * actualScale);
+  const newWidth = Math.max(1, Math.round(targetCssWidth));
+  const newHeight = Math.max(1, Math.round(targetCssHeight));
 
   // 3. Use OffscreenCanvas for performance, as it doesn't need to be in the DOM.
   const canvas = new OffscreenCanvas(newWidth, newHeight);
@@ -242,7 +241,7 @@ export async function compressImage(
   });
 
   // Calculate CSS-based scale ratio for coordinate conversion
-  // This represents the ratio between compressed image coordinates and CSS pixel coordinates
+  // This represents the ratio between output image coordinates and CSS pixel coordinates.
   const cssScaleX = newWidth / originalWidth;
   const cssScaleY = newHeight / originalHeight;
 

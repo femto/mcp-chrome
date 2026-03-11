@@ -5,7 +5,8 @@
 
 // Native Host Configuration
 export const NATIVE_HOST = {
-  NAME: 'com.chromemcp.nativehost',
+  NAME: 'com.mcpchromeserver.nativehost',
+  LEGACY_NAMES: ['com.chromemcp.nativehost'],
   DEFAULT_PORT: 12306,
   MIN_VERSION: '1.0.18', // Minimum required native host version
 } as const;

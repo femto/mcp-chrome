@@ -21,7 +21,7 @@ const SCREENSHOT_CONSTANTS = {
   MAX_CAPTURE_HEIGHT_PX: 50000, // Maximum height in pixels to capture
   PIXEL_TOLERANCE: 1,
   SCRIPT_INIT_DELAY: 100, // Delay for script initialization
-  MAX_BASE64_DIMENSION_PX: 1800, // Max dimension for base64 output (multi-image API limit is 2000, leave buffer)
+  MAX_BASE64_DIMENSION_PX: 2000, // Max dimension for base64 output (Claude multi-image limit)
 } as {
   readonly SCROLL_DELAY_MS: number;
   CAPTURE_STITCH_DELAY_MS: number; // This one is mutable
@@ -32,9 +32,15 @@ const SCREENSHOT_CONSTANTS = {
   readonly MAX_BASE64_DIMENSION_PX: number;
 };
 
+const CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND =
+  (
+    chrome.tabs as typeof chrome.tabs & {
+      MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND?: number;
+    }
+  ).MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND ?? 2;
+
 SCREENSHOT_CONSTANTS['CAPTURE_STITCH_DELAY_MS'] = Math.max(
-  1000 / chrome.tabs.MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND -
-    SCREENSHOT_CONSTANTS.SCROLL_DELAY_MS,
+  1000 / CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND - SCREENSHOT_CONSTANTS.SCROLL_DELAY_MS,
   SCREENSHOT_CONSTANTS.CAPTURE_STITCH_DELAY_MS,
 );
 
@@ -191,10 +197,10 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
 
       // 2. Process output
       if (storeBase64 === true) {
-        // Compress image for base64 output to reduce size
-        // Pass devicePixelRatio so originalWidth/Height are reported in CSS pixels (for click coordinates)
+        // Normalize to CSS-pixel space first, then only scale down further if the
+        // CSS dimensions exceed the model/image transport limit.
         const compressed = await compressImage(finalImageDataUrl, {
-          scale: 0.7, // Reduce dimensions by 30%
+          scale: 1.0,
           quality: 0.8, // 80% quality for good balance
           format: 'image/jpeg', // JPEG for better compression
           maxDimension: SCREENSHOT_CONSTANTS.MAX_BASE64_DIMENSION_PX, // Ensure within API limits
@@ -207,11 +213,14 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
         const base64Data = compressed.dataUrl.replace(/^data:image\/[^;]+;base64,/, '');
         results.base64 = base64Data;
 
-        // Build scale info for AI to convert coordinates (CSS pixels)
+        // Track whether the image had to be scaled after CSS normalization.
         const scaleX = compressed.scaleX ?? compressed.scale;
         const scaleY = compressed.scaleY ?? compressed.scale;
+        const scaledForTransport = Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01;
+        const coordinateSpace = scaledForTransport ? 'screenshot_pixels_scaled' : 'css_pixels';
         setLastScreenshotContext(tab.id!, {
           scope,
+          coordinateSpace,
           scaleX,
           scaleY,
           cssWidth: compressed.originalWidth,
@@ -225,19 +234,24 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
           elementScrollY: elementScroll?.y,
           timestamp: Date.now(),
         });
-        const scopeNote =
+        const scopeLabel =
           scope === 'element'
-            ? 'Note: this is an element-only screenshot; coordinates are relative to that element.'
+            ? 'element CSS pixels'
             : scope === 'fullPage'
-              ? 'Note: this is a full-page screenshot; coordinates are page-relative and may require scrolling.'
-              : '';
-        const scaleChanged = Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01;
-        const dimensionInfo = scaleChanged
+              ? 'page CSS pixels'
+              : 'viewport CSS pixels';
+        const dimensionInfo = scaledForTransport
           ? `\nImage: ${Math.round(compressed.scaledWidth)}x${Math.round(compressed.scaledHeight)} px (CSS: ${Math.round(compressed.originalWidth)}x${Math.round(compressed.originalHeight)} px)`
           : `\nImage: ${Math.round(compressed.scaledWidth)}x${Math.round(compressed.scaledHeight)} px`;
-        const screenshotHint =
-          '\nTo click on this screenshot, use chrome_click_element with fromScreenshot: true for auto coordinate conversion.';
-        const scopeInfo = scopeNote ? `\n${scopeNote}` : '';
+        const coordinateInfo = `\nCoordinate space: ${coordinateSpace} (${scopeLabel})`;
+        let screenshotHint: string;
+        if (scope === 'viewport' && !scaledForTransport) {
+          screenshotHint =
+            '\nClick hint: these coordinates already match viewport CSS pixels. Pass x/y directly to chrome_click_element and leave fromScreenshot unset.';
+        } else {
+          screenshotHint =
+            '\nClick hint: use chrome_click_element with fromScreenshot: true to map screenshot coordinates back to viewport CSS pixels.';
+        }
 
         return {
           content: [
@@ -248,7 +262,7 @@ class ScreenshotTool extends BaseBrowserToolExecutor {
             },
             {
               type: 'text',
-              text: `Screenshot captured successfully.${dimensionInfo}${screenshotHint}${scopeInfo}`,
+              text: `Screenshot captured successfully.${dimensionInfo}${coordinateInfo}${screenshotHint}`,
             },
           ],
           isError: false,

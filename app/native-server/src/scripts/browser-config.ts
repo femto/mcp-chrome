@@ -21,18 +21,18 @@ export interface BrowserConfig {
 /**
  * Get the user-level manifest path for a specific browser
  */
-function getUserManifestPathForBrowser(browser: BrowserType): string {
+function getUserManifestPathForBrowser(browser: BrowserType, hostName: string = HOST_NAME): string {
   const platform = os.platform();
 
   if (platform === 'win32') {
     const appData = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
     switch (browser) {
       case BrowserType.CHROME:
-        return path.join(appData, 'Google', 'Chrome', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+        return path.join(appData, 'Google', 'Chrome', 'NativeMessagingHosts', `${hostName}.json`);
       case BrowserType.CHROMIUM:
-        return path.join(appData, 'Chromium', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+        return path.join(appData, 'Chromium', 'NativeMessagingHosts', `${hostName}.json`);
       default:
-        return path.join(appData, 'Google', 'Chrome', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+        return path.join(appData, 'Google', 'Chrome', 'NativeMessagingHosts', `${hostName}.json`);
     }
   } else if (platform === 'darwin') {
     const home = os.homedir();
@@ -45,7 +45,7 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
           'Google',
           'Chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
       case BrowserType.CHROMIUM:
         return path.join(
@@ -54,7 +54,7 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
           'Application Support',
           'Chromium',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
       default:
         return path.join(
@@ -64,7 +64,7 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
           'Google',
           'Chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
     }
   } else {
@@ -77,17 +77,17 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
           '.config',
           'google-chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
       case BrowserType.CHROMIUM:
-        return path.join(home, '.config', 'chromium', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+        return path.join(home, '.config', 'chromium', 'NativeMessagingHosts', `${hostName}.json`);
       default:
         return path.join(
           home,
           '.config',
           'google-chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
     }
   }
@@ -96,7 +96,10 @@ function getUserManifestPathForBrowser(browser: BrowserType): string {
 /**
  * Get the system-level manifest path for a specific browser
  */
-function getSystemManifestPathForBrowser(browser: BrowserType): string {
+function getSystemManifestPathForBrowser(
+  browser: BrowserType,
+  hostName: string = HOST_NAME,
+): string {
   const platform = os.platform();
 
   if (platform === 'win32') {
@@ -108,17 +111,17 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
           'Google',
           'Chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
       case BrowserType.CHROMIUM:
-        return path.join(programFiles, 'Chromium', 'NativeMessagingHosts', `${HOST_NAME}.json`);
+        return path.join(programFiles, 'Chromium', 'NativeMessagingHosts', `${hostName}.json`);
       default:
         return path.join(
           programFiles,
           'Google',
           'Chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
     }
   } else if (platform === 'darwin') {
@@ -129,7 +132,7 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
           'Google',
           'Chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
       case BrowserType.CHROMIUM:
         return path.join(
@@ -137,7 +140,7 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
           'Application Support',
           'Chromium',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
       default:
         return path.join(
@@ -145,18 +148,18 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
           'Google',
           'Chrome',
           'NativeMessagingHosts',
-          `${HOST_NAME}.json`,
+          `${hostName}.json`,
         );
     }
   } else {
     // Linux
     switch (browser) {
       case BrowserType.CHROME:
-        return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${HOST_NAME}.json`);
+        return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${hostName}.json`);
       case BrowserType.CHROMIUM:
-        return path.join('/etc', 'chromium', 'native-messaging-hosts', `${HOST_NAME}.json`);
+        return path.join('/etc', 'chromium', 'native-messaging-hosts', `${hostName}.json`);
       default:
-        return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${HOST_NAME}.json`);
+        return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${hostName}.json`);
     }
   }
 }
@@ -164,17 +167,20 @@ function getSystemManifestPathForBrowser(browser: BrowserType): string {
 /**
  * Get Windows registry keys for a browser
  */
-function getRegistryKeys(browser: BrowserType): { user: string; system: string } | undefined {
+function getRegistryKeys(
+  browser: BrowserType,
+  hostName: string = HOST_NAME,
+): { user: string; system: string } | undefined {
   if (os.platform() !== 'win32') return undefined;
 
   const browserPaths: Record<BrowserType, { user: string; system: string }> = {
     [BrowserType.CHROME]: {
-      user: `HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\${HOST_NAME}`,
-      system: `HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\${HOST_NAME}`,
+      user: `HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\${hostName}`,
+      system: `HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\${hostName}`,
     },
     [BrowserType.CHROMIUM]: {
-      user: `HKCU\\Software\\Chromium\\NativeMessagingHosts\\${HOST_NAME}`,
-      system: `HKLM\\Software\\Chromium\\NativeMessagingHosts\\${HOST_NAME}`,
+      user: `HKCU\\Software\\Chromium\\NativeMessagingHosts\\${hostName}`,
+      system: `HKLM\\Software\\Chromium\\NativeMessagingHosts\\${hostName}`,
     },
   };
 
@@ -184,14 +190,17 @@ function getRegistryKeys(browser: BrowserType): { user: string; system: string }
 /**
  * Get browser configuration
  */
-export function getBrowserConfig(browser: BrowserType): BrowserConfig {
-  const registryKeys = getRegistryKeys(browser);
+export function getBrowserConfig(
+  browser: BrowserType,
+  hostName: string = HOST_NAME,
+): BrowserConfig {
+  const registryKeys = getRegistryKeys(browser, hostName);
 
   return {
     type: browser,
     displayName: browser.charAt(0).toUpperCase() + browser.slice(1),
-    userManifestPath: getUserManifestPathForBrowser(browser),
-    systemManifestPath: getSystemManifestPathForBrowser(browser),
+    userManifestPath: getUserManifestPathForBrowser(browser, hostName),
+    systemManifestPath: getSystemManifestPathForBrowser(browser, hostName),
     registryKey: registryKeys?.user,
     systemRegistryKey: registryKeys?.system,
   };
