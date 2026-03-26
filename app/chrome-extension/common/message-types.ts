@@ -37,6 +37,7 @@ export const OFFSCREEN_MESSAGE_TYPES = {
 export const CONTENT_MESSAGE_TYPES = {
   WEB_FETCHER_GET_TEXT_CONTENT: 'webFetcherGetTextContent',
   WEB_FETCHER_GET_HTML_CONTENT: 'getHtmlContent',
+  GET_PAGE_SNAPSHOT: 'getPageSnapshot',
   NETWORK_CAPTURE_PING: 'network_capture_ping',
   CLICK_HELPER_PING: 'click_helper_ping',
   FILL_HELPER_PING: 'fill_helper_ping',
@@ -53,6 +54,7 @@ export const TOOL_MESSAGE_TYPES = {
   SCREENSHOT_GET_ELEMENT_DETAILS: 'getElementDetails',
   SCREENSHOT_SCROLL_PAGE: 'scrollPage',
   SCREENSHOT_RESET_PAGE_AFTER_CAPTURE: 'resetPageAfterCapture',
+  GET_PAGE_SNAPSHOT: 'getPageSnapshot',
 
   // Web content fetching
   WEB_FETCHER_GET_HTML_CONTENT: 'getHtmlContent',

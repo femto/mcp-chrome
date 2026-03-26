@@ -18,6 +18,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
    */
   async function clickElement(
     selector,
+    ref = null,
     waitForNavigation = false,
     timeout = 5000,
     coordinates = null,
@@ -64,7 +65,17 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
           };
         }
       } else {
-        element = document.querySelector(selector);
+        if (ref) {
+          const refs = window.__mcpChromeSnapshotRefs || {};
+          element = refs[ref] || null;
+          if (!element) {
+            return {
+              error: `Snapshot ref "${ref}" not found. Call chrome_page_snapshot first.`,
+            };
+          }
+        } else {
+          element = document.querySelector(selector);
+        }
         if (!element) {
           return {
             error: `Element with selector "${selector}" not found`,
@@ -90,7 +101,8 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
             bottom: rect.bottom,
             left: rect.left,
           },
-          clickMethod: 'selector',
+          clickMethod: ref ? 'ref' : 'selector',
+          ref: ref || null,
         };
 
         // First sroll so that the element is in view, then check visibility.
@@ -99,7 +111,9 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         elementInfo.isVisible = isElementVisible(element);
         if (!elementInfo.isVisible) {
           return {
-            error: `Element with selector "${selector}" is not visible`,
+            error: ref
+              ? `Element with snapshot ref "${ref}" is not visible`
+              : `Element with selector "${selector}" is not visible`,
             elementInfo,
           };
         }
@@ -125,7 +139,10 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
         });
       }
 
-      if (element && elementInfo.clickMethod === 'selector') {
+      if (
+        element &&
+        (elementInfo.clickMethod === 'selector' || elementInfo.clickMethod === 'ref')
+      ) {
         element.click();
       } else {
         simulateClick(clickX, clickY);
@@ -214,6 +231,7 @@ if (window.__CLICK_HELPER_INITIALIZED__) {
     if (request.action === 'clickElement') {
       clickElement(
         request.selector,
+        request.ref,
         request.waitForNavigation,
         request.timeout,
         request.coordinates,

@@ -11,6 +11,7 @@ interface Coordinates {
 }
 
 interface ClickToolParams {
+  ref?: string; // Snapshot ref for the element to click
   selector?: string; // CSS selector for the element to click
   coordinates?: Coordinates; // Coordinates in viewport CSS pixels by default
   fromScreenshot?: boolean; // If true, map coordinates from the most recent screenshot back to viewport CSS pixels
@@ -30,6 +31,7 @@ class ClickTool extends BaseBrowserToolExecutor {
    */
   async execute(args: ClickToolParams): Promise<ToolResult> {
     const {
+      ref,
       selector,
       coordinates,
       fromScreenshot = false,
@@ -40,9 +42,10 @@ class ClickTool extends BaseBrowserToolExecutor {
 
     console.log(`Starting click operation with options:`, args);
 
-    if (!selector && !coordinates) {
+    if (!ref && !selector && !coordinates) {
       return createErrorResponse(
-        ERROR_MESSAGES.INVALID_PARAMETERS + ': Either selector or coordinates must be provided',
+        ERROR_MESSAGES.INVALID_PARAMETERS +
+          ': Either selector, snapshot ref, or coordinates must be provided',
       );
     }
 
@@ -73,11 +76,21 @@ class ClickTool extends BaseBrowserToolExecutor {
         return await this.clickWithCDP(tab.id, resolvedCoordinates, adjustedFromScreenshot);
       }
 
+      if (ref) {
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/snapshot-helper.js'],
+          false,
+          'ISOLATED',
+          true,
+        );
+      }
       await this.injectContentScript(tab.id, ['inject-scripts/click-helper.js']);
 
       // Send click message to content script
       const result = await this.sendMessageToTab(tab.id, {
         action: TOOL_MESSAGE_TYPES.CLICK_ELEMENT,
+        ref,
         selector,
         coordinates: resolvedCoordinates,
         waitForNavigation,
@@ -96,6 +109,8 @@ class ClickTool extends BaseBrowserToolExecutor {
         if (adjustedFromScreenshot) {
           parts.push('Coordinates were converted from the last screenshot');
         }
+      } else if (ref) {
+        parts.push(`Clicked snapshot ref: ${ref}`);
       } else if (selector) {
         parts.push(`Clicked element: ${selector}`);
       }
@@ -283,7 +298,8 @@ function adjustCoordinatesFromScreenshot(
 export const clickTool = new ClickTool();
 
 interface FillToolParams {
-  selector: string;
+  ref?: string;
+  selector?: string;
   value: string;
   useCDP?: boolean; // Use Chrome DevTools Protocol for trusted input (bypasses CSP)
   pierceShadow?: boolean; // Pierce through Shadow DOM (including closed shadow roots)
@@ -299,12 +315,14 @@ class FillTool extends BaseBrowserToolExecutor {
    * Execute fill operation
    */
   async execute(args: FillToolParams): Promise<ToolResult> {
-    const { selector, value, useCDP = false, pierceShadow = false } = args;
+    const { ref, selector, value, useCDP = false, pierceShadow = false } = args;
 
     console.log(`Starting fill operation with options:`, args);
 
-    if (!selector) {
-      return createErrorResponse(ERROR_MESSAGES.INVALID_PARAMETERS + ': Selector must be provided');
+    if (!ref && !selector) {
+      return createErrorResponse(
+        ERROR_MESSAGES.INVALID_PARAMETERS + ': Selector or snapshot ref must be provided',
+      );
     }
 
     if (value === undefined || value === null) {
@@ -325,19 +343,41 @@ class FillTool extends BaseBrowserToolExecutor {
 
       // Pierce Shadow DOM requires CDP
       if (pierceShadow) {
+        if (!selector) {
+          return createErrorResponse(
+            ERROR_MESSAGES.INVALID_PARAMETERS +
+              ': pierceShadow requires a selector and does not support snapshot refs',
+          );
+        }
         return await this.fillWithCDPPiercingShadow(tab.id, selector, value);
       }
 
       // Use CDP for trusted input (bypasses CSP, works with complex editors like Lexical)
       if (useCDP) {
+        if (!selector) {
+          return createErrorResponse(
+            ERROR_MESSAGES.INVALID_PARAMETERS +
+              ': useCDP requires a selector and does not support snapshot refs',
+          );
+        }
         return await this.fillWithCDP(tab.id, selector, value);
       }
 
+      if (ref) {
+        await this.injectContentScript(
+          tab.id,
+          ['inject-scripts/snapshot-helper.js'],
+          false,
+          'ISOLATED',
+          true,
+        );
+      }
       await this.injectContentScript(tab.id, ['inject-scripts/fill-helper.js']);
 
       // Send fill message to content script
       const result = await this.sendMessageToTab(tab.id, {
         action: TOOL_MESSAGE_TYPES.FILL_ELEMENT,
+        ref,
         selector,
         value,
       });
@@ -349,7 +389,7 @@ class FillTool extends BaseBrowserToolExecutor {
       // Build readable response
       const parts: string[] = [];
       parts.push(result.message || 'Fill operation successful');
-      parts.push(`Filled element: ${selector}`);
+      parts.push(ref ? `Filled snapshot ref: ${ref}` : `Filled element: ${selector}`);
       parts.push(`Value: "${value}"`);
 
       if (result.elementInfo) {

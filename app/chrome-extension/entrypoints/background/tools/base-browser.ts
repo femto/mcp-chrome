@@ -19,33 +19,36 @@ export abstract class BaseBrowserToolExecutor implements ToolExecutor {
     files: string[],
     injectImmediately = false,
     world: 'MAIN' | 'ISOLATED' = 'ISOLATED',
+    skipPing = false,
   ): Promise<void> {
     console.log(`Injecting ${files.join(', ')} into tab ${tabId}`);
 
     // check if script is already injected
-    try {
-      const response = await Promise.race([
-        chrome.tabs.sendMessage(tabId, { action: `${this.name}_ping` }),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`${this.name} Ping action to tab ${tabId} timed out`)),
-            PING_TIMEOUT_MS,
+    if (!skipPing) {
+      try {
+        const response = await Promise.race([
+          chrome.tabs.sendMessage(tabId, { action: `${this.name}_ping` }),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`${this.name} Ping action to tab ${tabId} timed out`)),
+              PING_TIMEOUT_MS,
+            ),
           ),
-        ),
-      ]);
+        ]);
 
-      if (response && response.status === 'pong') {
-        console.log(
-          `pong received for action '${this.name}' in tab ${tabId}. Assuming script is active.`,
+        if (response && response.status === 'pong') {
+          console.log(
+            `pong received for action '${this.name}' in tab ${tabId}. Assuming script is active.`,
+          );
+          return;
+        } else {
+          console.warn(`Unexpected ping response in tab ${tabId}:`, response);
+        }
+      } catch (error) {
+        console.error(
+          `ping content script failed: ${error instanceof Error ? error.message : String(error)}`,
         );
-        return;
-      } else {
-        console.warn(`Unexpected ping response in tab ${tabId}:`, response);
       }
-    } catch (error) {
-      console.error(
-        `ping content script failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
     }
 
     try {

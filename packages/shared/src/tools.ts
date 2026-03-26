@@ -7,6 +7,7 @@ export const TOOL_NAMES = {
     SEARCH_TABS_CONTENT: 'search_tabs_content',
     NAVIGATE: 'chrome_navigate',
     SCREENSHOT: 'chrome_screenshot',
+    PAGE_SNAPSHOT: 'chrome_page_snapshot',
     CLOSE_TABS: 'chrome_close_tabs',
     SWITCH_TAB: 'chrome_switch_tab',
     GO_BACK_OR_FORWARD: 'chrome_go_back_or_forward',
@@ -132,6 +133,31 @@ export const TOOL_SCHEMAS: Tool[] = [
     },
   },
   {
+    name: TOOL_NAMES.BROWSER.PAGE_SNAPSHOT,
+    description: 'Get an AI-friendly semantic snapshot of the current page or a selected subtree',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        selector: {
+          type: 'string',
+          description:
+            'Optional CSS selector for the root element to snapshot. Defaults to the current page body.',
+        },
+        format: {
+          type: 'string',
+          description: 'Snapshot output format. Supported values: yaml (default) or json.',
+          enum: ['yaml', 'json'],
+        },
+        includeRefs: {
+          type: 'boolean',
+          description:
+            'Whether to include stable refs like [ref=e7] for interactive elements (default: true).',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: TOOL_NAMES.BROWSER.CLOSE_TABS,
     description: 'Close one or more browser tabs',
     inputSchema: {
@@ -229,10 +255,14 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        selector: {
+        ref: {
           type: 'string',
           description:
-            'CSS selector for the element to click. Either selector or coordinates must be provided. if coordinates are not provided, the selector must be provided.',
+            'Snapshot ref for an element discovered from chrome_page_snapshot, such as e7.',
+        },
+        selector: {
+          type: 'string',
+          description: 'CSS selector for the element to click. Use selector, ref, or coordinates.',
         },
         coordinates: {
           type: 'object',
@@ -279,9 +309,14 @@ export const TOOL_SCHEMAS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        ref: {
+          type: 'string',
+          description:
+            'Snapshot ref for an element discovered from chrome_page_snapshot, such as e7.',
+        },
         selector: {
           type: 'string',
-          description: 'CSS selector for the input element to fill or select',
+          description: 'CSS selector for the input element to fill or select. Use selector or ref.',
         },
         value: {
           type: 'string',
@@ -298,7 +333,7 @@ export const TOOL_SCHEMAS: Tool[] = [
             'Pierce through Shadow DOM (including closed shadow roots) when finding elements. Requires useCDP=true. Use this for sites with custom web components like Reddit, that use Shadow DOM to encapsulate their inputs. (default: false)',
         },
       },
-      required: ['selector', 'value'],
+      required: ['value'],
     },
   },
   {

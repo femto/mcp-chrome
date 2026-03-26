@@ -9,16 +9,21 @@ if (window.__FILL_HELPER_INITIALIZED__) {
   /**
    * Fill an input element with the specified value
    * @param {string} selector - CSS selector for the element to fill
+   * @param {string|null} ref - Snapshot ref for the element to fill
    * @param {string} value - Value to fill into the element
    * @returns {Promise<Object>} - Result of the fill operation
    */
-  async function fillElement(selector, value) {
+  async function fillElement(selector, ref, value) {
     try {
       // Find the element
-      const element = document.querySelector(selector);
+      const element = ref
+        ? (window.__mcpChromeSnapshotRefs || {})[ref] || null
+        : document.querySelector(selector);
       if (!element) {
         return {
-          error: `Element with selector "${selector}" not found`,
+          error: ref
+            ? `Snapshot ref "${ref}" not found. Call chrome_page_snapshot first.`
+            : `Element with selector "${selector}" not found`,
         };
       }
 
@@ -189,7 +194,7 @@ if (window.__FILL_HELPER_INITIALIZED__) {
   // Listen for messages from the extension
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.action === 'fillElement') {
-      fillElement(request.selector, request.value)
+      fillElement(request.selector, request.ref, request.value)
         .then(sendResponse)
         .catch((error) => {
           sendResponse({
