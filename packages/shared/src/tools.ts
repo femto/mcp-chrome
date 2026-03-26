@@ -110,6 +110,16 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'string',
           description: 'Close tabs matching this URL. Can be used instead of tabIds.',
         },
+        windowId: {
+          type: 'number',
+          description:
+            'Close all tabs in the specified window. Closing the last tab will also close the window.',
+        },
+        currentWindow: {
+          type: 'boolean',
+          description:
+            'Close all tabs in the current active window. Closing the last tab will also close the window.',
+        },
       },
       required: [],
     },

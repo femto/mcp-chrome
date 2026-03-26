@@ -215,6 +215,8 @@ export const navigateTool = new NavigateTool();
 interface CloseTabsToolParams {
   tabIds?: number[];
   url?: string;
+  windowId?: number;
+  currentWindow?: boolean;
 }
 
 /**
@@ -224,18 +226,72 @@ class CloseTabsTool extends BaseBrowserToolExecutor {
   name = TOOL_NAMES.BROWSER.CLOSE_TABS;
 
   async execute(args: CloseTabsToolParams): Promise<ToolResult> {
-    const { tabIds, url } = args;
-    let urlPattern = url;
+    const { tabIds, url, windowId, currentWindow = false } = args;
     console.log(`Attempting to close tabs with options:`, args);
 
     try {
-      // If URL is provided, close all tabs matching that URL
-      if (urlPattern) {
-        console.log(`Searching for tabs with URL: ${url}`);
-        if (!urlPattern.endsWith('/')) {
-          urlPattern += '/*';
+      if (windowId !== undefined && currentWindow) {
+        return createErrorResponse('Provide either windowId or currentWindow, not both');
+      }
+
+      // If windowId/currentWindow is provided, close every tab in that window.
+      // Closing the last tab implicitly closes the window, so no separate close-window tool is needed.
+      if (windowId !== undefined || currentWindow) {
+        let targetWindowId = windowId;
+
+        if (currentWindow) {
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!activeTab?.windowId) {
+            return createErrorResponse('No active window found');
+          }
+          targetWindowId = activeTab.windowId;
         }
-        const tabs = await chrome.tabs.query({ url });
+
+        const tabs = await chrome.tabs.query({ windowId: targetWindowId });
+        if (!tabs.length) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `No tabs found in window ${targetWindowId}`,
+              },
+            ],
+            isError: false,
+          };
+        }
+
+        const tabIdsToClose = tabs
+          .map((tab) => tab.id)
+          .filter((id): id is number => id !== undefined);
+
+        if (!tabIdsToClose.length) {
+          return createErrorResponse(
+            `Found tabs in window ${targetWindowId} but could not get their IDs`,
+          );
+        }
+
+        await chrome.tabs.remove(tabIdsToClose);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Closed ${tabIdsToClose.length} tab(s) in window ${targetWindowId}`,
+            },
+          ],
+          isError: false,
+        };
+      }
+
+      // If URL is provided, close all tabs matching that URL
+      if (url) {
+        console.log(`Searching for tabs with URL: ${url}`);
+        const normalizedTarget = url.endsWith('/') ? url.slice(0, -1) : url;
+        const tabs = (await chrome.tabs.query({})).filter((tab) => {
+          if (!tab.url) return false;
+          const tabUrl = tab.url.endsWith('/') ? tab.url.slice(0, -1) : tab.url;
+          return tabUrl === normalizedTarget;
+        });
 
         if (!tabs || tabs.length === 0) {
           console.log(`No tabs found with URL: ${url}`);
