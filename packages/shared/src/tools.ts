@@ -3,6 +3,7 @@ import { type Tool } from '@modelcontextprotocol/sdk/types.js';
 export const TOOL_NAMES = {
   BROWSER: {
     GET_WINDOWS_AND_TABS: 'get_windows_and_tabs',
+    BATCH: 'chrome_batch',
     SEARCH_TABS_CONTENT: 'search_tabs_content',
     NAVIGATE: 'chrome_navigate',
     SCREENSHOT: 'chrome_screenshot',
@@ -42,6 +43,41 @@ export const TOOL_SCHEMAS: Tool[] = [
       type: 'object',
       properties: {},
       required: [],
+    },
+  },
+  {
+    name: TOOL_NAMES.BROWSER.BATCH,
+    description: 'Execute multiple tool calls sequentially in a single request',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        actions: {
+          type: 'array',
+          description: 'Ordered list of tool calls to execute sequentially.',
+          items: {
+            type: 'object',
+            properties: {
+              name: {
+                type: 'string',
+                description:
+                  'Tool name to call, such as chrome_fill_or_select or chrome_click_element.',
+              },
+              args: {
+                type: 'object',
+                description: 'Arguments passed to that tool call.',
+                additionalProperties: true,
+              },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+        stopOnError: {
+          type: 'boolean',
+          description: 'Stop after the first failed action. Defaults to true.',
+        },
+      },
+      required: ['actions'],
     },
   },
   {

@@ -5,7 +5,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import nativeMessagingHostInstance from '../native-messaging-host';
-import { NativeMessageType, TOOL_SCHEMAS } from 'mcp-chrome-shared';
+import { NativeMessageType, TOOL_NAMES, TOOL_SCHEMAS } from 'mcp-chrome-shared';
 import {
   getDynamicToolSchemas,
   getDynamicTool,
@@ -106,8 +106,145 @@ export const setupTools = (server: Server) => {
   );
 };
 
+interface BatchAction {
+  name: string;
+  args?: Record<string, any>;
+}
+
+interface BatchToolArgs {
+  actions?: BatchAction[];
+  stopOnError?: boolean;
+}
+
+function summarizeToolResult(result: CallToolResult): string {
+  if (!result.content?.length) {
+    return result.isError ? 'Action failed' : 'Action succeeded';
+  }
+
+  const firstTextBlock = result.content.find(
+    (item): item is { type: 'text'; text: string } => item.type === 'text' && 'text' in item,
+  );
+
+  if (!firstTextBlock?.text) {
+    return result.isError ? 'Action failed' : 'Action succeeded';
+  }
+
+  const normalized = firstTextBlock.text.replace(/\s+/g, ' ').trim();
+  return normalized.length > 160 ? `${normalized.slice(0, 157)}...` : normalized;
+}
+
+async function handleBatchToolCall(args: BatchToolArgs): Promise<CallToolResult> {
+  const { actions, stopOnError = true } = args;
+
+  if (!Array.isArray(actions) || actions.length === 0) {
+    return {
+      content: [{ type: 'text', text: 'chrome_batch requires a non-empty actions array' }],
+      isError: true,
+    };
+  }
+
+  const results: Array<{
+    index: number;
+    name: string;
+    args: Record<string, any>;
+    isError: boolean;
+    summary: string;
+    content: CallToolResult['content'];
+  }> = [];
+
+  for (let index = 0; index < actions.length; index++) {
+    const action = actions[index];
+
+    if (!action || typeof action.name !== 'string' || action.name.trim() === '') {
+      const errorResult: CallToolResult = {
+        content: [{ type: 'text', text: `Invalid action at index ${index}: missing tool name` }],
+        isError: true,
+      };
+
+      results.push({
+        index,
+        name: '',
+        args: {},
+        isError: true,
+        summary: summarizeToolResult(errorResult),
+        content: errorResult.content,
+      });
+
+      if (stopOnError) {
+        break;
+      }
+      continue;
+    }
+
+    if (action.name === TOOL_NAMES.BROWSER.BATCH) {
+      const errorResult: CallToolResult = {
+        content: [{ type: 'text', text: 'chrome_batch cannot call itself recursively' }],
+        isError: true,
+      };
+
+      results.push({
+        index,
+        name: action.name,
+        args: action.args || {},
+        isError: true,
+        summary: summarizeToolResult(errorResult),
+        content: errorResult.content,
+      });
+
+      if (stopOnError) {
+        break;
+      }
+      continue;
+    }
+
+    const toolResult = await handleToolCall(action.name, action.args || {});
+    results.push({
+      index,
+      name: action.name,
+      args: action.args || {},
+      isError: !!toolResult.isError,
+      summary: summarizeToolResult(toolResult),
+      content: toolResult.content,
+    });
+
+    if (toolResult.isError && stopOnError) {
+      break;
+    }
+  }
+
+  const errorCount = results.filter((result) => result.isError).length;
+  const stoppedEarly = results.length < actions.length;
+  const summaryLines = [
+    `Executed ${results.length}/${actions.length} actions`,
+    `Errors: ${errorCount}`,
+    `Stopped early: ${stoppedEarly ? 'yes' : 'no'}`,
+    '',
+    ...results.map((result) => {
+      const status = result.isError ? 'error' : 'ok';
+      return `[${result.index + 1}] ${status} ${result.name}: ${result.summary}`;
+    }),
+  ];
+
+  return {
+    content: [{ type: 'text', text: summaryLines.join('\n') }],
+    structuredContent: {
+      totalActions: actions.length,
+      executedActions: results.length,
+      errorCount,
+      stoppedEarly,
+      stopOnError,
+      results,
+    },
+    isError: errorCount > 0,
+  };
+}
+
 const handleToolCall = async (name: string, args: any): Promise<CallToolResult> => {
   try {
+    if (name === TOOL_NAMES.BROWSER.BATCH) {
+      return await handleBatchToolCall(args as BatchToolArgs);
+    }
+
     // Check if this is a dynamic tool
     if (isDynamicTool(name)) {
       const dynamicTool = getDynamicTool(name);
