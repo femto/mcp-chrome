@@ -1,0 +1,20 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b82951f9ff65",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/chrome-extension/common/message-types.ts",
+    "app/chrome-extension/entrypoints/popup/App.vue"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b8/2951f9ff65/0/metadata.json",
+      "transcript": "/b8/2951f9ff65/0/full.jsonl",
+      "context": "",
+      "content_hash": "/b8/2951f9ff65/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}

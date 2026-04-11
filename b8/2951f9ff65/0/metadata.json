@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "b82951f9ff65",
+  "session_id": "ea768b3f-4ab0-42af-9881-5865c3dec7dc",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-11T09:11:58.375337Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/chrome-extension/common/message-types.ts",
+    "app/chrome-extension/entrypoints/popup/App.vue"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "d9f71c65d384",
+  "transcript_identifier_at_start": "5a4c53df-7c37-4b8e-9055-bfe570415fb7",
+  "initial_attribution": {
+    "calculated_at": "2026-04-11T09:11:58.36854Z",
+    "agent_lines": 0,
+    "human_added": 6283,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 6283,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/ea768b3f-4ab0-42af-9881-5865c3dec7dc.jsonl"
+}
