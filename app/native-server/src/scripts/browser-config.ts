@@ -6,6 +6,8 @@ import { HOST_NAME } from './constant';
 
 export enum BrowserType {
   CHROME = 'chrome',
+  CANARY = 'canary',
+  CHROME_FOR_TESTING = 'chrome-for-testing',
   CHROMIUM = 'chromium',
 }
 
@@ -29,6 +31,23 @@ function getUserManifestPathForBrowser(browser: BrowserType, hostName: string = 
     switch (browser) {
       case BrowserType.CHROME:
         return path.join(appData, 'Google', 'Chrome', 'NativeMessagingHosts', `${hostName}.json`);
+      case BrowserType.CANARY:
+        return path.join(
+          process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'),
+          'Google',
+          'Chrome SxS',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CHROME_FOR_TESTING:
+        return path.join(
+          process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'),
+          'Google',
+          'Chrome for Testing',
+          'User Data',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
       case BrowserType.CHROMIUM:
         return path.join(appData, 'Chromium', 'NativeMessagingHosts', `${hostName}.json`);
       default:
@@ -44,6 +63,26 @@ function getUserManifestPathForBrowser(browser: BrowserType, hostName: string = 
           'Application Support',
           'Google',
           'Chrome',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CANARY:
+        return path.join(
+          home,
+          'Library',
+          'Application Support',
+          'Google',
+          'Chrome Canary',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CHROME_FOR_TESTING:
+        return path.join(
+          home,
+          'Library',
+          'Application Support',
+          'Google',
+          'Chrome for Testing',
           'NativeMessagingHosts',
           `${hostName}.json`,
         );
@@ -76,6 +115,22 @@ function getUserManifestPathForBrowser(browser: BrowserType, hostName: string = 
           home,
           '.config',
           'google-chrome',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CANARY:
+        return path.join(
+          home,
+          '.config',
+          'google-chrome-canary',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CHROME_FOR_TESTING:
+        return path.join(
+          home,
+          '.config',
+          'google-chrome-for-testing',
           'NativeMessagingHosts',
           `${hostName}.json`,
         );
@@ -113,6 +168,22 @@ function getSystemManifestPathForBrowser(
           'NativeMessagingHosts',
           `${hostName}.json`,
         );
+      case BrowserType.CANARY:
+        return path.join(
+          process.env['ProgramFiles(x86)'] || programFiles,
+          'Google',
+          'Chrome SxS',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CHROME_FOR_TESTING:
+        return path.join(
+          programFiles,
+          'Google',
+          'Chrome for Testing',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
       case BrowserType.CHROMIUM:
         return path.join(programFiles, 'Chromium', 'NativeMessagingHosts', `${hostName}.json`);
       default:
@@ -131,6 +202,22 @@ function getSystemManifestPathForBrowser(
           '/Library',
           'Google',
           'Chrome',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CANARY:
+        return path.join(
+          '/Library',
+          'Google',
+          'Chrome Canary',
+          'NativeMessagingHosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CHROME_FOR_TESTING:
+        return path.join(
+          '/Library',
+          'Google',
+          'Chrome for Testing',
           'NativeMessagingHosts',
           `${hostName}.json`,
         );
@@ -156,6 +243,22 @@ function getSystemManifestPathForBrowser(
     switch (browser) {
       case BrowserType.CHROME:
         return path.join('/etc', 'opt', 'chrome', 'native-messaging-hosts', `${hostName}.json`);
+      case BrowserType.CANARY:
+        return path.join(
+          '/etc',
+          'opt',
+          'chrome-canary',
+          'native-messaging-hosts',
+          `${hostName}.json`,
+        );
+      case BrowserType.CHROME_FOR_TESTING:
+        return path.join(
+          '/etc',
+          'opt',
+          'chrome-for-testing',
+          'native-messaging-hosts',
+          `${hostName}.json`,
+        );
       case BrowserType.CHROMIUM:
         return path.join('/etc', 'chromium', 'native-messaging-hosts', `${hostName}.json`);
       default:
@@ -178,6 +281,14 @@ function getRegistryKeys(
       user: `HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\${hostName}`,
       system: `HKLM\\Software\\Google\\Chrome\\NativeMessagingHosts\\${hostName}`,
     },
+    [BrowserType.CANARY]: {
+      user: `HKCU\\Software\\Google\\Chrome SxS\\NativeMessagingHosts\\${hostName}`,
+      system: `HKLM\\Software\\Google\\Chrome SxS\\NativeMessagingHosts\\${hostName}`,
+    },
+    [BrowserType.CHROME_FOR_TESTING]: {
+      user: `HKCU\\Software\\Google\\Chrome for Testing\\NativeMessagingHosts\\${hostName}`,
+      system: `HKLM\\Software\\Google\\Chrome for Testing\\NativeMessagingHosts\\${hostName}`,
+    },
     [BrowserType.CHROMIUM]: {
       user: `HKCU\\Software\\Chromium\\NativeMessagingHosts\\${hostName}`,
       system: `HKLM\\Software\\Chromium\\NativeMessagingHosts\\${hostName}`,
@@ -198,7 +309,10 @@ export function getBrowserConfig(
 
   return {
     type: browser,
-    displayName: browser.charAt(0).toUpperCase() + browser.slice(1),
+    displayName:
+      browser === BrowserType.CHROME_FOR_TESTING
+        ? 'Chrome for Testing'
+        : browser.charAt(0).toUpperCase() + browser.slice(1),
     userManifestPath: getUserManifestPathForBrowser(browser, hostName),
     systemManifestPath: getSystemManifestPathForBrowser(browser, hostName),
     registryKey: registryKeys?.user,
@@ -217,6 +331,7 @@ export function detectInstalledBrowsers(): BrowserType[] {
     // Check Windows registry for installed browsers
     const browsers: Array<{ type: BrowserType; registryPath: string }> = [
       { type: BrowserType.CHROME, registryPath: 'HKLM\\SOFTWARE\\Google\\Chrome' },
+      { type: BrowserType.CANARY, registryPath: 'HKLM\\SOFTWARE\\Google\\Chrome SxS' },
       { type: BrowserType.CHROMIUM, registryPath: 'HKLM\\SOFTWARE\\Chromium' },
     ];
 
@@ -232,6 +347,7 @@ export function detectInstalledBrowsers(): BrowserType[] {
     // Check macOS Applications folder
     const browsers: Array<{ type: BrowserType; appPath: string }> = [
       { type: BrowserType.CHROME, appPath: '/Applications/Google Chrome.app' },
+      { type: BrowserType.CANARY, appPath: '/Applications/Google Chrome Canary.app' },
       { type: BrowserType.CHROMIUM, appPath: '/Applications/Chromium.app' },
     ];
 
@@ -244,6 +360,7 @@ export function detectInstalledBrowsers(): BrowserType[] {
     // Check Linux paths using which command
     const browsers: Array<{ type: BrowserType; commands: string[] }> = [
       { type: BrowserType.CHROME, commands: ['google-chrome', 'google-chrome-stable'] },
+      { type: BrowserType.CANARY, commands: ['google-chrome-canary', 'google-chrome-unstable'] },
       { type: BrowserType.CHROMIUM, commands: ['chromium', 'chromium-browser'] },
     ];
 
@@ -275,5 +392,16 @@ export function getAllBrowserConfigs(): BrowserConfig[] {
  */
 export function parseBrowserType(browserStr: string): BrowserType | undefined {
   const normalized = browserStr.toLowerCase();
+  if (normalized === 'chrome-canary' || normalized === 'chrome_canary') {
+    return BrowserType.CANARY;
+  }
+  if (
+    normalized === 'chrome-for-testing' ||
+    normalized === 'chrome_for_testing' ||
+    normalized === 'chromefortesting' ||
+    normalized === 'cft'
+  ) {
+    return BrowserType.CHROME_FOR_TESTING;
+  }
   return Object.values(BrowserType).find((type) => type === normalized);
 }

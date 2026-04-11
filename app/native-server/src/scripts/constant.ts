@@ -3,6 +3,7 @@ export const COMMAND_NAME = 'mcp-chrome-bridger';
 export const EXTENSION_ID = 'gkgkeiahoaihgefckmjckmennckgaege';
 // Extension ID for Chrome Web Store version
 export const EXTENSION_ID_WEBSTORE = 'mnchdcikbochaacmcfohjibjkhdbaahe';
+export const EXTRA_EXTENSION_IDS_ENV = 'MCP_CHROME_EXTRA_EXTENSION_IDS';
 export const HOST_NAME = 'com.mcpchromeserver.nativehost';
 export const LEGACY_HOST_NAMES = ['com.chromemcp.nativehost'];
 export const WRAPPER_SCRIPT_BASENAME = 'mcp-chrome-server-host';

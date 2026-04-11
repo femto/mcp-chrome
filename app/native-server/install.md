@@ -10,12 +10,19 @@ The native host is distributed as the npm package `mcp-chrome-bridger`.
 npm install -g mcp-chrome-bridger
 └─ postinstall
    ├─ ensures executable permissions
+   ├─ writes the current Node.js path used by wrapper scripts
    ├─ attempts user-level registration
    └─ if that fails, instructs the user to run:
       mcp-chrome-bridger register --system
 ```
 
 In the common case, a global install is enough.
+
+Notes:
+
+- workspace/monorepo installs intentionally skip auto-registration
+- auto-registration currently targets detected Chrome, Canary, and Chromium installs
+- Chrome for Testing support is explicit only via `-b chrome-for-testing`
 
 ## Package Name vs Host Name
 
@@ -50,6 +57,31 @@ mcp-chrome-bridger register
 
 This writes manifest files into the current user's native messaging directories.
 
+Explicit browser targets:
+
+```bash
+# Chrome only
+mcp-chrome-bridger register -b chrome
+
+# Chrome Canary only
+mcp-chrome-bridger register -b canary
+
+# Chrome for Testing only
+mcp-chrome-bridger register -b chrome-for-testing
+
+# Chromium only
+mcp-chrome-bridger register -b chromium
+
+# Chrome + Canary + Chromium
+mcp-chrome-bridger register -b all
+```
+
+If your unpacked extension uses a non-default extension ID, add it during registration:
+
+```bash
+MCP_CHROME_EXTRA_EXTENSION_IDS=<extension-id> mcp-chrome-bridger register -f -b canary
+```
+
 ### System-Level Registration
 
 If user-level registration fails, use system-level registration:
@@ -70,15 +102,41 @@ On Windows, run the command from an Administrator shell.
 
 ### User Level
 
-- Windows: `%APPDATA%\Google\Chrome\NativeMessagingHosts\`
-- macOS: `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`
-- Linux: `~/.config/google-chrome/NativeMessagingHosts/`
+- Chrome
+  - Windows: `%APPDATA%\Google\Chrome\NativeMessagingHosts\`
+  - macOS: `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`
+  - Linux: `~/.config/google-chrome/NativeMessagingHosts/`
+- Canary
+  - Windows: `%LOCALAPPDATA%\Google\Chrome SxS\NativeMessagingHosts\`
+  - macOS: `~/Library/Application Support/Google/Chrome Canary/NativeMessagingHosts/`
+  - Linux: `~/.config/google-chrome-canary/NativeMessagingHosts/`
+- Chrome for Testing
+  - Windows: `%LOCALAPPDATA%\Google\Chrome for Testing\User Data\NativeMessagingHosts\`
+  - macOS: `~/Library/Application Support/Google/Chrome for Testing/NativeMessagingHosts/`
+  - Linux: `~/.config/google-chrome-for-testing/NativeMessagingHosts/`
+- Chromium
+  - Windows: `%APPDATA%\Chromium\NativeMessagingHosts\`
+  - macOS: `~/Library/Application Support/Chromium/NativeMessagingHosts/`
+  - Linux: `~/.config/chromium/NativeMessagingHosts/`
 
 ### System Level
 
-- Windows: `%ProgramFiles%\Google\Chrome\NativeMessagingHosts\`
-- macOS: `/Library/Google/Chrome/NativeMessagingHosts/`
-- Linux: `/etc/opt/chrome/native-messaging-hosts/`
+- Chrome
+  - Windows: `%ProgramFiles%\Google\Chrome\NativeMessagingHosts\`
+  - macOS: `/Library/Google/Chrome/NativeMessagingHosts/`
+  - Linux: `/etc/opt/chrome/native-messaging-hosts/`
+- Canary
+  - Windows: `%ProgramFiles(x86)%\Google\Chrome SxS\NativeMessagingHosts\`
+  - macOS: `/Library/Google/Chrome Canary/NativeMessagingHosts/`
+  - Linux: `/etc/opt/chrome-canary/native-messaging-hosts/`
+- Chrome for Testing
+  - Windows: `%ProgramFiles%\Google\Chrome for Testing\NativeMessagingHosts\`
+  - macOS: `/Library/Google/Chrome for Testing/NativeMessagingHosts/`
+  - Linux: `/etc/opt/chrome-for-testing/native-messaging-hosts/`
+- Chromium
+  - Windows: `%ProgramFiles%\Chromium\NativeMessagingHosts\`
+  - macOS: `/Library/Application Support/Chromium/NativeMessagingHosts/`
+  - Linux: `/etc/chromium/native-messaging-hosts/`
 
 ## What Gets Registered
 
@@ -108,6 +166,7 @@ Notes:
 - The `path` points to a wrapper script, not directly to `node`
 - Build output includes both the new wrapper name and the legacy wrapper name
 - The wrapper script launches the compiled Node.js entrypoint
+- `allowed_origins` includes the built-in local ID, the web store ID, and any IDs supplied through `MCP_CHROME_EXTRA_EXTENSION_IDS`
 
 ## Wrapper Files
 

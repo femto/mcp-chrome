@@ -9,7 +9,8 @@ config({ path: resolve(process.cwd(), '.env.local') });
 // Extension key for consistent extension ID across local builds
 // Set CHROME_EXTENSION_KEY env var for local dev, leave unset for Chrome Web Store builds
 // This key produces extension ID: gkgkeiahoaihgefckmjckmennckgaege
-const CHROME_EXTENSION_KEY = process.env.CHROME_EXTENSION_KEY || undefined;
+const CHROME_EXTENSION_KEY =
+  process.env.NO_EXTENSION_KEY === '1' ? undefined : process.env.CHROME_EXTENSION_KEY || undefined;
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -46,7 +47,11 @@ export default defineConfig({
       'bookmarks',
       'offscreen',
       'storage',
+      'sidePanel',
     ],
+    side_panel: {
+      default_path: 'sidepanel.html',
+    },
     host_permissions: ['<all_urls>'],
     web_accessible_resources: [
       {

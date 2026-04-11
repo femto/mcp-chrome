@@ -4,6 +4,7 @@
  */
 
 import { siteToolsConfig, matchSiteConfig, SiteConfig, SiteTool } from './site-tools-config';
+import { getLocalRecordedSiteConfig, getLocalRecordedSiteSummaries } from './recorder';
 import { NativeMessageType } from 'mcp-chrome-shared';
 import { emit as emitBusMessage } from '@/entrypoints/background/native-message-bus';
 
@@ -144,6 +145,28 @@ interface ApiSiteConfig {
 // 存储当前已注册的网站工具
 const registeredSiteTools = new Map<number, SiteConfig>();
 
+function mergeSiteConfigs(
+  primary: SiteConfig | null,
+  secondary: SiteConfig | null,
+): SiteConfig | null {
+  if (!primary && !secondary) return null;
+  if (!primary) return secondary;
+  if (!secondary) return primary;
+
+  const mergedTools: SiteTool[] = [];
+  const seen = new Set<string>();
+  for (const tool of [...primary.tools, ...secondary.tools]) {
+    if (seen.has(tool.name)) continue;
+    seen.add(tool.name);
+    mergedTools.push(tool);
+  }
+
+  return {
+    ...primary,
+    tools: mergedTools,
+  };
+}
+
 /**
  * 将 API 响应转换为本地 SiteConfig 格式
  */
@@ -184,6 +207,8 @@ async function fetchSiteConfigFromAPI(url: string): Promise<SiteConfig | null> {
  * Get site config - prefer API, fallback to local config
  */
 async function getSiteConfig(url: string): Promise<SiteConfig | null> {
+  const recordedConfig = await getLocalRecordedSiteConfig(url);
+
   // Check if Worldbook WebMCP is enabled
   const worldbookEnabled = await isWorldbookWebMCPEnabled();
 
@@ -192,7 +217,7 @@ async function getSiteConfig(url: string): Promise<SiteConfig | null> {
     const apiConfig = await fetchSiteConfigFromAPI(url);
     if (apiConfig) {
       console.log(`[WebMCP] Got config from Worldbook API: ${apiConfig.siteName}`);
-      return apiConfig;
+      return mergeSiteConfigs(apiConfig, recordedConfig);
     }
   } else {
     console.log(`[WebMCP] Worldbook WebMCP disabled, skipping API request`);
@@ -203,7 +228,7 @@ async function getSiteConfig(url: string): Promise<SiteConfig | null> {
   if (localConfig) {
     console.log(`[WebMCP] Using local config: ${localConfig.siteName}`);
   }
-  return localConfig;
+  return mergeSiteConfigs(localConfig, recordedConfig);
 }
 
 /**
@@ -595,7 +620,13 @@ export async function detectAndRegisterTools(targetTabId?: number): Promise<{
   if (!tab?.id || !tab.url) return null;
 
   const siteConfig = await getSiteConfig(tab.url);
-  if (!siteConfig) return null;
+  if (!siteConfig) {
+    if (registeredSiteTools.has(tab.id)) {
+      registeredSiteTools.delete(tab.id);
+      notifyNativeServerToolsUpdate('unregister', tab.id);
+    }
+    return null;
+  }
 
   await registerSiteTools(tab.id, siteConfig);
 
@@ -648,10 +679,13 @@ export async function getConfiguredSites(): Promise<
   }
 
   // 返回本地配置作为后备
-  return siteToolsConfig.map((c) => ({
+  const configuredSites = siteToolsConfig.map((c) => ({
     site_name: c.siteName,
     url_pattern: String(c.urlPattern),
     tool_count: c.tools.length,
     tools: c.tools.map((t) => t.name),
   }));
+
+  const recordedSites = await getLocalRecordedSiteSummaries();
+  return [...configuredSites, ...recordedSites];
 }

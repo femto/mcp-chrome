@@ -23,6 +23,17 @@ export const BACKGROUND_MESSAGE_TYPES = {
   INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
   GET_NATIVE_HOST_VERSION: 'get_native_host_version',
   TOGGLE_COORDINATE_DISPLAY: 'toggle_coordinate_display',
+  START_WEBMCP_RECORDING: 'start_webmcp_recording',
+  STOP_WEBMCP_RECORDING: 'stop_webmcp_recording',
+  GET_WEBMCP_RECORDING_STATE: 'get_webmcp_recording_state',
+  GET_WEBMCP_RECORDING_SESSION: 'get_webmcp_recording_session',
+  LIST_LOCAL_WEBMCP_TOOLS: 'list_local_webmcp_tools',
+  REFINE_WEBMCP_WORKFLOW_PARAMETERS: 'refine_webmcp_workflow_parameters',
+  REPLAY_LOCAL_WEBMCP_WORKFLOW: 'replay_local_webmcp_workflow',
+  UPDATE_LOCAL_WEBMCP_TOOL_WORKFLOW: 'update_local_webmcp_tool_workflow',
+  DELETE_LOCAL_WEBMCP_TOOL: 'delete_local_webmcp_tool',
+  OPEN_WEBMCP_RECORDER_SIDEPANEL: 'open_webmcp_recorder_sidepanel',
+  GET_WEBMCP_RECORDER_ENV: 'get_webmcp_recorder_env',
 } as const;
 
 // Offscreen message types

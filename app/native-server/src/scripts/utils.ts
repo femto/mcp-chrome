@@ -8,6 +8,7 @@ import {
   DESCRIPTION,
   EXTENSION_ID,
   EXTENSION_ID_WEBSTORE,
+  EXTRA_EXTENSION_IDS_ENV,
   HOST_NAME,
   LEGACY_HOST_NAMES,
   LEGACY_WRAPPER_SCRIPT_BASENAMES,
@@ -216,16 +217,20 @@ async function ensureWindowsFilePermissions(packageDistDir: string): Promise<voi
  */
 export async function createManifestContent(hostName: string = HOST_NAME): Promise<any> {
   const mainPath = await getMainPath();
+  const extraExtensionIds = (process.env[EXTRA_EXTENSION_IDS_ENV] || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const allowedOrigins = Array.from(
+    new Set([EXTENSION_ID, EXTENSION_ID_WEBSTORE, ...extraExtensionIds]),
+  ).map((extensionId) => `chrome-extension://${extensionId}/`);
 
   return {
     name: hostName,
     description: DESCRIPTION,
     path: mainPath, // Node.js可执行文件路径
     type: 'stdio',
-    allowed_origins: [
-      `chrome-extension://${EXTENSION_ID}/`,
-      `chrome-extension://${EXTENSION_ID_WEBSTORE}/`,
-    ],
+    allowed_origins: allowedOrigins,
   };
 }
 
@@ -264,10 +269,13 @@ export async function tryRegisterUserLevelHost(targetBrowsers?: BrowserType[]): 
     // 2. 确定要注册的浏览器
     const browsersToRegister = targetBrowsers || detectInstalledBrowsers();
     if (browsersToRegister.length === 0) {
-      // 如果没有检测到浏览器，默认注册Chrome和Chromium
-      browsersToRegister.push(BrowserType.CHROME, BrowserType.CHROMIUM);
+      // 如果没有检测到浏览器，默认注册Chrome、Canary和Chromium
+      browsersToRegister.push(BrowserType.CHROME, BrowserType.CANARY, BrowserType.CHROMIUM);
       console.log(
-        colorText('No browsers detected, registering for Chrome and Chromium by default', 'yellow'),
+        colorText(
+          'No browsers detected, registering for Chrome, Canary and Chromium by default',
+          'yellow',
+        ),
       );
     } else {
       console.log(colorText(`Detected browsers: ${browsersToRegister.join(', ')}`, 'blue'));

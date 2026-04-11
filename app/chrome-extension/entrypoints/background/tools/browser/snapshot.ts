@@ -22,7 +22,7 @@ class PageSnapshotTool extends BaseBrowserToolExecutor {
       }
 
       const tab = tabs[0];
-      const tabId = tab.id;
+      const tabId = tab.id!;
       await this.injectContentScript(tabId, ['inject-scripts/snapshot-helper.js']);
 
       const result = await this.sendMessageToTab(tabId, {

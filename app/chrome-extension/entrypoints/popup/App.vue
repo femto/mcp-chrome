@@ -4,11 +4,275 @@
       <div class="header-content">
         <div class="header-title-group">
           <h1 class="header-title">MCP Chrome Extension</h1>
-          <span class="build-version">Build: 2026-01-02 16:10</span>
+          <span class="build-version">Build: 2026-04-04 23:10</span>
         </div>
       </div>
     </div>
     <div class="content">
+      <div class="section">
+        <h2 class="section-title">Recorder Sidebar</h2>
+        <div class="config-card recorder-quick-card">
+          <div class="status-info">
+            <span
+              :class="['status-dot', recorderState.isRecording ? 'bg-red-500' : 'bg-gray-500']"
+            ></span>
+            <span class="status-text">{{ recorderStatusText }}</span>
+          </div>
+          <div v-if="recorderState.url || activeTabUrl" class="status-timestamp recorder-url">
+            {{ recorderState.url || activeTabUrl }}
+          </div>
+          <button
+            class="record-button record-start"
+            :disabled="isOpeningRecorderSidebar"
+            @click="openRecorderSidebar"
+          >
+            <span>{{ isOpeningRecorderSidebar ? 'Opening…' : 'Open Recorder Sidebar' }}</span>
+          </button>
+          <p v-if="recorderSidebarError" class="recorder-error">
+            {{ recorderSidebarError }}
+          </p>
+          <p v-if="recorderEnvText" class="option-description">
+            {{ recorderEnvText }}
+          </p>
+          <p class="option-description">
+            Recording opens in the Chrome side panel when available, otherwise in a dedicated
+            recorder window.
+          </p>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Workflow Exports</h2>
+        <div class="config-card workflow-export-card">
+          <div class="recorded-tools-header">
+            <div class="recorded-tool-meta">
+              <p class="recorded-tool-name">{{ activeWorkflowHostname || 'Current site' }}</p>
+              <p class="recorded-tool-details">
+                Latest capture and saved workflows are scoped to the active hostname.
+              </p>
+            </div>
+            <span class="workflow-count-badge">{{ savedRecordedTools.length }} saved</span>
+          </div>
+
+          <div class="workflow-export-block">
+            <p class="recorded-tool-details">Latest capture</p>
+            <div v-if="lastRecordedToolId" class="workflow-range-row">
+              <label class="workflow-range-label" for="workflow-replay-range">Steps</label>
+              <input
+                id="workflow-replay-range"
+                v-model="replayStepSelectionInput"
+                type="text"
+                class="workflow-range-input"
+                placeholder="All steps or e.g. 1, 3-7, 9-"
+                spellcheck="false"
+              />
+            </div>
+            <p v-if="lastRecordedToolId" class="option-description workflow-range-hint">
+              Leave empty to replay all steps. Supports single numbers, ranges, and open-ended
+              ranges.
+            </p>
+            <div class="workflow-action-row">
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedToolId || replayingToolId === lastRecordedToolId"
+                @click="replayLatestWorkflow"
+              >
+                {{ replayingToolId === lastRecordedToolId ? 'Replaying…' : 'Replay' }}
+              </button>
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedWorkflowJson"
+                @click="copyLatestWorkflowJson"
+              >
+                {{ workflowCopyButtonText }}
+              </button>
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedWebMcpJson"
+                @click="copyLatestWebMcpJson"
+              >
+                {{ webmcpCopyButtonText }}
+              </button>
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedRawWorkflowJson"
+                @click="copyLatestRawWorkflowJson"
+              >
+                {{ rawWorkflowCopyButtonText }}
+              </button>
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedWorkflowJson"
+                @click="downloadLatestWorkflowJson"
+              >
+                Export Workflow
+              </button>
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedWebMcpJson"
+                @click="downloadLatestWebMcpJson"
+              >
+                Export WebMCP
+              </button>
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedRawWorkflowJson"
+                @click="downloadLatestRawWorkflowJson"
+              >
+                Export Raw
+              </button>
+              <button
+                class="workflow-action-button"
+                :disabled="!lastRecordedToolId || refiningToolId === lastRecordedToolId"
+                @click="refineLatestWorkflow"
+              >
+                {{ refiningToolId === lastRecordedToolId ? 'Refining…' : 'Refine Inputs' }}
+              </button>
+            </div>
+            <div v-if="lastRecordedToolId" class="workflow-editor-block">
+              <div class="workflow-action-row">
+                <button
+                  class="workflow-action-button"
+                  :disabled="isSavingWorkflowEditor || !workflowEditorJson.trim()"
+                  @click="saveWorkflowEditor"
+                >
+                  {{ isSavingWorkflowEditor ? 'Saving…' : 'Save Workflow' }}
+                </button>
+                <button
+                  class="workflow-action-button"
+                  :disabled="isSavingWorkflowEditor || !lastRecordedWorkflowJson"
+                  @click="resetWorkflowEditor"
+                >
+                  Reset
+                </button>
+              </div>
+              <textarea
+                v-model="workflowEditorJson"
+                class="recorder-textarea workflow-editor"
+                spellcheck="false"
+              />
+              <p v-if="workflowEditorStatus" class="option-description workflow-empty-text">
+                {{ workflowEditorStatus }}
+              </p>
+            </div>
+            <div v-if="lastRecordedToolId" class="workflow-editor-block">
+              <p class="recorded-tool-details">Replay Params</p>
+              <div v-if="activeWorkflowInputSchema.length" class="workflow-params-form">
+                <label
+                  v-for="field in activeWorkflowInputSchema"
+                  :key="field.name"
+                  class="workflow-param-field"
+                >
+                  <span class="workflow-param-label">
+                    {{ field.name }}
+                    <span class="workflow-param-meta">{{
+                      field.required ? 'Required' : 'Optional'
+                    }}</span>
+                  </span>
+                  <span v-if="field.description" class="workflow-param-description">
+                    {{ field.description }}
+                  </span>
+                  <label v-if="field.type === 'boolean'" class="workflow-param-checkbox">
+                    <input v-model="replayFormValues[field.name]" type="checkbox" />
+                    <span>{{ replayFormValues[field.name] ? 'true' : 'false' }}</span>
+                  </label>
+                  <textarea
+                    v-else-if="isReplayTextareaField(field)"
+                    v-model="replayFormValues[field.name]"
+                    class="recorder-textarea workflow-param-textarea"
+                    spellcheck="false"
+                  />
+                  <input
+                    v-else
+                    v-model="replayFormValues[field.name]"
+                    type="text"
+                    class="workflow-param-input"
+                    spellcheck="false"
+                  />
+                </label>
+              </div>
+              <p v-else class="option-description workflow-empty-text">
+                This workflow has no parameterized inputs.
+              </p>
+              <p v-if="workflowReplayStatus" class="option-description workflow-empty-text">
+                {{ workflowReplayStatus }}
+              </p>
+            </div>
+            <pre v-if="lastRecordedWorkflowJson" class="mcp-config-json recorder-json">{{
+              lastRecordedWorkflowJson
+            }}</pre>
+            <p v-else class="option-description workflow-empty-text">
+              Stop a recording in the recorder sidebar to populate the latest workflow JSON here.
+            </p>
+          </div>
+
+          <div class="workflow-saved-block">
+            <p class="recorded-tool-details">Saved workflows</p>
+            <div v-if="savedRecordedTools.length" class="recorded-tools-list">
+              <article
+                v-for="tool in savedRecordedTools"
+                :key="tool.id"
+                :class="[
+                  'recorded-tool-item',
+                  { 'recorded-tool-item-active': tool.id === lastRecordedToolId },
+                ]"
+                @click="loadSavedWorkflow(tool)"
+              >
+                <div class="recorded-tool-meta">
+                  <div class="recorded-tool-title-row">
+                    <h3 class="recorded-tool-name">{{ tool.name }}</h3>
+                    <span v-if="tool.id === lastRecordedToolId" class="workflow-count-badge"
+                      >Loaded</span
+                    >
+                  </div>
+                  <p class="recorded-tool-description">{{ tool.description }}</p>
+                  <p class="recorded-tool-details">
+                    {{ tool.actionCount }} actions · {{ new Date(tool.updatedAt).toLocaleString() }}
+                  </p>
+                </div>
+                <div class="recorded-tool-actions">
+                  <button class="workflow-action-button" @click.stop="loadSavedWorkflow(tool)">
+                    {{ tool.id === lastRecordedToolId ? 'Loaded' : 'Load' }}
+                  </button>
+                  <button
+                    class="workflow-action-button"
+                    :disabled="replayingToolId === tool.id"
+                    @click.stop="replaySavedWorkflow(tool.id)"
+                  >
+                    {{ replayingToolId === tool.id ? 'Replaying…' : 'Replay' }}
+                  </button>
+                  <button class="workflow-action-button" @click.stop="copySavedWorkflow(tool)">
+                    Copy Workflow
+                  </button>
+                  <button class="workflow-action-button" @click.stop="copySavedWebMcp(tool)">
+                    Copy WebMCP
+                  </button>
+                  <button class="workflow-action-button" @click.stop="copySavedRawWorkflow(tool)">
+                    Copy Raw
+                  </button>
+                  <button
+                    class="workflow-action-button"
+                    :disabled="refiningToolId === tool.id"
+                    @click.stop="refineSavedWorkflow(tool.id)"
+                  >
+                    {{ refiningToolId === tool.id ? 'Refining…' : 'Refine Inputs' }}
+                  </button>
+                  <button
+                    class="workflow-action-button delete-tool-button"
+                    @click.stop="deleteRecordedTool(tool.id)"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            </div>
+            <p v-else class="option-description workflow-empty-text">
+              No saved workflows for this site yet.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div class="section">
         <h2 class="section-title">{{ getMessage('nativeServerConfigLabel') }}</h2>
         <div class="config-card">
@@ -369,6 +633,63 @@ const nativeServerPort = ref<number>(12306);
 const worldbookWebMCPEnabled = ref<boolean>(true); // Worldbook WebMCP enabled by default
 const debugCoordinates = ref<boolean>(false); // Debug coordinates display, off by default
 const showLastClickOnScreenshot = ref<boolean>(false); // Show last click position on screenshot, off by default
+const activeTabId = ref<number | null>(null);
+const activeTabUrl = ref<string>('');
+const recorderToolName = ref('');
+const recorderDescription = ref('');
+const recorderEnvText = ref('');
+const isStartingRecorder = ref(false);
+const isStoppingRecorder = ref(false);
+const isOpeningRecorderSidebar = ref(false);
+const recorderSidebarError = ref('');
+const rawWorkflowCopyButtonText = ref('Copy Raw');
+const workflowCopyButtonText = ref('Copy Workflow');
+const webmcpCopyButtonText = ref('Copy WebMCP');
+const lastRecordedToolId = ref('');
+const refiningToolId = ref('');
+const replayingToolId = ref('');
+const activeWorkflowDoc = ref<Record<string, any> | null>(null);
+const workflowEditorJson = ref('');
+const workflowEditorStatus = ref('');
+const isSavingWorkflowEditor = ref(false);
+const replayStepSelectionInput = ref('');
+const replayFormValues = ref<Record<string, string | boolean>>({});
+const workflowReplayStatus = ref('');
+const lastRecordedRawWorkflowJson = ref('');
+const lastRecordedWorkflowJson = ref('');
+const lastRecordedWebMcpJson = ref('');
+const recorderState = ref<{
+  isRecording: boolean;
+  tabId: number | null;
+  toolName: string;
+  description: string;
+  url: string | null;
+  actionCount: number;
+  startedAt: number | null;
+}>({
+  isRecording: false,
+  tabId: null,
+  toolName: '',
+  description: '',
+  url: null,
+  actionCount: 0,
+  startedAt: null,
+});
+const savedRecordedTools = ref<
+  Array<{
+    id: string;
+    name: string;
+    description: string;
+    hostname: string;
+    siteName: string;
+    startUrl: string;
+    updatedAt: number;
+    actionCount: number;
+    rawWorkflow?: Record<string, any>;
+    workflow: Record<string, any>;
+    tool: Record<string, any>;
+  }>
+>([]);
 
 const serverStatus = ref<{
   isRunning: boolean;
@@ -458,6 +779,98 @@ const availableModels = computed(() => {
     ...value,
   }));
 });
+
+const isRecordableActiveTab = computed(() => /^https?:\/\//.test(activeTabUrl.value));
+
+const recorderStatusText = computed(() => {
+  if (recorderState.value.isRecording) {
+    return `Recording ${recorderState.value.actionCount} actions`;
+  }
+  if (isRecordableActiveTab.value && activeTabUrl.value) {
+    return 'Ready to record on active tab';
+  }
+  return 'Open an http(s) page to start recording';
+});
+
+const activeWorkflowHostname = computed(() => {
+  const candidate = recorderState.value.url || activeTabUrl.value;
+  if (!candidate) return '';
+  try {
+    return new URL(candidate).hostname;
+  } catch {
+    return '';
+  }
+});
+
+const activeWorkflowInputSchema = computed<
+  Array<{
+    name: string;
+    type: 'string' | 'boolean';
+    required: boolean;
+    description?: string;
+    default?: string | boolean;
+  }>
+>(() => {
+  const schema = activeWorkflowDoc.value?.input_schema;
+  return Array.isArray(schema) ? schema : [];
+});
+
+const setWorkflowEditorStatus = (message: string) => {
+  workflowEditorStatus.value = message;
+  setTimeout(() => {
+    if (workflowEditorStatus.value === message) {
+      workflowEditorStatus.value = '';
+    }
+  }, 2000);
+};
+
+const setWorkflowReplayStatus = (message: string) => {
+  workflowReplayStatus.value = message;
+  setTimeout(() => {
+    if (workflowReplayStatus.value === message) {
+      workflowReplayStatus.value = '';
+    }
+  }, 2500);
+};
+
+const buildDefaultReplayFormValues = (workflow: Record<string, any>) => {
+  const params: Record<string, string | boolean> = {};
+  const schema = Array.isArray(workflow?.input_schema) ? workflow.input_schema : [];
+  schema.forEach((field: any) => {
+    if (!field?.name) return;
+    if (field.type === 'boolean') {
+      params[field.name] = typeof field.default === 'boolean' ? field.default : false;
+      return;
+    }
+    params[field.name] =
+      typeof field.default === 'string'
+        ? field.default
+        : field.default != null
+          ? String(field.default)
+          : '';
+  });
+  return params;
+};
+
+const buildReplayParamsForSubmit = (
+  workflow: Record<string, any>,
+  values: Record<string, string | boolean>,
+) => {
+  const params: Record<string, string | boolean> = {};
+  const schema = Array.isArray(workflow?.input_schema) ? workflow.input_schema : [];
+  schema.forEach((field: any) => {
+    if (!field?.name) return;
+    if (field.type === 'boolean') {
+      params[field.name] = Boolean(values[field.name]);
+      return;
+    }
+    params[field.name] =
+      typeof values[field.name] === 'string'
+        ? values[field.name]
+        : String(values[field.name] ?? '');
+  });
+  return params;
+};
 
 const getStatusClass = () => {
   if (nativeConnectionStatus.value === 'connected') {
@@ -592,6 +1005,534 @@ const loadCacheStats = async () => {
   } catch (error) {
     console.error('Failed to get cache stats:', error);
     cacheStats.value = null;
+  }
+};
+
+const buildDefaultRecordedToolName = (url: string) => {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '');
+    const normalized = hostname
+      .replace(/[^a-z0-9]+/gi, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase();
+    return `${normalized || 'site'}_workflow`;
+  } catch {
+    return 'recorded_workflow';
+  }
+};
+
+const refreshActiveTabContext = async () => {
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    activeTabId.value = activeTab?.id ?? null;
+    activeTabUrl.value = activeTab?.url && /^https?:\/\//.test(activeTab.url) ? activeTab.url : '';
+
+    if (!recorderState.value.isRecording && activeTabUrl.value) {
+      if (!recorderToolName.value) {
+        recorderToolName.value = buildDefaultRecordedToolName(activeTabUrl.value);
+      }
+      if (!recorderDescription.value) {
+        recorderDescription.value = `Recorded workflow for ${new URL(activeTabUrl.value).hostname}`;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load active tab context:', error);
+    activeTabId.value = null;
+    activeTabUrl.value = '';
+  }
+};
+
+const loadRecorderState = async () => {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.GET_WEBMCP_RECORDING_STATE,
+    });
+    if (response?.success && response.state) {
+      recorderState.value = response.state;
+      if (response.state.isRecording) {
+        recorderToolName.value = response.state.toolName;
+        recorderDescription.value = response.state.description;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load recorder state:', error);
+  }
+};
+
+const loadSavedRecordedTools = async () => {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.LIST_LOCAL_WEBMCP_TOOLS,
+    });
+
+    if (!response?.success || !Array.isArray(response.tools)) {
+      savedRecordedTools.value = [];
+      return;
+    }
+
+    if (!activeTabUrl.value) {
+      savedRecordedTools.value = response.tools;
+      return;
+    }
+
+    const hostname = new URL(activeTabUrl.value).hostname;
+    savedRecordedTools.value = response.tools.filter((tool: { hostname: string }) => {
+      return tool.hostname === hostname;
+    });
+  } catch (error) {
+    console.error('Failed to load recorded tools:', error);
+    savedRecordedTools.value = [];
+  }
+};
+
+const loadRecorderEnvironment = async () => {
+  try {
+    const popupChromeSidePanel = Boolean(chrome.sidePanel);
+    const popupBrowserSidePanel = Boolean(
+      (globalThis as typeof globalThis & { browser?: { sidePanel?: unknown } }).browser?.sidePanel,
+    );
+
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.GET_WEBMCP_RECORDER_ENV,
+    });
+
+    if (!response?.success || !response.env) {
+      recorderEnvText.value = '';
+      return;
+    }
+
+    const env = response.env as {
+      backgroundHasChromeSidePanel: boolean;
+      backgroundHasBrowserSidePanel: boolean;
+      canUseSidePanel: boolean;
+    };
+
+    recorderEnvText.value =
+      `Popup chrome.sidePanel=${popupChromeSidePanel}, popup browser.sidePanel=${popupBrowserSidePanel}, ` +
+      `background chrome.sidePanel=${env.backgroundHasChromeSidePanel}, ` +
+      `background browser.sidePanel=${env.backgroundHasBrowserSidePanel}, ` +
+      `canUseSidePanel=${env.canUseSidePanel}`;
+  } catch (error) {
+    console.error('Failed to load recorder environment:', error);
+    recorderEnvText.value = '';
+  }
+};
+
+type PopupSidePanelApi = {
+  open(options: { tabId?: number; windowId?: number }): Promise<void>;
+  setOptions(options: { tabId?: number; path?: string; enabled: boolean }): Promise<void>;
+};
+
+const getPopupSidePanelApi = (): PopupSidePanelApi | null => {
+  const browserApi = (
+    globalThis as typeof globalThis & {
+      browser?: {
+        sidePanel?: PopupSidePanelApi;
+      };
+    }
+  ).browser;
+
+  return chrome.sidePanel ?? browserApi?.sidePanel ?? null;
+};
+
+const refreshRecorderPanel = async () => {
+  await refreshActiveTabContext();
+  await loadRecorderState();
+  await loadSavedRecordedTools();
+  await loadRecorderEnvironment();
+};
+
+const openRecorderSidebar = async () => {
+  if (isOpeningRecorderSidebar.value) return;
+
+  isOpeningRecorderSidebar.value = true;
+  recorderSidebarError.value = '';
+  try {
+    const currentWindow = await chrome.windows.getCurrent();
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const sidePanelApi = getPopupSidePanelApi();
+
+    if (typeof currentWindow.id !== 'number') {
+      throw new Error('Failed to determine current browser window.');
+    }
+
+    if (sidePanelApi && typeof activeTab?.id === 'number') {
+      await sidePanelApi.open({ tabId: activeTab.id });
+      await sidePanelApi.setOptions({
+        tabId: activeTab.id,
+        path: 'sidepanel.html',
+        enabled: true,
+      });
+      return;
+    }
+
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.OPEN_WEBMCP_RECORDER_SIDEPANEL,
+      tabId: activeTab?.id,
+      windowId: currentWindow.id,
+    });
+
+    if (!response?.success) {
+      throw new Error(response?.error || 'Chrome refused to open the recorder side panel.');
+    }
+  } catch (error: any) {
+    recorderSidebarError.value =
+      error?.message || 'Chrome refused to open the recorder side panel.';
+    console.error('Failed to open recorder side panel:', error);
+  } finally {
+    isOpeningRecorderSidebar.value = false;
+  }
+};
+
+const startWorkflowRecording = async () => {
+  if (isStartingRecorder.value || recorderState.value.isRecording) return;
+
+  isStartingRecorder.value = true;
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.START_WEBMCP_RECORDING,
+      toolName: recorderToolName.value,
+      description: recorderDescription.value,
+    });
+
+    if (!response?.success) {
+      throw new Error(response?.error || 'Failed to start recording');
+    }
+
+    lastRecordedRawWorkflowJson.value = '';
+    lastRecordedWorkflowJson.value = '';
+    lastRecordedWebMcpJson.value = '';
+    lastRecordedToolId.value = '';
+    workflowEditorJson.value = '';
+    workflowEditorStatus.value = '';
+    activeWorkflowDoc.value = null;
+    replayStepSelectionInput.value = '';
+    replayFormValues.value = {};
+    workflowReplayStatus.value = '';
+    await refreshRecorderPanel();
+  } catch (error) {
+    console.error('Failed to start workflow recording:', error);
+  } finally {
+    isStartingRecorder.value = false;
+  }
+};
+
+const stopWorkflowRecording = async () => {
+  if (isStoppingRecorder.value || !recorderState.value.isRecording) return;
+
+  isStoppingRecorder.value = true;
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.STOP_WEBMCP_RECORDING,
+    });
+
+    if (!response?.success || !response.savedTool) {
+      throw new Error(response?.error || 'Failed to stop recording');
+    }
+
+    applyToolToWorkspace(response.savedTool);
+
+    if (typeof response.tabId === 'number') {
+      await chrome.runtime.sendMessage({
+        type: 'webmcp:detect-tools',
+        tabId: response.tabId,
+      });
+    }
+
+    await refreshRecorderPanel();
+  } catch (error) {
+    console.error('Failed to stop workflow recording:', error);
+  } finally {
+    isStoppingRecorder.value = false;
+  }
+};
+
+const setCopyButtonFeedback = (
+  buttonRef: typeof rawWorkflowCopyButtonText,
+  copiedLabel: string,
+  defaultLabel: string,
+) => {
+  buttonRef.value = copiedLabel;
+  setTimeout(() => {
+    buttonRef.value = defaultLabel;
+  }, 1500);
+};
+
+const copyLatestRawWorkflowJson = async () => {
+  if (!lastRecordedRawWorkflowJson.value) return;
+  try {
+    await navigator.clipboard.writeText(lastRecordedRawWorkflowJson.value);
+    setCopyButtonFeedback(rawWorkflowCopyButtonText, 'Copied', 'Copy Raw');
+  } catch (error) {
+    console.error('Failed to copy raw workflow JSON:', error);
+  }
+};
+
+const copyLatestWorkflowJson = async () => {
+  if (!lastRecordedWorkflowJson.value) return;
+  try {
+    await navigator.clipboard.writeText(lastRecordedWorkflowJson.value);
+    setCopyButtonFeedback(workflowCopyButtonText, 'Copied', 'Copy Workflow');
+  } catch (error) {
+    console.error('Failed to copy workflow JSON:', error);
+  }
+};
+
+const copyLatestWebMcpJson = async () => {
+  if (!lastRecordedWebMcpJson.value) return;
+  try {
+    await navigator.clipboard.writeText(lastRecordedWebMcpJson.value);
+    setCopyButtonFeedback(webmcpCopyButtonText, 'Copied', 'Copy WebMCP');
+  } catch (error) {
+    console.error('Failed to copy WebMCP JSON:', error);
+  }
+};
+
+const downloadJson = (filename: string, content: string) => {
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const downloadLatestRawWorkflowJson = async () => {
+  if (!lastRecordedRawWorkflowJson.value) return;
+  downloadJson(
+    `${recorderToolName.value || 'recorded_workflow'}.raw.workflow.json`,
+    lastRecordedRawWorkflowJson.value,
+  );
+};
+
+const downloadLatestWorkflowJson = async () => {
+  if (!lastRecordedWorkflowJson.value) return;
+  downloadJson(
+    `${recorderToolName.value || 'recorded_workflow'}.workflow.json`,
+    lastRecordedWorkflowJson.value,
+  );
+};
+
+const downloadLatestWebMcpJson = async () => {
+  if (!lastRecordedWebMcpJson.value) return;
+  downloadJson(
+    `${recorderToolName.value || 'recorded_workflow'}.webmcp.json`,
+    lastRecordedWebMcpJson.value,
+  );
+};
+
+const applyToolToWorkspace = (tool: {
+  id: string;
+  name: string;
+  description: string;
+  rawWorkflow?: Record<string, any>;
+  workflow: Record<string, any>;
+  tool: Record<string, any>;
+}) => {
+  lastRecordedToolId.value = tool.id;
+  recorderToolName.value = tool.name;
+  recorderDescription.value = tool.description;
+  lastRecordedRawWorkflowJson.value = JSON.stringify(tool.rawWorkflow || tool.workflow, null, 2);
+  lastRecordedWorkflowJson.value = JSON.stringify(tool.workflow, null, 2);
+  lastRecordedWebMcpJson.value = JSON.stringify(tool.tool, null, 2);
+  activeWorkflowDoc.value = tool.workflow;
+  workflowEditorJson.value = JSON.stringify(tool.workflow, null, 2);
+  replayFormValues.value = buildDefaultReplayFormValues(tool.workflow);
+};
+
+const isReplayTextareaField = (field: { name: string; description?: string }) => {
+  const hint = `${field.name} ${field.description || ''}`.toLowerCase();
+  return /body|content|description|summary|message|正文|内容|描述|摘要/.test(hint);
+};
+
+const refineSavedWorkflow = async (id: string) => {
+  if (refiningToolId.value) return;
+
+  refiningToolId.value = id;
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.REFINE_WEBMCP_WORKFLOW_PARAMETERS,
+      id,
+    });
+    if (!response?.success || !response.tool) {
+      throw new Error(response?.error || 'Failed to refine workflow inputs');
+    }
+
+    applyToolToWorkspace(response.tool);
+    await loadSavedRecordedTools();
+  } catch (error) {
+    console.error('Failed to refine workflow inputs:', error);
+  } finally {
+    refiningToolId.value = '';
+  }
+};
+
+const refineLatestWorkflow = async () => {
+  if (!lastRecordedToolId.value) return;
+  await refineSavedWorkflow(lastRecordedToolId.value);
+};
+
+const loadSavedWorkflow = (tool: {
+  id: string;
+  name: string;
+  description: string;
+  rawWorkflow?: Record<string, any>;
+  workflow: Record<string, any>;
+  tool: Record<string, any>;
+}) => {
+  applyToolToWorkspace(tool);
+  setWorkflowEditorStatus('Loaded workflow into editor');
+};
+
+const resetWorkflowEditor = () => {
+  if (!lastRecordedWorkflowJson.value) return;
+  workflowEditorJson.value = lastRecordedWorkflowJson.value;
+  workflowEditorStatus.value = '';
+};
+
+const saveWorkflowEditor = async () => {
+  if (!lastRecordedToolId.value || isSavingWorkflowEditor.value) return;
+
+  isSavingWorkflowEditor.value = true;
+  try {
+    const parsedWorkflow = JSON.parse(workflowEditorJson.value);
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.UPDATE_LOCAL_WEBMCP_TOOL_WORKFLOW,
+      id: lastRecordedToolId.value,
+      workflow: parsedWorkflow,
+    });
+
+    if (!response?.success || !response.tool) {
+      throw new Error(response?.error || 'Failed to save workflow');
+    }
+
+    applyToolToWorkspace(response.tool);
+    await loadSavedRecordedTools();
+    if (activeTabId.value !== null) {
+      await chrome.runtime.sendMessage({
+        type: 'webmcp:detect-tools',
+        tabId: activeTabId.value,
+      });
+    }
+    setWorkflowEditorStatus('Workflow saved');
+  } catch (error: any) {
+    console.error('Failed to save workflow editor JSON:', error);
+    setWorkflowEditorStatus(error?.message || 'Failed to save workflow');
+  } finally {
+    isSavingWorkflowEditor.value = false;
+  }
+};
+
+const replaySavedWorkflow = async (id: string) => {
+  if (replayingToolId.value) return;
+
+  replayingToolId.value = id;
+  try {
+    const tool =
+      savedRecordedTools.value.find((item) => item.id === id) ||
+      (id === lastRecordedToolId.value && activeWorkflowDoc.value
+        ? {
+            id,
+            workflow: activeWorkflowDoc.value,
+          }
+        : null);
+    const parsedParams =
+      id === lastRecordedToolId.value && activeWorkflowDoc.value
+        ? buildReplayParamsForSubmit(activeWorkflowDoc.value, replayFormValues.value)
+        : tool?.workflow
+          ? buildReplayParamsForSubmit(tool.workflow, buildDefaultReplayFormValues(tool.workflow))
+          : {};
+
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.REPLAY_LOCAL_WEBMCP_WORKFLOW,
+      id,
+      params: parsedParams,
+      stepSelection: replayStepSelectionInput.value.trim(),
+    });
+    if (!response?.success) {
+      throw new Error(response?.error || 'Failed to replay workflow');
+    }
+
+    if (typeof response.activeTabId === 'number') {
+      activeTabId.value = response.activeTabId;
+      await chrome.runtime.sendMessage({
+        type: 'webmcp:detect-tools',
+        tabId: response.activeTabId,
+      });
+    }
+
+    setWorkflowReplayStatus(
+      response.success
+        ? `Replay finished: ${response.steps?.length || 0} steps${response.stepSelection ? ` (${response.stepSelection})` : ''}`
+        : `Replay stopped: ${response.error || 'step failed'}`,
+    );
+  } catch (error: any) {
+    console.error('Failed to replay workflow:', error);
+    setWorkflowReplayStatus(error?.message || 'Failed to replay workflow');
+  } finally {
+    replayingToolId.value = '';
+  }
+};
+
+const replayLatestWorkflow = async () => {
+  if (!lastRecordedToolId.value) return;
+  await replaySavedWorkflow(lastRecordedToolId.value);
+};
+
+const copySavedRawWorkflow = async (tool: {
+  rawWorkflow?: Record<string, any>;
+  workflow: Record<string, any>;
+  tool: Record<string, any>;
+}) => {
+  try {
+    await navigator.clipboard.writeText(
+      JSON.stringify(tool.rawWorkflow || tool.workflow || tool.tool, null, 2),
+    );
+  } catch (error) {
+    console.error('Failed to copy saved raw workflow JSON:', error);
+  }
+};
+
+const copySavedWorkflow = async (tool: {
+  workflow: Record<string, any>;
+  tool: Record<string, any>;
+}) => {
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(tool.workflow || tool.tool, null, 2));
+  } catch (error) {
+    console.error('Failed to copy saved workflow JSON:', error);
+  }
+};
+
+const copySavedWebMcp = async (tool: { tool: Record<string, any> }) => {
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(tool.tool, null, 2));
+  } catch (error) {
+    console.error('Failed to copy saved WebMCP JSON:', error);
+  }
+};
+
+const deleteRecordedTool = async (id: string) => {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: BACKGROUND_MESSAGE_TYPES.DELETE_LOCAL_WEBMCP_TOOL,
+      id,
+    });
+    if (!response?.success) {
+      throw new Error(response?.error || 'Failed to delete tool');
+    }
+
+    if (activeTabId.value !== null) {
+      await chrome.runtime.sendMessage({
+        type: 'webmcp:detect-tools',
+        tabId: activeTabId.value,
+      });
+    }
+
+    await loadSavedRecordedTools();
+  } catch (error) {
+    console.error('Failed to delete recorded tool:', error);
   }
 };
 
@@ -1395,6 +2336,7 @@ onMounted(async () => {
   await loadWorldbookWebMCPPreference();
   await loadDebugCoordinatesPreference();
   await loadShowLastClickPreference();
+  await refreshRecorderPanel();
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();
@@ -1450,6 +2392,310 @@ onUnmounted(() => {
   font-size: 11px;
   color: #94a3b8;
   margin-top: 2px;
+}
+
+.recorder-card {
+  gap: 14px;
+}
+
+.recorder-quick-card {
+  gap: 12px;
+  border: 1px solid #fecaca;
+  background: linear-gradient(180deg, #fff1f2 0%, #ffffff 100%);
+}
+
+.workflow-export-card {
+  gap: 14px;
+}
+
+.workflow-export-block,
+.workflow-saved-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workflow-editor-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workflow-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workflow-range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workflow-range-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.workflow-range-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  box-sizing: border-box;
+  font-size: 12px;
+}
+
+.workflow-range-hint {
+  margin: -2px 0 0;
+}
+
+.workflow-action-button {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.workflow-action-button:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.workflow-action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.workflow-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 10px;
+}
+
+.workflow-empty-text {
+  margin-left: 0;
+}
+
+.workflow-editor {
+  min-height: 220px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.workflow-params-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.workflow-param-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workflow-param-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.workflow-param-meta {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.workflow-param-description {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.workflow-param-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.workflow-param-textarea {
+  min-height: 120px;
+}
+
+.workflow-param-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.recorder-url {
+  word-break: break-all;
+}
+
+.recorder-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.recorder-textarea {
+  width: 100%;
+  min-height: 84px;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #0f172a;
+  resize: vertical;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.recorder-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.record-button {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+
+.record-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.record-start {
+  background: linear-gradient(135deg, #0f766e, #0ea5a4);
+}
+
+.record-stop {
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
+}
+
+.recorder-inline-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.recorder-json {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.recorded-tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recorded-tools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recorded-tool-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.recorded-tool-item:hover {
+  border-color: #60a5fa;
+  background: #dbeafe;
+}
+
+.recorded-tool-item-active {
+  border-color: #0284c7;
+  background: #e0f2fe;
+  box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.18);
+}
+
+.recorded-tool-meta {
+  min-width: 0;
+}
+
+.recorded-tool-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.recorded-tool-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.recorded-tool-description {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.recorded-tool-details {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.recorded-tool-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delete-tool-button {
+  background: #fff1f2;
+  color: #be123c;
 }
 
 .settings-button {

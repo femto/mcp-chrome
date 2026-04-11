@@ -5,7 +5,7 @@ This package provides the native messaging host used by the Chrome extension.
 ## Features
 
 - Two-way communication with the extension through Chrome Native Messaging
-- Multi-browser registration support for Chrome and Chromium on Linux, macOS, and Windows
+- Multi-browser registration support for Chrome, Chrome Canary, Chromium, and explicit Chrome for Testing registration
 - Local HTTP service used by the extension and MCP clients
 - TypeScript implementation
 - Native host registration and permission repair commands
@@ -47,6 +47,20 @@ npm install -g mcp-chrome-bridger
 
 This package name stays `mcp-chrome-bridger`.
 
+### What `postinstall` Does
+
+After a normal global install, `postinstall` will:
+
+- ensure executable permissions for wrapper scripts and CLI files
+- write the current Node.js path into `dist/node_path.txt`
+- attempt user-level Native Messaging registration for detected browsers
+
+Important notes:
+
+- workspace/monorepo development installs skip auto-registration on purpose
+- auto-detection currently covers Chrome, Canary, and Chromium
+- Chrome for Testing is supported, but must be registered explicitly with `-b chrome-for-testing`
+
 ## Commands
 
 Register for detected browsers:
@@ -61,11 +75,23 @@ Register for a specific browser:
 # Chrome only
 mcp-chrome-bridger register --browser chrome
 
+# Chrome Canary only
+mcp-chrome-bridger register --browser canary
+
+# Chrome for Testing only
+mcp-chrome-bridger register --browser chrome-for-testing
+
 # Chromium only
 mcp-chrome-bridger register --browser chromium
 
-# Both Chrome and Chromium
+# Chrome + Canary + Chromium
 mcp-chrome-bridger register --browser all
+```
+
+If your unpacked extension uses a non-default extension ID, append it to the native host whitelist during registration:
+
+```bash
+MCP_CHROME_EXTRA_EXTENSION_IDS=<extension-id> mcp-chrome-bridger register --browser canary
 ```
 
 System-level registration:
@@ -82,16 +108,33 @@ mcp-chrome-bridger fix-permissions
 
 ## Browser Support
 
-| Browser       | Linux | macOS | Windows |
-| ------------- | ----- | ----- | ------- |
-| Google Chrome | Yes   | Yes   | Yes     |
-| Chromium      | Yes   | Yes   | Yes     |
+| Browser            | Linux | macOS | Windows |
+| ------------------ | ----- | ----- | ------- |
+| Google Chrome      | Yes   | Yes   | Yes     |
+| Chrome Canary      | Yes   | Yes   | Yes     |
+| Chrome for Testing | Yes\* | Yes\* | Yes\*   |
+| Chromium           | Yes   | Yes   | Yes     |
+
+\* Chrome for Testing registration is explicit only. It is not included in auto-detection or `--browser all`.
 
 User-level manifest locations:
 
-- Linux: `~/.config/[browser-name]/NativeMessagingHosts/`
-- macOS: `~/Library/Application Support/[Browser]/NativeMessagingHosts/`
-- Windows: `%APPDATA%\[Browser]\NativeMessagingHosts\`
+- Chrome
+  - Linux: `~/.config/google-chrome/NativeMessagingHosts/`
+  - macOS: `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`
+  - Windows: `%APPDATA%\Google\Chrome\NativeMessagingHosts\`
+- Canary
+  - Linux: `~/.config/google-chrome-canary/NativeMessagingHosts/`
+  - macOS: `~/Library/Application Support/Google/Chrome Canary/NativeMessagingHosts/`
+  - Windows: `%LOCALAPPDATA%\Google\Chrome SxS\NativeMessagingHosts\`
+- Chrome for Testing
+  - Linux: `~/.config/google-chrome-for-testing/NativeMessagingHosts/`
+  - macOS: `~/Library/Application Support/Google/Chrome for Testing/NativeMessagingHosts/`
+  - Windows: `%LOCALAPPDATA%\Google\Chrome for Testing\User Data\NativeMessagingHosts\`
+- Chromium
+  - Linux: `~/.config/chromium/NativeMessagingHosts/`
+  - macOS: `~/Library/Application Support/Chromium/NativeMessagingHosts/`
+  - Windows: `%APPDATA%\Chromium\NativeMessagingHosts\`
 
 ## Compatibility
 
