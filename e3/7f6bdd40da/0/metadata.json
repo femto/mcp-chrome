@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "e37f6bdd40da",
+  "session_id": "79563755-696c-41af-8950-3d6e5750fc99",
+  "strategy": "manual-commit",
+  "created_at": "2026-06-13T10:39:32.097403Z",
+  "branch": "master",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "app/chrome-extension/webmcp/webmcp-manager.ts",
+    "PRIVACY.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "110d23f14220",
+  "token_usage": {
+    "input_tokens": 92,
+    "cache_creation_tokens": 41295,
+    "cache_read_tokens": 282358,
+    "output_tokens": 3885,
+    "api_call_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-06-13T10:39:31.954748Z",
+    "agent_lines": 141,
+    "human_added": 2,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 144,
+    "agent_percentage": 97.91666666666666
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/79563755-696c-41af-8950-3d6e5750fc99.jsonl"
+}
