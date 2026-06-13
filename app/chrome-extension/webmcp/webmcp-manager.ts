@@ -1,6 +1,6 @@
 /**
  * WebMCP Manager
- * 管理动态网站工具的注册和执行
+ * Manages registration and execution of dynamic website tools
  */
 
 import { siteToolsConfig, matchSiteConfig, SiteConfig, SiteTool } from './site-tools-config';
@@ -8,10 +8,39 @@ import { getLocalRecordedSiteConfig, getLocalRecordedSiteSummaries } from './rec
 import { NativeMessageType } from 'mcp-chrome-shared';
 import { emit as emitBusMessage } from '@/entrypoints/background/native-message-bus';
 
-// Worldbook API 配置
+// Worldbook API configuration
 const DEFAULT_WORLDBOOK_API_URL = 'https://worldbook.it.com/api/webmcp';
 let cachedWorldbookApiUrl: string | null = null;
 let cachedWorldbookEnabled: boolean | null = null;
+let cachedClientId: string | null = null;
+
+/**
+ * Get or generate an anonymous clientId (UUID) for analytics tracking.
+ * Used for DAU/MAU statistics, not associated with any personal information.
+ */
+async function getOrCreateClientId(): Promise<string> {
+  if (cachedClientId) {
+    return cachedClientId;
+  }
+
+  try {
+    const result = await getStorage<{ clientId?: string }>(['clientId']);
+    if (result.clientId) {
+      cachedClientId = result.clientId;
+      return cachedClientId;
+    }
+
+    // Generate new UUID
+    cachedClientId = crypto.randomUUID();
+    await chrome.storage.local.set({ clientId: cachedClientId });
+    console.log('[WebMCP] Generated new anonymous clientId for analytics');
+    return cachedClientId;
+  } catch (error) {
+    console.log('[WebMCP] Failed to get/create clientId:', error);
+    // Return fixed error ID so server knows something went wrong
+    return 'error-failed-to-get-client-id';
+  }
+}
 
 function getStorage<T extends Record<string, any>>(keys: string[]): Promise<T> {
   return new Promise((resolve) => {
@@ -98,7 +127,7 @@ function notifyNativeServerToolsUpdate(
 
     if (action === 'register' && siteName && tools) {
       payload.siteName = siteName;
-      // 使用 WebMCP 标准格式：inputSchema
+      // Use WebMCP standard format: inputSchema
       payload.tools = tools.map((t) => ({
         name: t.name,
         description: t.description,
@@ -115,7 +144,7 @@ function notifyNativeServerToolsUpdate(
   }, 300);
 }
 
-// API 响应类型 - WebMCP 标准格式
+// API response types - WebMCP standard format
 interface ApiInputSchema {
   type: 'object';
   properties: Record<
@@ -142,7 +171,7 @@ interface ApiSiteConfig {
   tools: ApiTool[];
 }
 
-// 存储当前已注册的网站工具
+// Store currently registered site tools
 const registeredSiteTools = new Map<number, SiteConfig>();
 
 function mergeSiteConfigs(
@@ -168,7 +197,7 @@ function mergeSiteConfigs(
 }
 
 /**
- * 将 API 响应转换为本地 SiteConfig 格式
+ * Convert API response to local SiteConfig format
  */
 function convertApiConfig(apiConfig: ApiSiteConfig): SiteConfig {
   return {
@@ -184,12 +213,16 @@ function convertApiConfig(apiConfig: ApiSiteConfig): SiteConfig {
 }
 
 /**
- * 从 Worldbook API 获取匹配的站点配置
+ * Fetch matching site config from Worldbook API.
+ * Includes anonymous clientId in request for DAU/MAU analytics.
  */
 async function fetchSiteConfigFromAPI(url: string): Promise<SiteConfig | null> {
   try {
     const apiUrl = await getWorldbookApiUrl();
-    const response = await fetch(`${apiUrl}/match?url=${encodeURIComponent(url)}`);
+    const clientId = await getOrCreateClientId();
+    const response = await fetch(`${apiUrl}/match?url=${encodeURIComponent(url)}`, {
+      headers: { 'X-Client-Id': clientId },
+    });
     if (!response.ok) {
       console.log(`[WebMCP] API request failed: ${response.status}`);
       return null;
@@ -232,10 +265,10 @@ async function getSiteConfig(url: string): Promise<SiteConfig | null> {
 }
 
 /**
- * 初始化 WebMCP 监听器
+ * Initialize WebMCP listeners
  */
 export function initWebMCPListener() {
-  // 监听标签页更新，自动检测并注册工具
+  // Listen for tab updates, auto-detect and register tools
   chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && tab.url) {
       // Check if we need to unregister old tools (URL changed to non-matching site)
@@ -245,7 +278,7 @@ export function initWebMCPListener() {
       if (siteConfig) {
         // Only register if not already registered for this site
         if (!oldConfig || oldConfig.siteName !== siteConfig.siteName) {
-          console.log(`[WebMCP] 检测到匹配的网站: ${siteConfig.siteName} (${tab.url})`);
+          console.log(`[WebMCP] Detected matching site: ${siteConfig.siteName} (${tab.url})`);
           await registerSiteTools(tabId, siteConfig);
 
           // Notify native server about new tools
@@ -253,29 +286,31 @@ export function initWebMCPListener() {
         }
       } else if (oldConfig) {
         // URL changed to non-matching site, unregister old tools
-        console.log(`[WebMCP] 标签页 ${tabId} 导航离开 ${oldConfig.siteName}，清理工具`);
+        console.log(
+          `[WebMCP] Tab ${tabId} navigated away from ${oldConfig.siteName}, cleaning up tools`,
+        );
         registeredSiteTools.delete(tabId);
         notifyNativeServerToolsUpdate('unregister', tabId);
       }
     }
   });
 
-  // 监听标签页关闭，清理工具
+  // Listen for tab close, clean up tools
   chrome.tabs.onRemoved.addListener((tabId) => {
     if (registeredSiteTools.has(tabId)) {
-      console.log(`[WebMCP] 标签页 ${tabId} 关闭，清理工具`);
+      console.log(`[WebMCP] Tab ${tabId} closed, cleaning up tools`);
       registeredSiteTools.delete(tabId);
       notifyNativeServerToolsUpdate('unregister', tabId);
     }
   });
 
-  // 监听消息请求（用于调试和测试）
+  // Listen for message requests (for debugging and testing)
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.type === 'webmcp:detect-tools') {
       detectAndRegisterTools()
         .then((result) => sendResponse({ success: true, result }))
         .catch((error) => sendResponse({ success: false, error: error.message }));
-      return true; // 保持端口打开用于异步响应
+      return true; // Keep port open for async response
     }
     if (request.type === 'webmcp:call-tool') {
       const { tabId, toolName, params } = request;
@@ -303,11 +338,11 @@ export function initWebMCPListener() {
 }
 
 /**
- * 为标签页注册网站工具
+ * Register site tools for a tab
  */
 async function registerSiteTools(tabId: number, siteConfig: SiteConfig) {
   try {
-    // 注入 WebMCP 执行脚本
+    // Inject WebMCP executor script
     await chrome.scripting.executeScript({
       target: { tabId },
       func: injectWebMCPExecutor,
@@ -315,7 +350,7 @@ async function registerSiteTools(tabId: number, siteConfig: SiteConfig) {
       world: 'MAIN',
     });
 
-    // 注入桥接脚本用于通信
+    // Inject bridge script for communication
     await chrome.scripting.executeScript({
       target: { tabId },
       func: injectWebMCPBridge,
@@ -323,40 +358,40 @@ async function registerSiteTools(tabId: number, siteConfig: SiteConfig) {
     });
 
     registeredSiteTools.set(tabId, siteConfig);
-    console.log(`[WebMCP] 已为标签页 ${tabId} 注册 ${siteConfig.tools.length} 个工具`);
+    console.log(`[WebMCP] Registered ${siteConfig.tools.length} tools for tab ${tabId}`);
   } catch (error) {
-    console.error(`[WebMCP] 注册工具失败:`, error);
+    console.error(`[WebMCP] Failed to register tools:`, error);
   }
 }
 
 /**
- * 注入到 MAIN world 的执行器
- * 使用 lazy eval + 缓存：只存储 handler 字符串，首次调用时编译并缓存
- * 这样既安全（避免 IIFE 在页面加载时执行），又高效（后续调用复用编译结果）
+ * Executor injected into MAIN world.
+ * Uses lazy eval + caching: stores handler strings, compiles on first call and caches.
+ * This is both safe (avoids IIFE execution at page load) and efficient (reuses compiled results).
  */
 function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
-  // 防止重复注入
+  // Prevent duplicate injection
   if ((window as any).__WEBMCP_EXECUTOR_LOADED__) return;
   (window as any).__WEBMCP_EXECUTOR_LOADED__ = true;
 
-  // 存储工具 handler 字符串（不立即 eval）
+  // Store tool handler strings (don't eval immediately)
   const toolHandlers = new Map<string, string>();
-  // 缓存编译后的函数
+  // Cache compiled functions
   const compiledCache = new Map<string, (...args: unknown[]) => unknown>();
 
-  // 只存储 handler 字符串，不编译
+  // Only store handler strings, don't compile
   tools.forEach((tool) => {
     toolHandlers.set(tool.name, tool.handler);
-    console.log(`[WebMCP] 注册工具: ${tool.name}`);
+    console.log(`[WebMCP] Registered tool: ${tool.name}`);
   });
 
-  // 监听工具执行请求 (通过 postMessage 从 ISOLATED world)
-  // 注意：不能使用 async/await，因为 esbuild 会转换成 __async helper，在 MAIN world 中不存在
+  // Listen for tool execution requests (via postMessage from ISOLATED world)
+  // Note: can't use async/await because esbuild transforms to __async helper which doesn't exist in MAIN world
   window.addEventListener('message', (event) => {
     if (event.source !== window || event.data?.type !== 'webmcp:execute-tool') return;
 
     const { requestId, toolName, params } = event.data;
-    console.log(`[WebMCP] 执行工具: ${toolName}`, params);
+    console.log(`[WebMCP] Executing tool: ${toolName}`, params);
 
     const handlerCode = toolHandlers.get(toolName);
     if (!handlerCode) {
@@ -365,19 +400,19 @@ function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
           type: 'webmcp:tool-result',
           requestId,
           result: null,
-          error: `工具 ${toolName} 未找到`,
+          error: `Tool ${toolName} not found`,
         },
         '*',
       );
       return;
     }
 
-    // Lazy eval + 缓存: 首次调用时编译，后续复用
+    // Lazy eval + caching: compile on first call, reuse afterwards
     Promise.resolve()
       .then(() => {
         let handler = compiledCache.get(toolName);
         if (!handler) {
-          console.log(`[WebMCP] 首次编译工具: ${toolName}`);
+          console.log(`[WebMCP] First-time compiling tool: ${toolName}`);
           handler = eval(`(${handlerCode})`) as (...args: unknown[]) => unknown;
           compiledCache.set(toolName, handler);
         }
@@ -411,7 +446,7 @@ function injectWebMCPExecutor(tools: Array<{ name: string; handler: string }>) {
 }
 
 /**
- * 注入到 ISOLATED world 的桥接脚本
+ * Bridge script injected into ISOLATED world
  */
 function injectWebMCPBridge() {
   if ((window as any).__WEBMCP_BRIDGE_LOADED__) return;
@@ -419,13 +454,13 @@ function injectWebMCPBridge() {
 
   const pendingRequests = new Map<string, (response: any) => void>();
 
-  // 监听来自 background 的消息
+  // Listen for messages from background
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.type === 'webmcp:call-tool') {
       const requestId = `req-${Date.now()}-${Math.random()}`;
       pendingRequests.set(requestId, sendResponse);
 
-      // 通过 postMessage 转发到 MAIN world
+      // Forward to MAIN world via postMessage
       window.postMessage(
         {
           type: 'webmcp:execute-tool',
@@ -436,11 +471,11 @@ function injectWebMCPBridge() {
         '*',
       );
 
-      return true; // 异步响应
+      return true; // Async response
     }
   });
 
-  // 监听来自 MAIN world 的结果 (通过 postMessage)
+  // Listen for results from MAIN world (via postMessage)
   window.addEventListener('message', (event) => {
     if (event.source !== window || event.data?.type !== 'webmcp:tool-result') return;
 
@@ -456,7 +491,7 @@ function injectWebMCPBridge() {
 }
 
 /**
- * 获取指定标签页的可用工具
+ * Get available tools for a specific tab
  */
 export function getTabTools(tabId: number): SiteTool[] {
   const config = registeredSiteTools.get(tabId);
@@ -464,27 +499,27 @@ export function getTabTools(tabId: number): SiteTool[] {
 }
 
 /**
- * 获取所有已注册的网站工具
+ * Get all registered site tools
  */
 export function getAllRegisteredTools(): Map<number, SiteConfig> {
   return registeredSiteTools;
 }
 
 /**
- * 等待标签页加载完成
+ * Wait for tab to finish loading
  */
 function waitForTabLoad(tabId: number, timeout = 15000): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
-      reject(new Error('页面加载超时'));
+      reject(new Error('Page load timeout'));
     }, timeout);
 
     const listener = (updatedTabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
       if (updatedTabId === tabId && changeInfo.status === 'complete') {
         clearTimeout(timer);
         chrome.tabs.onUpdated.removeListener(listener);
-        // 额外等待一点时间让 JS 执行完成
+        // Wait a bit more for JS to finish executing
         setTimeout(resolve, 500);
       }
     };
@@ -494,8 +529,8 @@ function waitForTabLoad(tabId: number, timeout = 15000): Promise<void> {
 }
 
 /**
- * 执行网站工具 - 直接在页面上执行
- * 支持 __navigate__ + __then__ 协议用于需要页面跳转的操作
+ * Execute site tool - runs directly on the page.
+ * Supports __navigate__ + __then__ protocol for operations requiring page navigation.
  */
 export async function executeWebMCPTool(
   tabId: number,
@@ -504,16 +539,16 @@ export async function executeWebMCPTool(
 ): Promise<{ result: any; error: string | null }> {
   const config = registeredSiteTools.get(tabId);
   if (!config) {
-    return { result: null, error: '该标签页没有注册工具' };
+    return { result: null, error: 'No tools registered for this tab' };
   }
 
   const tool = config.tools.find((t) => t.name === toolName);
   if (!tool) {
-    return { result: null, error: `工具 ${toolName} 未找到` };
+    return { result: null, error: `Tool ${toolName} not found` };
   }
 
   try {
-    // 直接在页面上执行工具 handler
+    // Execute tool handler directly on the page
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       world: 'MAIN',
@@ -537,27 +572,27 @@ export async function executeWebMCPTool(
     });
 
     if (!results || !results[0]) {
-      return { result: null, error: '执行失败' };
+      return { result: null, error: 'Execution failed' };
     }
 
     const firstResult = results[0].result as { result: any; error: string | null };
 
-    // 检查是否需要导航 + 后续执行
+    // Check if navigation + follow-up execution is needed
     if (firstResult.result && firstResult.result.__navigate__ && firstResult.result.__then__) {
       const navigateUrl = firstResult.result.__navigate__;
       const thenCode = firstResult.result.__then__;
 
-      console.log(`[WebMCP] 导航到: ${navigateUrl}`);
+      console.log(`[WebMCP] Navigating to: ${navigateUrl}`);
 
-      // 导航到目标 URL
+      // Navigate to target URL
       await chrome.tabs.update(tabId, { url: navigateUrl });
 
-      // 等待页面加载完成
+      // Wait for page to finish loading
       await waitForTabLoad(tabId);
 
-      console.log(`[WebMCP] 页面加载完成，执行后续代码`);
+      console.log(`[WebMCP] Page loaded, executing follow-up code`);
 
-      // 重新注册工具到新页面
+      // Re-register tools for the new page
       const newTab = await chrome.tabs.get(tabId);
       if (newTab.url) {
         const newConfig = await getSiteConfig(newTab.url);
@@ -566,7 +601,7 @@ export async function executeWebMCPTool(
         }
       }
 
-      // 执行后续代码
+      // Execute follow-up code
       const thenResults = await chrome.scripting.executeScript({
         target: { tabId },
         world: 'MAIN',
@@ -588,7 +623,7 @@ export async function executeWebMCPTool(
       if (thenResults && thenResults[0]) {
         return thenResults[0].result as { result: any; error: string | null };
       }
-      return { result: null, error: '后续执行失败' };
+      return { result: null, error: 'Follow-up execution failed' };
     }
 
     return firstResult;
@@ -598,8 +633,8 @@ export async function executeWebMCPTool(
 }
 
 /**
- * 手动为指定标签页或当前活动标签页检测并注册工具
- * @param targetTabId - 可选，指定要检测的标签页 ID
+ * Manually detect and register tools for a specific tab or the current active tab.
+ * @param targetTabId - Optional, the tab ID to detect tools for
  */
 export async function detectAndRegisterTools(targetTabId?: number): Promise<{
   tabId: number;
@@ -609,10 +644,10 @@ export async function detectAndRegisterTools(targetTabId?: number): Promise<{
   let tab: chrome.tabs.Tab | undefined;
 
   if (targetTabId) {
-    // 使用指定的 tabId
+    // Use specified tabId
     tab = await chrome.tabs.get(targetTabId);
   } else {
-    // 使用当前活动标签页
+    // Use current active tab
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     tab = activeTab;
   }
@@ -653,7 +688,7 @@ export function resendAllToolsToNative(): void {
 }
 
 /**
- * 获取所有配置的站点列表 (从 API)
+ * Get all configured sites list (from API)
  */
 export async function getConfiguredSites(): Promise<
   Array<{
@@ -663,13 +698,16 @@ export async function getConfiguredSites(): Promise<
     tools: string[];
   }>
 > {
-  // 检查 Worldbook WebMCP 是否启用
+  // Check if Worldbook WebMCP is enabled
   const worldbookEnabled = await isWorldbookWebMCPEnabled();
 
   if (worldbookEnabled) {
     try {
       const apiUrl = await getWorldbookApiUrl();
-      const response = await fetch(`${apiUrl}/sites`);
+      const clientId = await getOrCreateClientId();
+      const response = await fetch(`${apiUrl}/sites`, {
+        headers: { 'X-Client-Id': clientId },
+      });
       if (response.ok) {
         return await response.json();
       }
@@ -678,7 +716,7 @@ export async function getConfiguredSites(): Promise<
     }
   }
 
-  // 返回本地配置作为后备
+  // Return local config as fallback
   const configuredSites = siteToolsConfig.map((c) => ({
     site_name: c.siteName,
     url_pattern: String(c.urlPattern),
