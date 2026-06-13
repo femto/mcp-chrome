@@ -3,7 +3,7 @@
   "checkpoint_id": "e37f6bdd40da",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 14,
+  "checkpoints_count": 16,
   "files_touched": [
     "PRIVACY.md",
     "app/chrome-extension/webmcp/webmcp-manager.ts"
@@ -22,13 +22,20 @@
       "context": "/e3/7f6bdd40da/1/context.md",
       "content_hash": "/e3/7f6bdd40da/1/content_hash.txt",
       "prompt": "/e3/7f6bdd40da/1/prompt.txt"
+    },
+    {
+      "metadata": "/e3/7f6bdd40da/2/metadata.json",
+      "transcript": "/e3/7f6bdd40da/2/full.jsonl",
+      "context": "/e3/7f6bdd40da/2/context.md",
+      "content_hash": "/e3/7f6bdd40da/2/content_hash.txt",
+      "prompt": "/e3/7f6bdd40da/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3860,
-    "cache_creation_tokens": 644370,
-    "cache_read_tokens": 4298007,
-    "output_tokens": 32725,
-    "api_call_count": 82
+    "input_tokens": 3946,
+    "cache_creation_tokens": 676254,
+    "cache_read_tokens": 4537194,
+    "output_tokens": 34521,
+    "api_call_count": 92
   }
 }
