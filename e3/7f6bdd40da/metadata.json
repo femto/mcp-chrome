@@ -3,7 +3,7 @@
   "checkpoint_id": "e37f6bdd40da",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 16,
+  "checkpoints_count": 17,
   "files_touched": [
     "PRIVACY.md",
     "app/chrome-extension/webmcp/webmcp-manager.ts"
@@ -29,6 +29,13 @@
       "context": "/e3/7f6bdd40da/2/context.md",
       "content_hash": "/e3/7f6bdd40da/2/content_hash.txt",
       "prompt": "/e3/7f6bdd40da/2/prompt.txt"
+    },
+    {
+      "metadata": "/e3/7f6bdd40da/3/metadata.json",
+      "transcript": "/e3/7f6bdd40da/3/full.jsonl",
+      "context": "",
+      "content_hash": "/e3/7f6bdd40da/3/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
