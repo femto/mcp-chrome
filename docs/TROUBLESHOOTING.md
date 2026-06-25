@@ -31,3 +31,46 @@ C:\Users\admin\AppData\Local\nvm\v20.19.2\node_modules\mcp-chrome-bridger\dist\l
 `xxx/node_modules/mcp-chrome-bridger/dist/run_host.sh`
 
 Check if this script has execution permissions
+
+---
+
+## 🐧 Linux Troubleshooting
+
+### Permission issues when installing with `sudo`
+
+On Linux, if you install with `sudo npm install -g mcp-chrome-bridger`, the package is installed to `/usr/lib/node_modules/` which is owned by root. This causes the native host script to fail because it cannot create its `logs/` directory at runtime.
+
+**Fix Option 1: Fix permissions on the logs directory**
+
+```bash
+sudo mkdir -p /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
+sudo chmod 777 /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
+```
+
+**Fix Option 2 (Recommended): Install npm packages to user directory**
+
+Configure npm to install global packages without sudo:
+
+```bash
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Then install normally without sudo:
+
+```bash
+npm install -g mcp-chrome-bridger
+mcp-chrome-bridger register
+```
+
+### Native Messaging Host path
+
+Linux path for the manifest file:
+
+`~/.config/google-chrome/NativeMessagingHosts/com.mcpchromeserver.nativehost.json`
+
+### Chrome must be fully restarted
+
+After running `mcp-chrome-bridger register`, you must fully quit and reopen Chrome (not just refresh the tab) for the native messaging host to be recognized.

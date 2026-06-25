@@ -51,6 +51,47 @@ C:\Users\admin\AppData\Local\nvm\v20.19.2\node_modules\mcp-chrome-bridger\dist\l
 
 3.3 如果排除了以上两种原因都不行，则查看日志目录的日志，然后提issue
 
+---
+
+### 🐧 Linux 常见问题
+
+#### 使用 `sudo` 安装导致的权限问题
+
+在 Linux 上使用 `sudo npm install -g mcp-chrome-bridger` 时，包会安装到 `/usr/lib/node_modules/`（root 所有）。这会导致 native host 脚本运行时无法创建 `logs/` 目录而失败。
+
+**方案一：修复 logs 目录权限**
+
+```bash
+sudo mkdir -p /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
+sudo chmod 777 /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
+```
+
+**方案二（推荐）：配置 npm 用户目录安装**
+
+```bash
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+然后无需 sudo 即可安装：
+
+```bash
+npm install -g mcp-chrome-bridger
+mcp-chrome-bridger register
+```
+
+#### Linux 清单文件路径
+
+`~/.config/google-chrome/NativeMessagingHosts/com.mcpchromeserver.nativehost.json`
+
+#### 安装后必须完全重启 Chrome
+
+执行 `mcp-chrome-bridger register` 后，必须完全退出并重新打开 Chrome（不是刷新页面），Native Messaging Host 才能被识别。
+
+---
+
 #### 工具执行超时
 
 有可能长时间连接的时候session会超时，这个时候重新连接即可
