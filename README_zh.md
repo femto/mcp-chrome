@@ -48,7 +48,15 @@ Chrome MCP Server 是一个基于chrome插件的 **模型上下文协议 (MCP) �
 
 ### 安装步骤
 
-1. **从github上下载最新的chrome扩展**
+1. **安装 Chrome 扩展**
+
+**方式 A：从 Chrome 应用商店安装（推荐）**
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20应用商店-安装-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/mcp-chrome-extension-ai-b/mnchdcikbochaacmcfohjibjkhdbaahe)
+
+安装地址：https://chromewebstore.google.com/detail/mcp-chrome-extension-ai-b/mnchdcikbochaacmcfohjibjkhdbaahe
+
+**方式 B：从 GitHub 下载（开发/最新构建版本）**
 
 下载地址：https://github.com/femto/mcp-chrome/releases
 
@@ -75,9 +83,17 @@ mcp-chrome-bridger register
 > 注意：pnpm v7+ 默认禁用 postinstall 脚本以提高安全性。`enable-pre-post-scripts` 设置控制是否运行 pre/post 安装脚本。如果自动注册失败，请使用上述手动注册命令。
 
 3. **加载 Chrome 扩展**
+
+   如果你从 Chrome 应用商店安装（方式 A），跳过此步骤。
+
+   如果你从 GitHub 下载（方式 B）：
+
    - 打开 Chrome 并访问 `chrome://extensions/`
    - 启用"开发者模式"
    - 点击"加载已解压的扩展程序"，选择 `your/dowloaded/extension/folder`
+
+4. **连接**
+
    - 点击插件图标打开插件，点击连接即可看到mcp的配置
      <img width="475" alt="截屏2025-06-09 15 52 06" src="https://github.com/user-attachments/assets/241e57b8-c55f-41a4-9188-0367293dc5bc" />
 

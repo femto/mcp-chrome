@@ -50,7 +50,15 @@ Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) ser
 
 ### Installation Steps
 
-1. **Download the latest Chrome extension from GitHub**
+1. **Install the Chrome Extension**
+
+**Option A: Install from Chrome Web Store (Recommended)**
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/mcp-chrome-extension-ai-b/mnchdcikbochaacmcfohjibjkhdbaahe)
+
+Install directly from: https://chromewebstore.google.com/detail/mcp-chrome-extension-ai-b/mnchdcikbochaacmcfohjibjkhdbaahe
+
+**Option B: Download from GitHub (for development/latest builds)**
 
 Download link: https://github.com/femto/mcp-chrome/releases
 
@@ -78,9 +86,16 @@ mcp-chrome-bridger register
 
 3. **Load Chrome Extension**
 
+   If you installed from the Chrome Web Store (Option A), skip this step.
+
+   If you downloaded from GitHub (Option B):
+
    - Open Chrome and go to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked" and select `your/dowloaded/extension/folder`
+
+4. **Connect**
+
    - Click the extension icon to open the plugin, then click connect to see the MCP configuration
 
      ![Extension Popup](docs/images/extension-popup.png)

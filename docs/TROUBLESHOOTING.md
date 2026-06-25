@@ -16,7 +16,17 @@ Windows path: C:\Users\xxx\AppData\Roaming\Google\Chrome\NativeMessagingHosts
 
 Mac path: /Users/xxx/Library/Application\ Support/Google/Chrome/NativeMessagingHosts
 
-If the npm package is installed correctly, a file named `com.chromemcp.nativehost.json` should be generated in this directory
+Linux path: ~/.config/google-chrome/NativeMessagingHosts
+
+If the npm package is installed correctly, a file named `com.chromemcp.nativehost.json` should be generated in this directory.
+
+> **Note:** The manifest file is created by `mcp-chrome-bridger register`, which runs automatically as a postinstall script during `npm install -g`. However, if you use **pnpm**, postinstall scripts are disabled by default (pnpm v7+). In that case, you need to manually run:
+>
+> ```bash
+> mcp-chrome-bridger register
+> ```
+>
+> Alternatively, enable scripts before installing: `pnpm config set enable-pre-post-scripts true`
 
 3. **Check if there are logs in the npm package installation directory**
    You need to check your installation path (if unclear, open the manifest file in step 2, the path field shows the installation directory). For example, if the installation path is as follows, check the log contents:
