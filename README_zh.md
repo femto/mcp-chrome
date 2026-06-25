@@ -43,7 +43,8 @@ Chrome MCP Server 是一个基于chrome插件的 **模型上下文协议 (MCP) �
 
 ### 环境要求
 
-- Node.js >= 18.19.0 和 （npm 或 pnpm）
+- **⚠️ 需要安装 [Node.js](https://nodejs.org/) >= 18.19.0**（用于运行 Chrome 与 MCP 客户端之间的本地桥接服务）
+- npm 或 pnpm（随 Node.js 一起安装）
 - Chrome/Chromium 浏览器
 
 ### 安装步骤

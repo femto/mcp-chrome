@@ -45,7 +45,8 @@ Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) ser
 
 ### Prerequisites
 
-- Node.js >= 18.19.0 and pnpm/npm
+- **⚠️ [Node.js](https://nodejs.org/) >= 18.19.0 is required** (needed to run the native bridge between Chrome and MCP clients)
+- npm or pnpm (comes with Node.js)
 - Chrome/Chromium browser
 
 ### Installation Steps
