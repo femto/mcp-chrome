@@ -90,6 +90,8 @@ If you intentionally want npm to run the install-time registration script, allow
 npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger
 ```
 
+#### Diagnose Native Bridge Issues
+
 If the extension cannot connect to the native host, run the built-in diagnostic command:
 
 ```bash

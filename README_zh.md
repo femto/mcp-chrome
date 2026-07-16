@@ -88,6 +88,8 @@ mcp-chrome-bridger doctor
 npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger
 ```
 
+#### 诊断 Native Bridge 问题
+
 如果扩展无法连接 native host，可以先运行内置诊断命令：
 
 ```bash
