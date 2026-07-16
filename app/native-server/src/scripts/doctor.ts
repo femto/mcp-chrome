@@ -220,16 +220,12 @@ function checkManifest(
   scope: 'user' | 'system',
   browser: BrowserType,
   expectedHostName: string,
-): void {
+): boolean {
   const browserConfig = getBrowserConfig(browser);
   const labelPrefix = `${browserConfig.displayName} ${scope} manifest`;
 
   if (!fs.existsSync(manifestPath)) {
-    addCheck(checks, scope === 'user' ? 'warn' : 'info', `${labelPrefix} not found`, manifestPath);
-    if (scope === 'user') {
-      suggestions.push(`Run ${COMMAND_NAME} register -b ${browser}.`);
-    }
-    return;
+    return false;
   }
 
   addCheck(checks, 'ok', `${labelPrefix} exists`, manifestPath);
@@ -238,7 +234,7 @@ function checkManifest(
   if (!manifest) {
     addCheck(checks, 'error', `${labelPrefix} is not valid JSON`, error);
     suggestions.push(`Run ${COMMAND_NAME} register -b ${browser}.`);
-    return;
+    return true;
   }
 
   if (manifest.name !== expectedHostName) {
@@ -304,6 +300,58 @@ function checkManifest(
       suggestions.push(`Run ${COMMAND_NAME} register -b ${browser}.`);
     }
   }
+
+  return true;
+}
+
+function checkManifestPair(
+  checks: DoctorCheck[],
+  suggestions: string[],
+  browserType: BrowserType,
+  hostName: string,
+): void {
+  const browserConfig = getBrowserConfig(browserType, hostName);
+  const userManifestExists = fs.existsSync(browserConfig.userManifestPath);
+  const systemManifestExists = fs.existsSync(browserConfig.systemManifestPath);
+
+  if (!userManifestExists && !systemManifestExists) {
+    addCheck(
+      checks,
+      'warn',
+      `${browserConfig.displayName} manifest not found`,
+      `host=${hostName}; user=${browserConfig.userManifestPath}; system=${browserConfig.systemManifestPath}`,
+    );
+    suggestions.push(`Run ${COMMAND_NAME} register -b ${browserType}.`);
+    return;
+  }
+
+  if (!userManifestExists) {
+    addCheck(
+      checks,
+      'info',
+      `${browserConfig.displayName} user manifest not found`,
+      browserConfig.userManifestPath,
+    );
+  }
+
+  if (!systemManifestExists) {
+    addCheck(
+      checks,
+      'info',
+      `${browserConfig.displayName} system manifest not found`,
+      browserConfig.systemManifestPath,
+    );
+  }
+
+  checkManifest(checks, suggestions, browserConfig.userManifestPath, 'user', browserType, hostName);
+  checkManifest(
+    checks,
+    suggestions,
+    browserConfig.systemManifestPath,
+    'system',
+    browserType,
+    hostName,
+  );
 }
 
 function getTargetBrowsers(browser?: BrowserType | 'all'): BrowserType[] {
@@ -336,23 +384,7 @@ function checkBrowsersAndManifests(
   const browsersToCheck = getTargetBrowsers(browser);
   for (const browserType of browsersToCheck) {
     for (const hostName of hostNames) {
-      const browserConfig = getBrowserConfig(browserType, hostName);
-      checkManifest(
-        checks,
-        suggestions,
-        browserConfig.userManifestPath,
-        'user',
-        browserType,
-        hostName,
-      );
-      checkManifest(
-        checks,
-        suggestions,
-        browserConfig.systemManifestPath,
-        'system',
-        browserType,
-        hostName,
-      );
+      checkManifestPair(checks, suggestions, browserType, hostName);
     }
   }
 }

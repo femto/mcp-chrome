@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-bridger",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "Chrome Native-Messaging host (Node) - Fork with Chrome Web Store support",
   "repository": {
     "type": "git",
