@@ -9,7 +9,7 @@
       </div>
     </div>
     <div class="content">
-      <div class="section">
+      <div v-if="showRecorderUi" class="section">
         <h2 class="section-title">Recorder Sidebar</h2>
         <div class="config-card recorder-quick-card">
           <div class="status-info">
@@ -41,7 +41,7 @@
         </div>
       </div>
 
-      <div class="section">
+      <div v-if="showRecorderUi" class="section">
         <h2 class="section-title">Workflow Exports</h2>
         <div class="config-card workflow-export-card">
           <div class="recorded-tools-header">
@@ -633,6 +633,7 @@ const nativeServerPort = ref<number>(12306);
 const worldbookWebMCPEnabled = ref<boolean>(true); // Worldbook WebMCP enabled by default
 const debugCoordinates = ref<boolean>(false); // Debug coordinates display, off by default
 const showLastClickOnScreenshot = ref<boolean>(false); // Show last click position on screenshot, off by default
+const showRecorderUi = false;
 const activeTabId = ref<number | null>(null);
 const activeTabUrl = ref<string>('');
 const recorderToolName = ref('');
@@ -2336,7 +2337,9 @@ onMounted(async () => {
   await loadWorldbookWebMCPPreference();
   await loadDebugCoordinatesPreference();
   await loadShowLastClickPreference();
-  await refreshRecorderPanel();
+  if (showRecorderUi) {
+    await refreshRecorderPanel();
+  }
   await loadModelPreference();
   await checkNativeConnection();
   await checkServerStatus();

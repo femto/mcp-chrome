@@ -83,7 +83,8 @@ export const TOOL_SCHEMAS: Tool[] = [
   },
   {
     name: TOOL_NAMES.BROWSER.NAVIGATE,
-    description: 'Navigate to a URL or refresh the current tab',
+    description:
+      'Navigate to a URL by activating an existing matching tab when possible, opening a new tab or window, or refreshing the current tab',
     inputSchema: {
       type: 'object',
       properties: {
@@ -92,8 +93,16 @@ export const TOOL_SCHEMAS: Tool[] = [
           type: 'boolean',
           description: 'Create a new window to navigate to the URL or not. Defaults to false',
         },
-        width: { type: 'number', description: 'Viewport width in pixels (default: 1280)' },
-        height: { type: 'number', description: 'Viewport height in pixels (default: 720)' },
+        width: {
+          type: 'number',
+          description:
+            'Window width in pixels. Used for new windows, or to resize the target window when newWindow is false.',
+        },
+        height: {
+          type: 'number',
+          description:
+            'Window height in pixels. Used for new windows, or to resize the target window when newWindow is false.',
+        },
         refresh: {
           type: 'boolean',
           description:

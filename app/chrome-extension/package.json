@@ -3,7 +3,7 @@
   "description": "a chrome extension to use your own chrome as a mcp server",
   "author": "femto",
   "private": true,
-  "version": "0.0.17",
+  "version": "0.0.18",
   "type": "module",
   "scripts": {
     "dev": "wxt",
