@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "e06ba8d32aae",
+  "session_id": "ea768b3f-4ab0-42af-9881-5865c3dec7dc",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-16T09:56:38.602525Z",
+  "branch": "chore/extension-recorder-navigation",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/popup/App.vue"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "d9f71c65d384",
+  "transcript_identifier_at_start": "5a4c53df-7c37-4b8e-9055-bfe570415fb7",
+  "initial_attribution": {
+    "calculated_at": "2026-07-16T09:56:38.600914Z",
+    "agent_lines": 6,
+    "human_added": 851,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 857,
+    "agent_percentage": 0.7001166861143524
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/ea768b3f-4ab0-42af-9881-5865c3dec7dc.jsonl"
+}
