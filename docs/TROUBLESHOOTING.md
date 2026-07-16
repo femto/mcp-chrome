@@ -1,77 +1,80 @@
-# 🚀 Installation and Connection Issues
+# Installation and Connection Issues
 
-### If Connection Fails After Clicking the Connect Button on the Extension
+## Connection Fails or Shows "Service Not Connected"
 
-1. **Run the built-in diagnostic command**
+Start with the built-in diagnostic command:
 
 ```bash
 mcp-chrome-bridger doctor
+```
 
-# Check a specific browser
+For a specific browser:
+
+```bash
 mcp-chrome-bridger doctor -b chrome
+mcp-chrome-bridger doctor -b canary
+mcp-chrome-bridger doctor -b chromium
+mcp-chrome-bridger doctor -b chrome-for-testing
+```
 
-# Apply low-risk fixes for permissions, logs directory, and node_path.txt
+If `doctor` reports missing permissions, missing `logs/`, or missing `node_path.txt`, apply the low-risk automatic fixes:
+
+```bash
 mcp-chrome-bridger doctor --fix
 ```
 
-2. **Check if mcp-chrome-bridger is installed successfully**, ensure it's globally installed
+If `doctor` reports a missing or stale manifest, register the native host again:
 
 ```bash
-mcp-chrome-bridger -V
+mcp-chrome-bridger register
+
+# Or register for a specific browser
+mcp-chrome-bridger register -b chrome
 ```
 
-<img width="612" alt="Screenshot 2025-06-11 15 09 57" src="https://github.com/user-attachments/assets/59458532-e6e1-457c-8c82-3756a5dbb28e" />
+After registration, fully quit and reopen Chrome. Refreshing the extension page is not enough for Chrome to reload Native Messaging host manifests.
 
-3. **Check if the manifest file is in the correct directory**
+## Install-Time Scripts
 
-Windows path: C:\Users\xxx\AppData\Roaming\Google\Chrome\NativeMessagingHosts
+The manifest is created by `mcp-chrome-bridger register`. Do not rely on install-time `postinstall` behavior: npm v12+ and pnpm can skip dependency lifecycle scripts unless scripts are explicitly allowed.
 
-Mac path: /Users/xxx/Library/Application\ Support/Google/Chrome/NativeMessagingHosts
+Recommended setup:
 
-Linux path: ~/.config/google-chrome/NativeMessagingHosts
+```bash
+npm install -g mcp-chrome-bridger
+mcp-chrome-bridger register
+mcp-chrome-bridger doctor
+```
 
-If the npm package is installed and registered correctly, a file named `com.chromemcp.nativehost.json` should be generated in this directory.
+If you intentionally want npm to run the install-time registration script:
 
-> **Note:** The manifest file is created by `mcp-chrome-bridger register`. Do not rely on install-time `postinstall` behavior: npm v12+ and pnpm can skip dependency lifecycle scripts unless scripts are explicitly allowed. After installation, run:
->
-> ```bash
-> mcp-chrome-bridger register
-> ```
->
-> If you intentionally want npm to run the install-time registration script, use: `npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger`
+```bash
+npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger
+```
 
-4. **Check if there are logs in the npm package installation directory**
-   You need to check your installation path (if unclear, open the manifest file in step 2, the path field shows the installation directory). For example, if the installation path is as follows, check the log contents:
+## Native Host Logs
 
+If `doctor` does not explain the issue, inspect the native host logs. The log directory is under the installed package's `dist/logs` directory. `doctor` prints the package path and manifest path to help you find it.
+
+Example Windows path:
+
+```text
 C:\Users\admin\AppData\Local\nvm\v20.19.2\node_modules\mcp-chrome-bridger\dist\logs
-
-<img width="804" alt="Screenshot 2025-06-11 15 09 41" src="https://github.com/user-attachments/assets/ce7b7c94-7c84-409a-8210-c9317823aae1" />
-
-5. **Check if you have execution permissions**
-   You need to check your installation path (if unclear, open the manifest file in step 2, the path field shows the installation directory). For example, if the Mac installation path is as follows:
-
-`xxx/node_modules/mcp-chrome-bridger/dist/run_host.sh`
-
-Check if this script has execution permissions
-
----
-
-## 🐧 Linux Troubleshooting
-
-### Permission issues when installing with `sudo`
-
-On Linux, if you install with `sudo npm install -g mcp-chrome-bridger`, the package is installed to `/usr/lib/node_modules/` which is owned by root. This causes the native host script to fail because it cannot create its `logs/` directory at runtime.
-
-**Fix Option 1: Fix permissions on the logs directory**
-
-```bash
-sudo mkdir -p /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
-sudo chmod 777 /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
 ```
 
-**Fix Option 2 (Recommended): Install npm packages to user directory**
+Example macOS/Linux path:
 
-Configure npm to install global packages without sudo:
+```text
+/usr/local/lib/node_modules/mcp-chrome-bridger/dist/logs
+```
+
+## Linux Troubleshooting
+
+### Permission Issues When Installing With `sudo`
+
+On Linux, if you install with `sudo npm install -g mcp-chrome-bridger`, the package may be installed under a root-owned global directory. This can prevent the native host from creating or writing to `dist/logs`.
+
+Prefer installing global npm packages into a user-owned directory:
 
 ```bash
 mkdir -p ~/.npm-global
@@ -80,19 +83,21 @@ echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-Then install normally without sudo:
+Then install and register normally:
 
 ```bash
 npm install -g mcp-chrome-bridger
 mcp-chrome-bridger register
+mcp-chrome-bridger doctor
 ```
 
-### Native Messaging Host path
+If you must keep a root-owned global install, repair the logs directory permissions:
 
-Linux path for the manifest file:
+```bash
+sudo mkdir -p /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
+sudo chmod 777 /usr/lib/node_modules/mcp-chrome-bridger/dist/logs
+```
 
-`~/.config/google-chrome/NativeMessagingHosts/com.mcpchromeserver.nativehost.json`
+## Still Not Working?
 
-### Chrome must be fully restarted
-
-After running `mcp-chrome-bridger register`, you must fully quit and reopen Chrome (not just refresh the tab) for the native messaging host to be recognized.
+Run `mcp-chrome-bridger doctor --json` and include the output, browser type, operating system, and recent native host logs when opening an issue.
