@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "e06ba8d32aae",
+  "session_id": "b8649fa4-6d44-4b18-ac4b-5442ae61407d",
+  "strategy": "manual-commit",
+  "created_at": "2026-07-16T09:56:34.330836Z",
+  "branch": "chore/extension-recorder-navigation",
+  "checkpoints_count": 10,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/sidepanel/index.html",
+    "app/chrome-extension/package.json"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "97e61be39b36",
+  "transcript_identifier_at_start": "95cf48ed-f4ce-4ad9-8d25-0ae2257efdb8",
+  "checkpoint_transcript_start": 401,
+  "transcript_lines_at_start": 401,
+  "token_usage": {
+    "input_tokens": 1600,
+    "cache_creation_tokens": 975206,
+    "cache_read_tokens": 4526396,
+    "output_tokens": 9494,
+    "api_call_count": 43
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-07-16T09:56:33.854624Z",
+    "agent_lines": 1,
+    "human_added": 856,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 857,
+    "agent_percentage": 0.11668611435239205
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/b8649fa4-6d44-4b18-ac4b-5442ae61407d.jsonl"
+}

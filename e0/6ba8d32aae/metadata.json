@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "e06ba8d32aae",
+  "strategy": "manual-commit",
+  "branch": "chore/extension-recorder-navigation",
+  "checkpoints_count": 10,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/sidepanel/index.html",
+    "app/chrome-extension/package.json"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e0/6ba8d32aae/0/metadata.json",
+      "transcript": "/e0/6ba8d32aae/0/full.jsonl",
+      "context": "/e0/6ba8d32aae/0/context.md",
+      "content_hash": "/e0/6ba8d32aae/0/content_hash.txt",
+      "prompt": "/e0/6ba8d32aae/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1600,
+    "cache_creation_tokens": 975206,
+    "cache_read_tokens": 4526396,
+    "output_tokens": 9494,
+    "api_call_count": 43
+  }
+}
