@@ -47,11 +47,7 @@ export default defineConfig({
       'bookmarks',
       'offscreen',
       'storage',
-      'sidePanel',
     ],
-    side_panel: {
-      default_path: 'sidepanel.html',
-    },
     host_permissions: ['<all_urls>'],
     web_accessible_resources: [
       {

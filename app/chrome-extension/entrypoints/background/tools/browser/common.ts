@@ -64,118 +64,104 @@ class NavigateTool extends BaseBrowserToolExecutor {
         return createErrorResponse('URL parameter is required when refresh is not true');
       }
 
-      // 1. Check if URL is already open
-      // Get all tabs and manually compare URLs
-      console.log(`Checking if URL is already open: ${url}`);
-      // Get all tabs
-      const allTabs = await chrome.tabs.query({});
-      // Manually filter matching tabs
-      const tabs = allTabs.filter((tab) => {
-        // Normalize URLs for comparison (remove trailing slashes)
-        const tabUrl = tab.url?.endsWith('/') ? tab.url.slice(0, -1) : tab.url;
-        const targetUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-        return tabUrl === targetUrl;
-      });
-      console.log(`Found ${tabs.length} matching tabs`);
+      if (!newWindow) {
+        const normalizeUrl = (value: string) => (value.endsWith('/') ? value.slice(0, -1) : value);
+        const targetUrl = normalizeUrl(url);
+        const tabs = (await chrome.tabs.query({})).filter((tab) => {
+          return tab.url ? normalizeUrl(tab.url) === targetUrl : false;
+        });
 
-      if (tabs && tabs.length > 0) {
-        const existingTab = tabs[0];
-        console.log(
-          `URL already open in Tab ID: ${existingTab.id}, Window ID: ${existingTab.windowId}`,
-        );
+        if (tabs.length > 0) {
+          const existingTab = tabs[0];
+          if (existingTab.id !== undefined) {
+            await chrome.tabs.update(existingTab.id, { active: true });
 
-        if (existingTab.id !== undefined) {
-          // Activate the tab
-          await chrome.tabs.update(existingTab.id, { active: true });
+            if (existingTab.windowId !== undefined) {
+              const windowUpdate: chrome.windows.UpdateInfo = { focused: true };
+              if (typeof width === 'number') {
+                windowUpdate.width = width;
+              }
+              if (typeof height === 'number') {
+                windowUpdate.height = height;
+              }
+              await chrome.windows.update(existingTab.windowId, windowUpdate);
+            }
 
-          if (existingTab.windowId !== undefined) {
-            // Bring the window containing this tab to the foreground and focus it
-            await chrome.windows.update(existingTab.windowId, { focused: true });
+            const updatedTab = await chrome.tabs.get(existingTab.id);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Activated existing tab\nTab ID: ${updatedTab.id}\nURL: ${updatedTab.url || url}`,
+                },
+              ],
+              isError: false,
+            };
           }
-
-          console.log(`Activated existing Tab ID: ${existingTab.id}`);
-          // Get updated tab information and return it
-          const updatedTab = await chrome.tabs.get(existingTab.id);
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Activated existing tab\nURL: ${updatedTab.url}`,
-              },
-            ],
-            isError: false,
-          };
         }
       }
 
-      // 2. If URL is not already open, decide how to open it based on options
-      const openInNewWindow = newWindow || typeof width === 'number' || typeof height === 'number';
-
-      if (openInNewWindow) {
+      if (newWindow) {
         console.log('Opening URL in a new window.');
 
         // Create new window
-        const newWindow = await chrome.windows.create({
+        const createdWindow = await chrome.windows.create({
           url: url,
           width: typeof width === 'number' ? width : DEFAULT_WINDOW_WIDTH,
           height: typeof height === 'number' ? height : DEFAULT_WINDOW_HEIGHT,
           focused: true,
         });
 
-        if (newWindow && newWindow.id !== undefined) {
-          console.log(`URL opened in new Window ID: ${newWindow.id}`);
+        if (createdWindow && createdWindow.id !== undefined) {
+          console.log(`URL opened in new Window ID: ${createdWindow.id}`);
 
-          const tabUrls = newWindow.tabs?.map((tab) => tab.url).join('\n  ') || url;
+          const tabUrls = createdWindow.tabs?.map((tab) => tab.url).join('\n  ') || url;
           return {
             content: [
               {
                 type: 'text',
-                text: `Opened URL in new window\nWindow ID: ${newWindow.id}\nURL: ${tabUrls}`,
+                text: `Opened URL in new window\nWindow ID: ${createdWindow.id}\nURL: ${tabUrls}`,
               },
             ],
             isError: false,
           };
         }
       } else {
-        console.log('Opening URL in the last active window.');
-        // Try to open a new tab in the most recently active window
+        console.log('Opening URL in a new tab in the last focused window.');
         const lastFocusedWindow = await chrome.windows.getLastFocused({ populate: false });
 
-        if (lastFocusedWindow && lastFocusedWindow.id !== undefined) {
-          console.log(`Found last focused Window ID: ${lastFocusedWindow.id}`);
-
+        if (lastFocusedWindow?.id !== undefined) {
           const newTab = await chrome.tabs.create({
-            url: url,
+            url,
             windowId: lastFocusedWindow.id,
             active: true,
           });
 
-          // Ensure the window also gets focus
-          await chrome.windows.update(lastFocusedWindow.id, { focused: true });
-
-          console.log(
-            `URL opened in new Tab ID: ${newTab.id} in existing Window ID: ${lastFocusedWindow.id}`,
-          );
+          const windowUpdate: chrome.windows.UpdateInfo = { focused: true };
+          if (typeof width === 'number') {
+            windowUpdate.width = width;
+          }
+          if (typeof height === 'number') {
+            windowUpdate.height = height;
+          }
+          await chrome.windows.update(lastFocusedWindow.id, windowUpdate);
 
           return {
             content: [
               {
                 type: 'text',
-                text: `Opened URL in new tab\nURL: ${newTab.url}`,
+                text: `Opened URL in new tab\nTab ID: ${newTab.id}\nURL: ${newTab.url || url}`,
               },
             ],
             isError: false,
           };
         } else {
-          // In rare cases, if there's no recently active window (e.g., browser just started with no windows)
-          // Fall back to opening in a new window
-          console.warn('No last focused window found, falling back to creating a new window.');
+          console.warn('No focused window found, falling back to creating a new window.');
 
           const fallbackWindow = await chrome.windows.create({
             url: url,
-            width: DEFAULT_WINDOW_WIDTH,
-            height: DEFAULT_WINDOW_HEIGHT,
+            width: typeof width === 'number' ? width : DEFAULT_WINDOW_WIDTH,
+            height: typeof height === 'number' ? height : DEFAULT_WINDOW_HEIGHT,
             focused: true,
           });
 
