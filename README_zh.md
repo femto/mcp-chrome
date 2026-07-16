@@ -83,6 +83,18 @@ mcp-chrome-bridger register
 
 > 注意：pnpm v7+ 默认禁用 postinstall 脚本以提高安全性。`enable-pre-post-scripts` 设置控制是否运行 pre/post 安装脚本。如果自动注册失败，请使用上述手动注册命令。
 
+如果扩展无法连接 native host，可以先运行内置诊断命令：
+
+```bash
+mcp-chrome-bridger doctor
+
+# 检查指定浏览器
+mcp-chrome-bridger doctor -b chrome
+
+# 自动修复低风险问题：权限、logs 目录、node_path.txt
+mcp-chrome-bridger doctor --fix
+```
+
 3. **加载 Chrome 扩展**
 
    如果你从 Chrome 应用商店安装（方式 A），跳过此步骤。

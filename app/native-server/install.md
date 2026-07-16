@@ -181,7 +181,25 @@ The build output includes both naming schemes:
 
 ## Verification
 
-After installation, verify the setup with these checks:
+After installation, start with the built-in diagnostic command:
+
+```bash
+mcp-chrome-bridger doctor
+
+# Check a specific browser
+mcp-chrome-bridger doctor -b chrome
+
+# Print machine-readable output
+mcp-chrome-bridger doctor --json
+```
+
+If the diagnostic reports permissions, missing logs directory, or a missing `node_path.txt`, apply low-risk fixes:
+
+```bash
+mcp-chrome-bridger doctor --fix
+```
+
+You can also verify the setup manually with these checks:
 
 1. Confirm the manifest file exists in the expected directory.
 2. Confirm the Chrome extension is installed with `nativeMessaging` permission.

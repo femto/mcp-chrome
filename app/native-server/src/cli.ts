@@ -11,6 +11,7 @@ import {
   ensureExecutionPermissions,
 } from './scripts/utils';
 import { BrowserType, parseBrowserType, detectInstalledBrowsers } from './scripts/browser-config';
+import { runDoctor } from './scripts/doctor';
 
 // Import writeNodePath from postinstall
 async function writeNodePath(): Promise<void> {
@@ -153,6 +154,51 @@ program
       console.log(colorText('✓ Execution permissions fixed successfully!', 'green'));
     } catch (error: any) {
       console.error(colorText(`Failed to fix permissions: ${error.message}`, 'red'));
+      process.exit(1);
+    }
+  });
+
+// Diagnose local installation
+program
+  .command('doctor')
+  .description('Diagnose Native Messaging host installation')
+  .option(
+    '-b, --browser <browser>',
+    'Check specific browser (chrome, canary, chrome-for-testing, chromium, or all)',
+  )
+  .option('--fix', 'Apply low-risk fixes such as permissions, logs directory, and node_path.txt')
+  .option('--json', 'Print machine-readable JSON')
+  .action(async (options) => {
+    try {
+      let browser: BrowserType | 'all' | undefined;
+      if (options.browser) {
+        if (options.browser.toLowerCase() === 'all') {
+          browser = 'all';
+        } else {
+          browser = parseBrowserType(options.browser);
+          if (!browser) {
+            console.error(
+              colorText(
+                `Invalid browser: ${options.browser}. Use 'chrome', 'canary', 'chrome-for-testing', 'chromium', or 'all'`,
+                'red',
+              ),
+            );
+            process.exit(1);
+          }
+        }
+      }
+
+      const result = await runDoctor({
+        browser,
+        fix: Boolean(options.fix),
+        json: Boolean(options.json),
+      });
+
+      if (result.errorCount > 0) {
+        process.exit(1);
+      }
+    } catch (error: any) {
+      console.error(colorText(`Doctor failed: ${error.message}`, 'red'));
       process.exit(1);
     }
   });

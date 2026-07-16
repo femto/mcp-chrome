@@ -85,6 +85,18 @@ mcp-chrome-bridger register
 
 > Note: pnpm v7+ disables postinstall scripts by default for security. The `enable-pre-post-scripts` setting controls whether pre/post install scripts run. If automatic registration fails, use the manual registration command above.
 
+If the extension cannot connect to the native host, run the built-in diagnostic command:
+
+```bash
+mcp-chrome-bridger doctor
+
+# Check a specific browser
+mcp-chrome-bridger doctor -b chrome
+
+# Apply low-risk fixes for permissions, logs directory, and node_path.txt
+mcp-chrome-bridger doctor --fix
+```
+
 3. **Load Chrome Extension**
 
    If you installed from the Chrome Web Store (Option A), skip this step.
