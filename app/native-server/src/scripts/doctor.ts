@@ -7,7 +7,9 @@ import {
   EXTENSION_ID,
   EXTENSION_ID_WEBSTORE,
   EXTRA_EXTENSION_IDS_ENV,
+  HOST_NAME,
   LEGACY_WRAPPER_SCRIPT_BASENAMES,
+  LEGACY_HOST_NAMES,
   WRAPPER_SCRIPT_BASENAME,
 } from './constant';
 import { BrowserType, detectInstalledBrowsers, getBrowserConfig } from './browser-config';
@@ -41,6 +43,19 @@ interface NativeManifest {
   path?: string;
   type?: string;
   allowed_origins?: string[];
+}
+
+interface ManifestValidationResult {
+  exists: boolean;
+  valid: boolean;
+  path: string;
+  scope: 'user' | 'system';
+  issues: string[];
+}
+
+interface ManifestPairResult {
+  exists: boolean;
+  valid: boolean;
 }
 
 function addCheck(
@@ -213,95 +228,69 @@ function checkLogsDirectory(checks: DoctorCheck[], suggestions: string[], fix: b
   }
 }
 
-function checkManifest(
-  checks: DoctorCheck[],
-  suggestions: string[],
+function validateManifest(
   manifestPath: string,
   scope: 'user' | 'system',
-  browser: BrowserType,
   expectedHostName: string,
-): boolean {
-  const browserConfig = getBrowserConfig(browser);
-  const labelPrefix = `${browserConfig.displayName} ${scope} manifest`;
-
+): ManifestValidationResult {
   if (!fs.existsSync(manifestPath)) {
-    return false;
+    return { exists: false, valid: false, path: manifestPath, scope, issues: [] };
   }
-
-  addCheck(checks, 'ok', `${labelPrefix} exists`, manifestPath);
 
   const { data: manifest, error } = readJsonFile(manifestPath);
   if (!manifest) {
-    addCheck(checks, 'error', `${labelPrefix} is not valid JSON`, error);
-    suggestions.push(`Run ${COMMAND_NAME} register -b ${browser}.`);
-    return true;
+    return {
+      exists: true,
+      valid: false,
+      path: manifestPath,
+      scope,
+      issues: [`invalid JSON: ${error}`],
+    };
   }
 
+  const issues: string[] = [];
+
   if (manifest.name !== expectedHostName) {
-    addCheck(
-      checks,
-      'error',
-      `${labelPrefix} has unexpected host name`,
-      `expected ${expectedHostName}, got ${manifest.name || '(missing)'}`,
-    );
-  } else {
-    addCheck(checks, 'ok', `${labelPrefix} host name is valid`, manifest.name);
+    issues.push(`expected name ${expectedHostName}, got ${manifest.name || '(missing)'}`);
   }
 
   if (manifest.type !== 'stdio') {
-    addCheck(
-      checks,
-      'error',
-      `${labelPrefix} has unexpected type`,
-      `expected stdio, got ${manifest.type || '(missing)'}`,
-    );
-  } else {
-    addCheck(checks, 'ok', `${labelPrefix} type is stdio`);
+    issues.push(`expected type stdio, got ${manifest.type || '(missing)'}`);
   }
 
   if (!manifest.path) {
-    addCheck(checks, 'error', `${labelPrefix} path is missing`);
-    suggestions.push(`Run ${COMMAND_NAME} register -b ${browser}.`);
+    issues.push('path is missing');
   } else {
     const absoluteManifestPath = path.resolve(manifest.path);
     if (!fs.existsSync(absoluteManifestPath)) {
-      addCheck(checks, 'error', `${labelPrefix} path does not exist`, absoluteManifestPath);
-      suggestions.push(`Run ${COMMAND_NAME} register -b ${browser}.`);
-    } else {
-      addCheck(checks, 'ok', `${labelPrefix} path exists`, absoluteManifestPath);
-
-      const packageDistDir = path.resolve(getPackageDistDir());
-      if (
-        !isPathInside(absoluteManifestPath, packageDistDir) &&
-        absoluteManifestPath !== packageDistDir
-      ) {
-        addCheck(
-          checks,
-          'warn',
-          `${labelPrefix} path points outside current package`,
-          absoluteManifestPath,
-        );
-        suggestions.push(`Run ${COMMAND_NAME} register -b ${browser} if this is stale.`);
-      }
+      issues.push(`path does not exist: ${absoluteManifestPath}`);
     }
   }
 
   const allowedOrigins = Array.isArray(manifest.allowed_origins) ? manifest.allowed_origins : [];
   if (!Array.isArray(manifest.allowed_origins)) {
-    addCheck(checks, 'error', `${labelPrefix} allowed_origins is missing or invalid`);
+    issues.push('allowed_origins is missing or invalid');
   }
 
   for (const extensionId of getExpectedExtensionIds()) {
     const expectedOrigin = `chrome-extension://${extensionId}/`;
-    if (allowedOrigins.includes(expectedOrigin)) {
-      addCheck(checks, 'ok', `${labelPrefix} allows extension`, extensionId);
-    } else {
-      addCheck(checks, 'error', `${labelPrefix} is missing extension origin`, expectedOrigin);
-      suggestions.push(`Run ${COMMAND_NAME} register -b ${browser}.`);
+    if (!allowedOrigins.includes(expectedOrigin)) {
+      issues.push(`missing extension origin ${expectedOrigin}`);
     }
   }
 
-  return true;
+  return {
+    exists: true,
+    valid: issues.length === 0,
+    path: manifestPath,
+    scope,
+    issues,
+  };
+}
+
+function getManifestRuntimePath(manifestPath: string): string | undefined {
+  const { data: manifest } = readJsonFile(manifestPath);
+  return manifest?.path ? path.resolve(manifest.path) : undefined;
 }
 
 function checkManifestPair(
@@ -309,49 +298,64 @@ function checkManifestPair(
   suggestions: string[],
   browserType: BrowserType,
   hostName: string,
-): void {
+  options: { suppressMissing?: boolean } = {},
+): ManifestPairResult {
   const browserConfig = getBrowserConfig(browserType, hostName);
-  const userManifestExists = fs.existsSync(browserConfig.userManifestPath);
-  const systemManifestExists = fs.existsSync(browserConfig.systemManifestPath);
+  const hostLabel = hostName === HOST_NAME ? 'manifest' : `legacy manifest (${hostName})`;
+  const userResult = validateManifest(browserConfig.userManifestPath, 'user', hostName);
+  const systemResult = validateManifest(browserConfig.systemManifestPath, 'system', hostName);
+  const existingResults = [userResult, systemResult].filter((result) => result.exists);
+  const validResults = existingResults.filter((result) => result.valid);
 
-  if (!userManifestExists && !systemManifestExists) {
+  if (existingResults.length === 0) {
+    if (!options.suppressMissing) {
+      addCheck(
+        checks,
+        'warn',
+        `${browserConfig.displayName} ${hostLabel} not found`,
+        `user=${browserConfig.userManifestPath}; system=${browserConfig.systemManifestPath}`,
+      );
+      suggestions.push(`Run ${COMMAND_NAME} register -b ${browserType}.`);
+    }
+    return { exists: false, valid: false };
+  }
+
+  if (validResults.length > 0) {
+    const manifestPaths = validResults.map((result) => `${result.scope}=${result.path}`).join('; ');
+    addCheck(checks, 'ok', `${browserConfig.displayName} ${hostLabel} is valid`, manifestPaths);
+
+    const packageDistDir = path.resolve(getPackageDistDir());
+    for (const result of validResults) {
+      const runtimePath = getManifestRuntimePath(result.path);
+      if (
+        runtimePath &&
+        !isPathInside(runtimePath, packageDistDir) &&
+        runtimePath !== packageDistDir
+      ) {
+        addCheck(
+          checks,
+          'warn',
+          `${browserConfig.displayName} ${hostLabel} points outside current package`,
+          `${result.scope}=${runtimePath}`,
+        );
+        suggestions.push(`Run ${COMMAND_NAME} register -b ${browserType} if this is stale.`);
+      }
+    }
+  }
+
+  const invalidResults = existingResults.filter((result) => !result.valid);
+  for (const result of invalidResults) {
+    const status = validResults.length > 0 ? 'warn' : 'error';
     addCheck(
       checks,
-      'warn',
-      `${browserConfig.displayName} manifest not found`,
-      `host=${hostName}; user=${browserConfig.userManifestPath}; system=${browserConfig.systemManifestPath}`,
+      status,
+      `${browserConfig.displayName} ${result.scope} ${hostLabel} is invalid`,
+      result.issues.join('; '),
     );
     suggestions.push(`Run ${COMMAND_NAME} register -b ${browserType}.`);
-    return;
   }
 
-  if (!userManifestExists) {
-    addCheck(
-      checks,
-      'info',
-      `${browserConfig.displayName} user manifest not found`,
-      browserConfig.userManifestPath,
-    );
-  }
-
-  if (!systemManifestExists) {
-    addCheck(
-      checks,
-      'info',
-      `${browserConfig.displayName} system manifest not found`,
-      browserConfig.systemManifestPath,
-    );
-  }
-
-  checkManifest(checks, suggestions, browserConfig.userManifestPath, 'user', browserType, hostName);
-  checkManifest(
-    checks,
-    suggestions,
-    browserConfig.systemManifestPath,
-    'system',
-    browserType,
-    hostName,
-  );
+  return { exists: true, valid: validResults.length > 0 };
 }
 
 function getTargetBrowsers(browser?: BrowserType | 'all'): BrowserType[] {
@@ -380,11 +384,15 @@ function checkBrowsersAndManifests(
     suggestions.push(`Use ${COMMAND_NAME} doctor -b all to inspect all manifest locations.`);
   }
 
-  const hostNames = getAllHostNames();
   const browsersToCheck = getTargetBrowsers(browser);
   for (const browserType of browsersToCheck) {
-    for (const hostName of hostNames) {
-      checkManifestPair(checks, suggestions, browserType, hostName);
+    const primaryResult = checkManifestPair(checks, suggestions, browserType, HOST_NAME);
+    if (primaryResult.valid) {
+      continue;
+    }
+
+    for (const hostName of LEGACY_HOST_NAMES) {
+      checkManifestPair(checks, suggestions, browserType, hostName, { suppressMissing: true });
     }
   }
 }
@@ -429,7 +437,7 @@ function checkWindowsRegistry(checks: DoctorCheck[], browser?: BrowserType | 'al
 }
 
 function printHumanResult(result: DoctorResult): void {
-  console.log(colorText(`${COMMAND_NAME} doctor`, 'blue'));
+  console.log(colorText('Doctor report', 'blue'));
   console.log('');
 
   for (const check of result.checks) {

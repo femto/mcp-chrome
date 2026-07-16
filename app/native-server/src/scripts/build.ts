@@ -16,6 +16,7 @@ try {
 // 创建dist目录
 fs.mkdirSync(distDir, { recursive: true });
 fs.mkdirSync(path.join(distDir, 'logs'), { recursive: true }); // 创建logs目录
+fs.writeFileSync(path.join(distDir, 'logs', '.gitkeep'), '');
 console.log('dist 和 dist/logs 目录已创建/确认存在');
 
 // 编译TypeScript
