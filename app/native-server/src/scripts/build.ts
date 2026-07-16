@@ -57,10 +57,13 @@ This package provides the native messaging host used by the Chrome extension.
    \`\`\`
    npm install -g ${packageJson.name}
    \`\`\`
-3. Register the native messaging host:
+3. Register the native messaging host explicitly:
    \`\`\`
    # User-level registration (recommended)
    ${COMMAND_NAME} register
+
+   # Verify the installation
+   ${COMMAND_NAME} doctor
 
    # If user-level registration fails, try system-level registration
    ${COMMAND_NAME} register --system
@@ -68,6 +71,12 @@ This package provides the native messaging host used by the Chrome extension.
    # Or run with elevated privileges
    sudo ${COMMAND_NAME} register
    \`\`\`
+
+Do not rely on install-time \`postinstall\` behavior. npm v12+ and pnpm can skip dependency lifecycle scripts unless scripts are explicitly allowed. If you intentionally want npm to run install-time registration, use:
+
+\`\`\`
+npm install -g --allow-scripts=${packageJson.name} ${packageJson.name}
+\`\`\`
 
 ## Compatibility
 

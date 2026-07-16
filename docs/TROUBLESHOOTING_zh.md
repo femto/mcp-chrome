@@ -36,15 +36,15 @@ mac路径： /Users/xxx/Library/Application\ Support/Google/Chrome/NativeMessagi
 
 Linux路径：~/.config/google-chrome/NativeMessagingHosts
 
-如果npm包安装正常的话，这个目录下会生成一个`com.chromemcp.nativehost.json`
+如果 npm 包安装并注册正常的话，这个目录下会生成一个`com.chromemcp.nativehost.json`
 
-> **注意：** 清单文件由 `mcp-chrome-bridger register` 创建，该命令在 `npm install -g` 时作为 postinstall 脚本自动运行。但如果你使用 **pnpm**，postinstall 脚本默认是禁用的（pnpm v7+）。此时需要手动执行：
+> **注意：** 清单文件由 `mcp-chrome-bridger register` 创建。不要依赖安装时的 `postinstall` 自动执行：npm v12+ 和 pnpm 都可能默认跳过依赖包生命周期脚本，除非用户显式允许。安装后请执行：
 >
 > ```bash
 > mcp-chrome-bridger register
 > ```
 >
-> 或者在安装前启用脚本：`pnpm config set enable-pre-post-scripts true`
+> 如果你明确希望 npm 在安装时自动运行注册脚本，可以使用：`npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger`
 
 ```json
 {

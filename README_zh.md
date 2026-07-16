@@ -67,21 +67,26 @@ npm
 
 ```bash
 npm install -g mcp-chrome-bridger
+mcp-chrome-bridger register
+mcp-chrome-bridger doctor
 ```
 
 pnpm
 
 ```bash
-# 方法1：全局启用脚本（推荐）
-pnpm config set enable-pre-post-scripts true
-pnpm install -g mcp-chrome-bridger
-
-# 方法2：如果 postinstall 没有运行，手动注册
+# 推荐：安装后显式注册
 pnpm install -g mcp-chrome-bridger
 mcp-chrome-bridger register
+mcp-chrome-bridger doctor
 ```
 
-> 注意：pnpm v7+ 默认禁用 postinstall 脚本以提高安全性。`enable-pre-post-scripts` 设置控制是否运行 pre/post 安装脚本。如果自动注册失败，请使用上述手动注册命令。
+> 注意：npm v12+ 和 pnpm 都可能默认跳过依赖包的 `postinstall` 等生命周期脚本，除非用户显式允许。`mcp-chrome-bridger` 仍保留 postinstall 作为便利路径，但推荐、稳定的安装方式是安装后手动运行 `mcp-chrome-bridger register`。
+
+如果你明确希望 npm 在安装时自动运行注册脚本，可以显式允许：
+
+```bash
+npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger
+```
 
 如果扩展无法连接 native host，可以先运行内置诊断命令：
 

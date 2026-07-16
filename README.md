@@ -69,21 +69,26 @@ npm
 
 ```bash
 npm install -g mcp-chrome-bridger
+mcp-chrome-bridger register
+mcp-chrome-bridger doctor
 ```
 
 pnpm
 
 ```bash
-# Method 1: Enable scripts globally (recommended)
-pnpm config set enable-pre-post-scripts true
-pnpm install -g mcp-chrome-bridger
-
-# Method 2: Manual registration (if postinstall doesn't run)
+# Recommended: install, then register explicitly
 pnpm install -g mcp-chrome-bridger
 mcp-chrome-bridger register
+mcp-chrome-bridger doctor
 ```
 
-> Note: pnpm v7+ disables postinstall scripts by default for security. The `enable-pre-post-scripts` setting controls whether pre/post install scripts run. If automatic registration fails, use the manual registration command above.
+> Note: npm v12+ and pnpm can skip dependency lifecycle scripts such as `postinstall` unless scripts are explicitly allowed. `mcp-chrome-bridger` keeps postinstall as a convenience path, but the supported setup path is to run `mcp-chrome-bridger register` after installation.
+
+If you intentionally want npm to run the install-time registration script, allow it explicitly:
+
+```bash
+npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger
+```
 
 If the extension cannot connect to the native host, run the built-in diagnostic command:
 

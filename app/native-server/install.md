@@ -8,20 +8,19 @@ The native host is distributed as the npm package `mcp-chrome-bridger`.
 
 ```text
 npm install -g mcp-chrome-bridger
-└─ postinstall
+mcp-chrome-bridger register
+└─ registration
    ├─ ensures executable permissions
    ├─ writes the current Node.js path used by wrapper scripts
-   ├─ attempts user-level registration
-   └─ if that fails, instructs the user to run:
-      mcp-chrome-bridger register --system
+   └─ writes user-level native messaging manifests
 ```
 
-In the common case, a global install is enough.
+Do not rely on install-time `postinstall` behavior. npm v12+ and pnpm can skip dependency lifecycle scripts unless the user explicitly allows them. The `postinstall` script is kept as a convenience path for environments that allow scripts, but explicit registration is the supported setup path.
 
 Notes:
 
 - workspace/monorepo installs intentionally skip auto-registration
-- auto-registration currently targets detected Chrome, Canary, and Chromium installs
+- registration currently targets detected Chrome, Canary, and Chromium installs
 - Chrome for Testing support is explicit only via `-b chrome-for-testing`
 
 ## Package Name vs Host Name
@@ -41,9 +40,15 @@ Install globally:
 
 ```bash
 npm install -g mcp-chrome-bridger
+mcp-chrome-bridger register
+mcp-chrome-bridger doctor
 ```
 
-After installation, the package attempts user-level native messaging registration automatically.
+If you intentionally want npm to run the install-time registration script, allow it explicitly:
+
+```bash
+npm install -g --allow-scripts=mcp-chrome-bridger mcp-chrome-bridger
+```
 
 ## Registration
 
