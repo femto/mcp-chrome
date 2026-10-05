@@ -3,7 +3,7 @@
   "checkpoint_id": "fa771e511cf3",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "app/chrome-extension/entrypoints/background/native-host.ts",
     "app/chrome-extension/entrypoints/welcome/App.vue",
@@ -25,6 +25,13 @@
       "context": "/fa/771e511cf3/1/context.md",
       "content_hash": "/fa/771e511cf3/1/content_hash.txt",
       "prompt": "/fa/771e511cf3/1/prompt.txt"
+    },
+    {
+      "metadata": "/fa/771e511cf3/2/metadata.json",
+      "transcript": "/fa/771e511cf3/2/full.jsonl",
+      "context": "",
+      "content_hash": "/fa/771e511cf3/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
