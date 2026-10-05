@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "04d41fa55bf8",
+  "session_id": "7c249c38-84c1-4f98-aebf-dc52f94da31a",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-05T13:41:42.824576Z",
+  "branch": "master",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/native-server/src/server/index.ts"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "ee1675dd5e16",
+  "transcript_identifier_at_start": "83c786f1-c10e-4c6c-b5e4-2c96e6e1e0fb",
+  "token_usage": {
+    "input_tokens": 176,
+    "cache_creation_tokens": 118342,
+    "cache_read_tokens": 8633326,
+    "output_tokens": 46232,
+    "api_call_count": 86
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-05T13:41:42.414873Z",
+    "agent_lines": 2,
+    "human_added": 2,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 4,
+    "agent_percentage": 50
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-web-project-mcp-chrome/7c249c38-84c1-4f98-aebf-dc52f94da31a.jsonl"
+}
