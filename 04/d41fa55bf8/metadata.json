@@ -5,7 +5,9 @@
   "branch": "master",
   "checkpoints_count": 2,
   "files_touched": [
-    "app/native-server/src/server/index.ts"
+    "app/native-server/package.json",
+    "app/native-server/src/server/index.ts",
+    "packages/shared/package.json"
   ],
   "sessions": [
     {
@@ -14,6 +16,13 @@
       "context": "/04/d41fa55bf8/0/context.md",
       "content_hash": "/04/d41fa55bf8/0/content_hash.txt",
       "prompt": "/04/d41fa55bf8/0/prompt.txt"
+    },
+    {
+      "metadata": "/04/d41fa55bf8/1/metadata.json",
+      "transcript": "/04/d41fa55bf8/1/full.jsonl",
+      "context": "",
+      "content_hash": "/04/d41fa55bf8/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
