@@ -60,8 +60,8 @@ async function killProcessOnPort(port: number): Promise<void> {
       // Windows: find PID and kill
       command = `for /f "tokens=5" %a in ('netstat -ano ^| findstr :${port} ^| findstr LISTENING') do taskkill /PID %a /F`;
     } else {
-      // macOS/Linux: use lsof
-      command = `lsof -ti :${port} | xargs kill -9 2>/dev/null`;
+      // macOS/Linux: use lsof, only the LISTEN socket owner (not connected MCP clients)
+      command = `lsof -ti tcp:${port} -sTCP:LISTEN | xargs kill -9 2>/dev/null`;
     }
 
     exec(command, (error: any) => {

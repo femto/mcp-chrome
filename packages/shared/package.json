@@ -1,6 +1,6 @@
 {
   "name": "mcp-chrome-shared",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "femto",
   "main": "dist/index.js",
   "module": "./dist/index.mjs",
