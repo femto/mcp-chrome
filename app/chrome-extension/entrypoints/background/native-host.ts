@@ -494,8 +494,12 @@ export const initNativeHostListener = () => {
   });
 
   // Auto-connect on extension install/update
-  chrome.runtime.onInstalled.addListener(() => {
+  chrome.runtime.onInstalled.addListener((details) => {
     void ensureNativeConnected('onInstalled').catch(() => {});
+    // Show setup guide on first install only
+    if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+      void chrome.tabs.create({ url: chrome.runtime.getURL('/welcome.html') });
+    }
   });
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
