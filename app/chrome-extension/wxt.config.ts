@@ -45,28 +45,9 @@ export default defineConfig({
       'debugger',
       'history',
       'bookmarks',
-      'offscreen',
       'storage',
     ],
     host_permissions: ['<all_urls>'],
-    web_accessible_resources: [
-      {
-        resources: [
-          '/models/*', // 允许访问 public/models/ 下的所有文件
-          '/workers/*', // 允许访问 workers 文件
-        ],
-        matches: ['<all_urls>'],
-      },
-    ],
-    cross_origin_embedder_policy: {
-      value: 'require-corp',
-    },
-    cross_origin_opener_policy: {
-      value: 'same-origin',
-    },
-    content_security_policy: {
-      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
-    },
   },
   vite: (env) => ({
     plugins: [
@@ -75,10 +56,6 @@ export default defineConfig({
           {
             src: 'inject-scripts/*.js',
             dest: 'inject-scripts',
-          },
-          {
-            src: ['workers/*'],
-            dest: 'workers',
           },
           {
             src: '_locales/**/*',

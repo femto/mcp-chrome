@@ -1,10 +1,5 @@
 import { initNativeHostListener } from './native-host';
-import {
-  initSemanticSimilarityListener,
-  initializeSemanticEngineIfCached,
-} from './semantic-similarity';
-import { initStorageManagerListener } from './storage-manager';
-import { cleanupModelCache } from '@/utils/semantic-similarity-engine';
+import { runLegacyCleanup } from './legacy-cleanup';
 import { initWebMCPListener } from '@/webmcp';
 
 /**
@@ -14,27 +9,9 @@ import { initWebMCPListener } from '@/webmcp';
 export default defineBackground(() => {
   // Initialize core services
   initNativeHostListener();
-  initSemanticSimilarityListener();
-  initStorageManagerListener();
   initWebMCPListener(); // Initialize WebMCP dynamic site tools
 
-  // Conditionally initialize semantic similarity engine if model cache exists
-  initializeSemanticEngineIfCached()
-    .then((initialized) => {
-      if (initialized) {
-        console.log('Background: Semantic similarity engine initialized from cache');
-      } else {
-        console.log(
-          'Background: Semantic similarity engine initialization skipped (no cache found)',
-        );
-      }
-    })
-    .catch((error) => {
-      console.warn('Background: Failed to conditionally initialize semantic engine:', error);
-    });
-
-  // Initial cleanup on startup
-  cleanupModelCache().catch((error) => {
-    console.warn('Background: Initial cache cleanup failed:', error);
+  runLegacyCleanup().catch((error) => {
+    console.warn('Background: Legacy data cleanup failed:', error);
   });
 });

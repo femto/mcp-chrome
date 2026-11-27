@@ -247,48 +247,6 @@ Send custom HTTP requests.
 
 ## 🔍 Content Analysis
 
-### `search_tabs_content`
-
-AI-powered semantic search across browser tabs.
-
-**Parameters**:
-
-- `query` (string, required): Search query
-
-**Example**:
-
-```json
-{
-  "query": "machine learning tutorials"
-}
-```
-
-**Response**:
-
-```json
-{
-  "success": true,
-  "totalTabsSearched": 10,
-  "matchedTabsCount": 3,
-  "vectorSearchEnabled": true,
-  "indexStats": {
-    "totalDocuments": 150,
-    "totalTabs": 10,
-    "semanticEngineReady": true
-  },
-  "matchedTabs": [
-    {
-      "tabId": 123,
-      "url": "https://example.com/ml-tutorial",
-      "title": "Machine Learning Tutorial",
-      "semanticScore": 0.85,
-      "matchedSnippets": ["Introduction to machine learning..."],
-      "chunkSource": "content"
-    }
-  ]
-}
-```
-
 ### `chrome_get_web_content`
 
 Extract HTML or text content from web pages.
@@ -529,19 +487,14 @@ await callTool('chrome_click_element', {
   selector: '#load-data-button',
 });
 
-// 5. Search content semantically
-const searchResults = await callTool('search_tabs_content', {
-  query: 'user data analysis',
-});
-
-// 6. Stop network capture
+// 5. Stop network capture
 const networkData = await callTool('chrome_network_capture_stop');
 
-// 7. Save bookmark
+// 6. Save bookmark
 await callTool('chrome_bookmark_add', {
   title: 'Data Analysis Page',
   parentId: 'Work/Analytics',
 });
 ```
 
-This API provides comprehensive browser automation capabilities with AI-enhanced content analysis and semantic search features.
+This API provides comprehensive browser automation capabilities with content extraction and analysis features.

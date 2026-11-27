@@ -11,22 +11,6 @@
     "message": "Native Server Configuration",
     "description": "Main section header for native server settings"
   },
-  "semanticEngineLabel": {
-    "message": "Semantic Engine",
-    "description": "Main section header for semantic engine"
-  },
-  "embeddingModelLabel": {
-    "message": "Embedding Model",
-    "description": "Main section header for model selection"
-  },
-  "indexDataManagementLabel": {
-    "message": "Index Data Management",
-    "description": "Main section header for data management"
-  },
-  "modelCacheManagementLabel": {
-    "message": "Model Cache Management",
-    "description": "Main section header for cache management"
-  },
   "statusLabel": {
     "message": "Status",
     "description": "Generic status label"
@@ -101,14 +85,6 @@
     "message": "Copy Configuration",
     "description": "Copy configuration button text"
   },
-  "retryButton": {
-    "message": "Retry",
-    "description": "Retry button text"
-  },
-  "cancelButton": {
-    "message": "Cancel",
-    "description": "Cancel button text"
-  },
   "confirmButton": {
     "message": "Confirm",
     "description": "Confirm button text"
@@ -125,111 +101,21 @@
     "message": "Reset",
     "description": "Reset button text"
   },
-  "initializingStatus": {
-    "message": "Initializing...",
-    "description": "Initializing progress message"
-  },
-  "processingStatus": {
-    "message": "Processing...",
-    "description": "Processing progress message"
-  },
   "loadingStatus": {
     "message": "Loading...",
     "description": "Loading progress message"
-  },
-  "clearingStatus": {
-    "message": "Clearing...",
-    "description": "Clearing progress message"
-  },
-  "cleaningStatus": {
-    "message": "Cleaning...",
-    "description": "Cleaning progress message"
   },
   "downloadingStatus": {
     "message": "Downloading...",
     "description": "Downloading progress message"
   },
-  "semanticEngineReadyStatus": {
-    "message": "Semantic Engine Ready",
-    "description": "Semantic engine ready status"
-  },
-  "semanticEngineInitializingStatus": {
-    "message": "Semantic Engine Initializing...",
-    "description": "Semantic engine initializing status"
-  },
-  "semanticEngineInitFailedStatus": {
-    "message": "Semantic Engine Initialization Failed",
-    "description": "Semantic engine initialization failed status"
-  },
-  "semanticEngineNotInitStatus": {
-    "message": "Semantic Engine Not Initialized",
-    "description": "Semantic engine not initialized status"
-  },
-  "initSemanticEngineButton": {
-    "message": "Initialize Semantic Engine",
-    "description": "Initialize semantic engine button text"
-  },
-  "reinitializeButton": {
-    "message": "Reinitialize",
-    "description": "Reinitialize button text"
-  },
-  "downloadingModelStatus": {
-    "message": "Downloading Model... $PROGRESS$%",
-    "description": "Model download progress with percentage",
-    "placeholders": {
-      "progress": {
-        "content": "$1",
-        "example": "50"
-      }
-    }
-  },
-  "switchingModelStatus": {
-    "message": "Switching Model...",
-    "description": "Model switching progress message"
-  },
   "modelLoadedStatus": {
     "message": "Model Loaded",
     "description": "Model successfully loaded status"
   },
-  "modelFailedStatus": {
-    "message": "Model Failed to Load",
-    "description": "Model failed to load status"
-  },
-  "lightweightModelDescription": {
-    "message": "Lightweight Multilingual Model",
-    "description": "Description for lightweight model option"
-  },
-  "betterThanSmallDescription": {
-    "message": "Slightly larger than e5-small, but better performance",
-    "description": "Description for medium model option"
-  },
-  "multilingualModelDescription": {
-    "message": "Multilingual Semantic Model",
-    "description": "Description for multilingual model option"
-  },
-  "fastPerformance": {
-    "message": "Fast",
-    "description": "Fast performance indicator"
-  },
-  "balancedPerformance": {
-    "message": "Balanced",
-    "description": "Balanced performance indicator"
-  },
-  "accuratePerformance": {
-    "message": "Accurate",
-    "description": "Accurate performance indicator"
-  },
   "networkErrorMessage": {
     "message": "Network connection error, please check network and retry",
     "description": "Network connection error message"
-  },
-  "modelCorruptedErrorMessage": {
-    "message": "Model file corrupted or incomplete, please retry download",
-    "description": "Model corruption error message"
-  },
-  "unknownErrorMessage": {
-    "message": "Unknown error, please check if your network can access HuggingFace",
-    "description": "Unknown error fallback message"
   },
   "permissionDeniedErrorMessage": {
     "message": "Permission denied",
@@ -239,42 +125,6 @@
     "message": "Operation timed out",
     "description": "Timeout error message"
   },
-  "indexedPagesLabel": {
-    "message": "Indexed Pages",
-    "description": "Number of indexed pages label"
-  },
-  "indexSizeLabel": {
-    "message": "Index Size",
-    "description": "Index size label"
-  },
-  "activeTabsLabel": {
-    "message": "Active Tabs",
-    "description": "Number of active tabs label"
-  },
-  "vectorDocumentsLabel": {
-    "message": "Vector Documents",
-    "description": "Number of vector documents label"
-  },
-  "cacheSizeLabel": {
-    "message": "Cache Size",
-    "description": "Cache size label"
-  },
-  "cacheEntriesLabel": {
-    "message": "Cache Entries",
-    "description": "Number of cache entries label"
-  },
-  "clearAllDataButton": {
-    "message": "Clear All Data",
-    "description": "Clear all data button text"
-  },
-  "clearAllCacheButton": {
-    "message": "Clear All Cache",
-    "description": "Clear all cache button text"
-  },
-  "cleanExpiredCacheButton": {
-    "message": "Clean Expired Cache",
-    "description": "Clean expired cache button text"
-  },
   "exportDataButton": {
     "message": "Export Data",
     "description": "Export data button text"
@@ -282,10 +132,6 @@
   "importDataButton": {
     "message": "Import Data",
     "description": "Import data button text"
-  },
-  "confirmClearDataTitle": {
-    "message": "Confirm Clear Data",
-    "description": "Clear data confirmation dialog title"
   },
   "settingsTitle": {
     "message": "Settings",
@@ -298,50 +144,6 @@
   "helpTitle": {
     "message": "Help",
     "description": "Help dialog title"
-  },
-  "clearDataWarningMessage": {
-    "message": "This operation will clear all indexed webpage content and vector data, including:",
-    "description": "Clear data warning message"
-  },
-  "clearDataList1": {
-    "message": "All webpage text content index",
-    "description": "First item in clear data list"
-  },
-  "clearDataList2": {
-    "message": "Vector embedding data",
-    "description": "Second item in clear data list"
-  },
-  "clearDataList3": {
-    "message": "Search history and cache",
-    "description": "Third item in clear data list"
-  },
-  "clearDataIrreversibleWarning": {
-    "message": "This operation is irreversible! After clearing, you need to browse webpages again to rebuild the index.",
-    "description": "Irreversible operation warning"
-  },
-  "confirmClearButton": {
-    "message": "Confirm Clear",
-    "description": "Confirm clear action button"
-  },
-  "cacheDetailsLabel": {
-    "message": "Cache Details",
-    "description": "Cache details section label"
-  },
-  "noCacheDataMessage": {
-    "message": "No cache data",
-    "description": "No cache data available message"
-  },
-  "loadingCacheInfoStatus": {
-    "message": "Loading cache information...",
-    "description": "Loading cache information status"
-  },
-  "processingCacheStatus": {
-    "message": "Processing cache...",
-    "description": "Processing cache status"
-  },
-  "expiredLabel": {
-    "message": "Expired",
-    "description": "Expired item label"
   },
   "bookmarksBarLabel": {
     "message": "Bookmarks Bar",
@@ -399,10 +201,6 @@
     "message": "Verbose Logging",
     "description": "Verbose logging toggle label"
   },
-  "successNotification": {
-    "message": "Operation completed successfully",
-    "description": "Generic success notification"
-  },
   "warningNotification": {
     "message": "Warning: Please review before proceeding",
     "description": "Generic warning notification"
@@ -414,10 +212,6 @@
   "configCopiedNotification": {
     "message": "Configuration copied to clipboard",
     "description": "Configuration copied success message"
-  },
-  "dataClearedNotification": {
-    "message": "Data cleared successfully",
-    "description": "Data cleared success message"
   },
   "bytesUnit": {
     "message": "bytes",

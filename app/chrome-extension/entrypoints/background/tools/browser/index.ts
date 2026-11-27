@@ -1,6 +1,5 @@
 export { navigateTool, closeTabsTool, goBackOrForwardTool, switchTabTool } from './common';
 export { windowTool } from './window';
-export { vectorSearchTabsContentTool as searchTabsContentTool } from './vector-search';
 export { screenshotTool } from './screenshot';
 export { pageSnapshotTool } from './snapshot';
 export { webFetcherTool, getInteractiveElementsTool } from './web-fetcher';

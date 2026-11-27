@@ -247,48 +247,6 @@
 
 ## 🔍 内容分析
 
-### `search_tabs_content`
-
-跨浏览器标签页的 AI 驱动语义搜索。
-
-**参数**：
-
-- `query` (字符串，必需)：搜索查询
-
-**示例**：
-
-```json
-{
-  "query": "机器学习教程"
-}
-```
-
-**响应**：
-
-```json
-{
-  "success": true,
-  "totalTabsSearched": 10,
-  "matchedTabsCount": 3,
-  "vectorSearchEnabled": true,
-  "indexStats": {
-    "totalDocuments": 150,
-    "totalTabs": 10,
-    "semanticEngineReady": true
-  },
-  "matchedTabs": [
-    {
-      "tabId": 123,
-      "url": "https://example.com/ml-tutorial",
-      "title": "机器学习教程",
-      "semanticScore": 0.85,
-      "matchedSnippets": ["机器学习简介..."],
-      "chunkSource": "content"
-    }
-  ]
-}
-```
-
 ### `chrome_get_web_content`
 
 从网页提取 HTML 或文本内容。
@@ -529,19 +487,14 @@ await callTool('chrome_click_element', {
   selector: '#load-data-button',
 });
 
-// 5. 语义搜索内容
-const searchResults = await callTool('search_tabs_content', {
-  query: '用户数据分析',
-});
-
-// 6. 停止网络捕获
+// 5. 停止网络捕获
 const networkData = await callTool('chrome_network_capture_stop');
 
-// 7. 保存书签
+// 6. 保存书签
 await callTool('chrome_bookmark_add', {
   title: '数据分析页面',
   parentId: '工作/分析',
 });
 ```
 
-此 API 提供全面的浏览器自动化功能，具有 AI 增强的内容分析和语义搜索特性。
+此 API 提供全面的浏览器自动化功能，具有内容提取和分析特性。
