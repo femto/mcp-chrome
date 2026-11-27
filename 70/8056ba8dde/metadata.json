@@ -1,0 +1,62 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "708056ba8dde",
+  "strategy": "manual-commit",
+  "branch": "femto/去除worldbook调用",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/background/legacy-cleanup.ts",
+    "app/chrome-extension/entrypoints/background/semantic-similarity.ts",
+    "app/chrome-extension/entrypoints/background/storage-manager.ts",
+    "app/chrome-extension/entrypoints/background/tools/browser/vector-search.ts",
+    "app/chrome-extension/entrypoints/offscreen/index.html",
+    "app/chrome-extension/entrypoints/offscreen/main.ts",
+    "app/chrome-extension/entrypoints/popup/components/ConfirmDialog.vue",
+    "app/chrome-extension/entrypoints/popup/components/ModelCacheManagement.vue",
+    "app/chrome-extension/entrypoints/popup/components/ProgressIndicator.vue",
+    "app/chrome-extension/entrypoints/popup/components/icons/CheckIcon.vue",
+    "app/chrome-extension/entrypoints/popup/components/icons/DatabaseIcon.vue",
+    "app/chrome-extension/entrypoints/popup/components/icons/DocumentIcon.vue",
+    "app/chrome-extension/entrypoints/popup/components/icons/TabIcon.vue",
+    "app/chrome-extension/entrypoints/popup/components/icons/TrashIcon.vue",
+    "app/chrome-extension/entrypoints/popup/components/icons/VectorIcon.vue",
+    "app/chrome-extension/public/libs/ort.min.js",
+    "app/chrome-extension/utils/content-indexer.ts",
+    "app/chrome-extension/utils/lru-cache.ts",
+    "app/chrome-extension/utils/model-cache-manager.ts",
+    "app/chrome-extension/utils/offscreen-manager.ts",
+    "app/chrome-extension/utils/semantic-similarity-engine.ts",
+    "app/chrome-extension/utils/simd-math-engine.ts",
+    "app/chrome-extension/utils/text-chunker.ts",
+    "app/chrome-extension/utils/vector-database.ts",
+    "app/chrome-extension/workers/ort-wasm-simd-threaded.jsep.mjs",
+    "app/chrome-extension/workers/ort-wasm-simd-threaded.jsep.wasm",
+    "app/chrome-extension/workers/ort-wasm-simd-threaded.mjs",
+    "app/chrome-extension/workers/ort-wasm-simd-threaded.wasm",
+    "app/chrome-extension/workers/simd_math.js",
+    "app/chrome-extension/workers/simd_math_bg.wasm",
+    "app/chrome-extension/workers/similarity.worker.js",
+    "packages/wasm-simd/.gitignore",
+    "packages/wasm-simd/BUILD.md",
+    "packages/wasm-simd/Cargo.toml",
+    "packages/wasm-simd/README.md",
+    "packages/wasm-simd/package.json",
+    "packages/wasm-simd/src/lib.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/70/8056ba8dde/0/metadata.json",
+      "transcript": "/70/8056ba8dde/0/full.jsonl",
+      "context": "/70/8056ba8dde/0/context.md",
+      "content_hash": "/70/8056ba8dde/0/content_hash.txt",
+      "prompt": "/70/8056ba8dde/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 158,
+    "cache_creation_tokens": 160133,
+    "cache_read_tokens": 8111673,
+    "output_tokens": 36420,
+    "api_call_count": 75
+  }
+}
