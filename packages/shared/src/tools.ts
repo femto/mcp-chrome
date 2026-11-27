@@ -4,7 +4,6 @@ export const TOOL_NAMES = {
   BROWSER: {
     GET_WINDOWS_AND_TABS: 'get_windows_and_tabs',
     BATCH: 'chrome_batch',
-    SEARCH_TABS_CONTENT: 'search_tabs_content',
     NAVIGATE: 'chrome_navigate',
     SCREENSHOT: 'chrome_screenshot',
     PAGE_SNAPSHOT: 'chrome_page_snapshot',
@@ -584,21 +583,6 @@ export const TOOL_SCHEMAS: Tool[] = [
         },
       },
       required: [],
-    },
-  },
-  {
-    name: TOOL_NAMES.BROWSER.SEARCH_TABS_CONTENT,
-    description:
-      'search for related content from the currently open tab and return the corresponding web pages.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: {
-          type: 'string',
-          description: 'the query to search for related content.',
-        },
-      },
-      required: ['query'],
     },
   },
   {

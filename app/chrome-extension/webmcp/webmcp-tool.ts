@@ -71,7 +71,7 @@ class ListWebMCPToolsTool extends BaseBrowserToolExecutor {
         });
       });
 
-      // Get available sites from Worldbook API (visiting these sites will auto-register tools)
+      // Get available sites from local configs (visiting these sites will auto-register tools)
       const availableSites = await getConfiguredSites();
 
       return {

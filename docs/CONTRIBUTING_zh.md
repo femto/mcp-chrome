@@ -20,7 +20,6 @@
 - **Node.js 18+** 和 **pnpm**（最新版本）
 - **Chrome/Chromium** 浏览器用于测试
 - **Git** 版本控制
-- **Rust**（用于 WASM 开发，可选）
 - **TypeScript** 知识
 
 ### 开发环境设置
@@ -56,14 +55,12 @@ chrome-mcp-server/
 ├── app/
 │   ├── chrome-extension/     # Chrome 扩展 (WXT + Vue 3)
 │   │   ├── entrypoints/      # 后台脚本、弹窗、内容脚本
-│   │   ├── utils/            # AI 模型、向量数据库、工具
-│   │   └── workers/          # 用于 AI 处理的 Web Workers
+│   │   └── utils/            # 工具函数
 │   └── native-server/        # 原生消息服务器 (Fastify + TypeScript)
 │       ├── src/mcp/          # MCP 协议实现
 │       └── src/server/       # HTTP 服务器和原生消息
 ├── packages/
-│   ├── shared/               # 共享类型和工具
-│   └── wasm-simd/           # SIMD 优化的 WebAssembly 数学函数
+│   └── shared/               # 共享类型和工具
 └── docs/                    # 文档
 ```
 
@@ -174,22 +171,6 @@ git push origin feature/your-feature-name
 - **附加上下文**：截图、示例等
 
 ## 🔧 开发技巧
-
-### 使用 WASM SIMD
-
-如果您要为 WASM SIMD 包做贡献：
-
-```bash
-cd packages/wasm-simd
-# 如果尚未安装，请安装 Rust 和 wasm-pack
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-cargo install wasm-pack
-
-# 构建 WASM 包
-pnpm build
-
-# 构建的文件将复制到 app/chrome-extension/workers/
-```
 
 ### 调试 Chrome 扩展
 

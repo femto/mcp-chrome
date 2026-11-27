@@ -5,22 +5,15 @@
 
 // Message targets for routing
 export enum MessageTarget {
-  Offscreen = 'offscreen',
   ContentScript = 'content_script',
   Background = 'background',
 }
 
 // Background script message types
 export const BACKGROUND_MESSAGE_TYPES = {
-  SWITCH_SEMANTIC_MODEL: 'switch_semantic_model',
-  GET_MODEL_STATUS: 'get_model_status',
-  UPDATE_MODEL_STATUS: 'update_model_status',
-  GET_STORAGE_STATS: 'get_storage_stats',
-  CLEAR_ALL_DATA: 'clear_all_data',
   GET_SERVER_STATUS: 'get_server_status',
   REFRESH_SERVER_STATUS: 'refresh_server_status',
   SERVER_STATUS_CHANGED: 'server_status_changed',
-  INITIALIZE_SEMANTIC_ENGINE: 'initialize_semantic_engine',
   GET_NATIVE_HOST_VERSION: 'get_native_host_version',
   TOGGLE_COORDINATE_DISPLAY: 'toggle_coordinate_display',
   START_WEBMCP_RECORDING: 'start_webmcp_recording',
@@ -34,14 +27,6 @@ export const BACKGROUND_MESSAGE_TYPES = {
   DELETE_LOCAL_WEBMCP_TOOL: 'delete_local_webmcp_tool',
   OPEN_WEBMCP_RECORDER_SIDEPANEL: 'open_webmcp_recorder_sidepanel',
   GET_WEBMCP_RECORDER_ENV: 'get_webmcp_recorder_env',
-} as const;
-
-// Offscreen message types
-export const OFFSCREEN_MESSAGE_TYPES = {
-  SIMILARITY_ENGINE_INIT: 'similarityEngineInit',
-  SIMILARITY_ENGINE_COMPUTE: 'similarityEngineCompute',
-  SIMILARITY_ENGINE_BATCH_COMPUTE: 'similarityEngineBatchCompute',
-  SIMILARITY_ENGINE_STATUS: 'similarityEngineStatus',
 } as const;
 
 // Content script message types
@@ -81,17 +66,11 @@ export const TOOL_MESSAGE_TYPES = {
 
   // Network requests
   NETWORK_SEND_REQUEST: 'sendPureNetworkRequest',
-
-  // Semantic similarity engine
-  SIMILARITY_ENGINE_INIT: 'similarityEngineInit',
-  SIMILARITY_ENGINE_COMPUTE_BATCH: 'similarityEngineComputeBatch',
 } as const;
 
 // Type unions for type safety
 export type BackgroundMessageType =
   (typeof BACKGROUND_MESSAGE_TYPES)[keyof typeof BACKGROUND_MESSAGE_TYPES];
-export type OffscreenMessageType =
-  (typeof OFFSCREEN_MESSAGE_TYPES)[keyof typeof OFFSCREEN_MESSAGE_TYPES];
 export type ContentMessageType = (typeof CONTENT_MESSAGE_TYPES)[keyof typeof CONTENT_MESSAGE_TYPES];
 export type ToolMessageType = (typeof TOOL_MESSAGE_TYPES)[keyof typeof TOOL_MESSAGE_TYPES];
 
@@ -122,8 +101,4 @@ export enum SendMessageType {
 
   // Keyboard event related message types
   SimulateKeyboard = 'simulateKeyboard',
-
-  // Semantic similarity engine related message types
-  SimilarityEngineInit = 'similarityEngineInit',
-  SimilarityEngineComputeBatch = 'similarityEngineComputeBatch',
 }

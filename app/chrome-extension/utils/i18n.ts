@@ -11,10 +11,6 @@ const fallbackMessages: Record<string, string> = {
 
   // Section headers
   nativeServerConfigLabel: 'Native Server Configuration',
-  semanticEngineLabel: 'Semantic Engine',
-  embeddingModelLabel: 'Embedding Model',
-  indexDataManagementLabel: 'Index Data Management',
-  modelCacheManagementLabel: 'Model Cache Management',
 
   // Status labels
   statusLabel: 'Status',
@@ -42,89 +38,31 @@ const fallbackMessages: Record<string, string> = {
   copyConfigButton: 'Copy Configuration',
 
   // Action buttons
-  retryButton: 'Retry',
-  cancelButton: 'Cancel',
   confirmButton: 'Confirm',
   saveButton: 'Save',
   closeButton: 'Close',
   resetButton: 'Reset',
 
   // Progress states
-  initializingStatus: 'Initializing...',
-  processingStatus: 'Processing...',
   loadingStatus: 'Loading...',
-  clearingStatus: 'Clearing...',
-  cleaningStatus: 'Cleaning...',
   downloadingStatus: 'Downloading...',
 
-  // Semantic engine states
-  semanticEngineReadyStatus: 'Semantic Engine Ready',
-  semanticEngineInitializingStatus: 'Semantic Engine Initializing...',
-  semanticEngineInitFailedStatus: 'Semantic Engine Initialization Failed',
-  semanticEngineNotInitStatus: 'Semantic Engine Not Initialized',
-  initSemanticEngineButton: 'Initialize Semantic Engine',
-  reinitializeButton: 'Reinitialize',
-
   // Model states
-  downloadingModelStatus: 'Downloading Model... {0}%',
-  switchingModelStatus: 'Switching Model...',
   modelLoadedStatus: 'Model Loaded',
-  modelFailedStatus: 'Model Failed to Load',
-
-  // Model descriptions
-  lightweightModelDescription: 'Lightweight Multilingual Model',
-  betterThanSmallDescription: 'Slightly larger than e5-small, but better performance',
-  multilingualModelDescription: 'Multilingual Semantic Model',
-
-  // Performance levels
-  fastPerformance: 'Fast',
-  balancedPerformance: 'Balanced',
-  accuratePerformance: 'Accurate',
 
   // Error messages
   networkErrorMessage: 'Network connection error, please check network and retry',
-  modelCorruptedErrorMessage: 'Model file corrupted or incomplete, please retry download',
-  unknownErrorMessage: 'Unknown error, please check if your network can access HuggingFace',
   permissionDeniedErrorMessage: 'Permission denied',
   timeoutErrorMessage: 'Operation timed out',
 
-  // Data statistics
-  indexedPagesLabel: 'Indexed Pages',
-  indexSizeLabel: 'Index Size',
-  activeTabsLabel: 'Active Tabs',
-  vectorDocumentsLabel: 'Vector Documents',
-  cacheSizeLabel: 'Cache Size',
-  cacheEntriesLabel: 'Cache Entries',
-
   // Data management
-  clearAllDataButton: 'Clear All Data',
-  clearAllCacheButton: 'Clear All Cache',
-  cleanExpiredCacheButton: 'Clean Expired Cache',
   exportDataButton: 'Export Data',
   importDataButton: 'Import Data',
 
   // Dialog titles
-  confirmClearDataTitle: 'Confirm Clear Data',
   settingsTitle: 'Settings',
   aboutTitle: 'About',
   helpTitle: 'Help',
-
-  // Dialog messages
-  clearDataWarningMessage:
-    'This operation will clear all indexed webpage content and vector data, including:',
-  clearDataList1: 'All webpage text content index',
-  clearDataList2: 'Vector embedding data',
-  clearDataList3: 'Search history and cache',
-  clearDataIrreversibleWarning:
-    'This operation is irreversible! After clearing, you need to browse webpages again to rebuild the index.',
-  confirmClearButton: 'Confirm Clear',
-
-  // Cache states
-  cacheDetailsLabel: 'Cache Details',
-  noCacheDataMessage: 'No cache data',
-  loadingCacheInfoStatus: 'Loading cache information...',
-  processingCacheStatus: 'Processing cache...',
-  expiredLabel: 'Expired',
 
   // Browser integration
   bookmarksBarLabel: 'Bookmarks Bar',
@@ -147,11 +85,9 @@ const fallbackMessages: Record<string, string> = {
   verboseLoggingLabel: 'Verbose Logging',
 
   // Notifications
-  successNotification: 'Operation completed successfully',
   warningNotification: 'Warning: Please review before proceeding',
   infoNotification: 'Information',
   configCopiedNotification: 'Configuration copied to clipboard',
-  dataClearedNotification: 'Data cleared successfully',
 
   // Units
   bytesUnit: 'bytes',
@@ -171,12 +107,7 @@ const fallbackMessages: Record<string, string> = {
   connecting: 'Connecting...',
   disconnect: 'Disconnect',
   connect: 'Connect',
-  semanticEngine: 'Semantic Engine',
-  embeddingModel: 'Embedding Model',
   retry: 'Retry',
-  indexDataManagement: 'Index Data Management',
-  clearing: 'Clearing...',
-  clearAllData: 'Clear All Data',
   copyConfig: 'Copy Configuration',
   serviceRunning: 'Service Running (Port: {0})',
   connectedServiceNotStarted: 'Connected, Service Not Started',

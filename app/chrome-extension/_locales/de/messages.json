@@ -11,22 +11,6 @@
     "message": "Native Server-Konfiguration",
     "description": "Hauptabschnittstitel für Native Server-Einstellungen"
   },
-  "semanticEngineLabel": {
-    "message": "Semantische Engine",
-    "description": "Hauptabschnittstitel für semantische Engine"
-  },
-  "embeddingModelLabel": {
-    "message": "Embedding-Modell",
-    "description": "Hauptabschnittstitel für Modellauswahl"
-  },
-  "indexDataManagementLabel": {
-    "message": "Index-Datenverwaltung",
-    "description": "Hauptabschnittstitel für Datenverwaltung"
-  },
-  "modelCacheManagementLabel": {
-    "message": "Modell-Cache-Verwaltung",
-    "description": "Hauptabschnittstitel für Cache-Verwaltung"
-  },
   "statusLabel": {
     "message": "Status",
     "description": "Allgemeines Statuslabel"
@@ -101,14 +85,6 @@
     "message": "Konfiguration kopieren",
     "description": "Konfiguration kopieren Schaltflächentext"
   },
-  "retryButton": {
-    "message": "Wiederholen",
-    "description": "Wiederholen-Schaltflächentext"
-  },
-  "cancelButton": {
-    "message": "Abbrechen",
-    "description": "Abbrechen-Schaltflächentext"
-  },
   "confirmButton": {
     "message": "Bestätigen",
     "description": "Bestätigen-Schaltflächentext"
@@ -125,111 +101,21 @@
     "message": "Zurücksetzen",
     "description": "Zurücksetzen-Schaltflächentext"
   },
-  "initializingStatus": {
-    "message": "Initialisierung...",
-    "description": "Initialisierung-Fortschrittsmeldung"
-  },
-  "processingStatus": {
-    "message": "Verarbeitung...",
-    "description": "Verarbeitung-Fortschrittsmeldung"
-  },
   "loadingStatus": {
     "message": "Wird geladen...",
     "description": "Ladefortschrittsmeldung"
-  },
-  "clearingStatus": {
-    "message": "Wird geleert...",
-    "description": "Leerungsfortschrittsmeldung"
-  },
-  "cleaningStatus": {
-    "message": "Wird bereinigt...",
-    "description": "Bereinigungsfortschrittsmeldung"
   },
   "downloadingStatus": {
     "message": "Wird heruntergeladen...",
     "description": "Download-Fortschrittsmeldung"
   },
-  "semanticEngineReadyStatus": {
-    "message": "Semantische Engine bereit",
-    "description": "Semantische Engine bereit Status"
-  },
-  "semanticEngineInitializingStatus": {
-    "message": "Semantische Engine wird initialisiert...",
-    "description": "Semantische Engine Initialisierungsstatus"
-  },
-  "semanticEngineInitFailedStatus": {
-    "message": "Initialisierung der semantischen Engine fehlgeschlagen",
-    "description": "Semantische Engine Initialisierung fehlgeschlagen Status"
-  },
-  "semanticEngineNotInitStatus": {
-    "message": "Semantische Engine nicht initialisiert",
-    "description": "Semantische Engine nicht initialisiert Status"
-  },
-  "initSemanticEngineButton": {
-    "message": "Semantische Engine initialisieren",
-    "description": "Semantische Engine initialisieren Schaltflächentext"
-  },
-  "reinitializeButton": {
-    "message": "Neu initialisieren",
-    "description": "Neu initialisieren Schaltflächentext"
-  },
-  "downloadingModelStatus": {
-    "message": "Modell wird heruntergeladen... $PROGRESS$%",
-    "description": "Modell-Download-Fortschritt mit Prozentsatz",
-    "placeholders": {
-      "progress": {
-        "content": "$1",
-        "example": "50"
-      }
-    }
-  },
-  "switchingModelStatus": {
-    "message": "Modell wird gewechselt...",
-    "description": "Modellwechsel-Fortschrittsmeldung"
-  },
   "modelLoadedStatus": {
     "message": "Modell geladen",
     "description": "Modell erfolgreich geladen Status"
   },
-  "modelFailedStatus": {
-    "message": "Modell konnte nicht geladen werden",
-    "description": "Modell-Ladefehler Status"
-  },
-  "lightweightModelDescription": {
-    "message": "Leichtgewichtiges mehrsprachiges Modell",
-    "description": "Beschreibung für leichtgewichtige Modelloption"
-  },
-  "betterThanSmallDescription": {
-    "message": "Etwas größer als e5-small, aber bessere Leistung",
-    "description": "Beschreibung für mittlere Modelloption"
-  },
-  "multilingualModelDescription": {
-    "message": "Mehrsprachiges semantisches Modell",
-    "description": "Beschreibung für mehrsprachige Modelloption"
-  },
-  "fastPerformance": {
-    "message": "Schnell",
-    "description": "Schnelle Leistungsanzeige"
-  },
-  "balancedPerformance": {
-    "message": "Ausgewogen",
-    "description": "Ausgewogene Leistungsanzeige"
-  },
-  "accuratePerformance": {
-    "message": "Genau",
-    "description": "Genaue Leistungsanzeige"
-  },
   "networkErrorMessage": {
     "message": "Netzwerkverbindungsfehler, bitte Netzwerk prüfen und erneut versuchen",
     "description": "Netzwerkverbindungsfehlermeldung"
-  },
-  "modelCorruptedErrorMessage": {
-    "message": "Modelldatei beschädigt oder unvollständig, bitte Download wiederholen",
-    "description": "Modell-Beschädigungsfehlermeldung"
-  },
-  "unknownErrorMessage": {
-    "message": "Unbekannter Fehler, bitte prüfen Sie, ob Ihr Netzwerk auf HuggingFace zugreifen kann",
-    "description": "Unbekannte Fehler-Rückfallmeldung"
   },
   "permissionDeniedErrorMessage": {
     "message": "Zugriff verweigert",
@@ -239,42 +125,6 @@
     "message": "Zeitüberschreitung",
     "description": "Zeitüberschreitungsfehlermeldung"
   },
-  "indexedPagesLabel": {
-    "message": "Indizierte Seiten",
-    "description": "Anzahl indizierter Seiten Label"
-  },
-  "indexSizeLabel": {
-    "message": "Indexgröße",
-    "description": "Indexgröße Label"
-  },
-  "activeTabsLabel": {
-    "message": "Aktive Tabs",
-    "description": "Anzahl aktiver Tabs Label"
-  },
-  "vectorDocumentsLabel": {
-    "message": "Vektordokumente",
-    "description": "Anzahl Vektordokumente Label"
-  },
-  "cacheSizeLabel": {
-    "message": "Cache-Größe",
-    "description": "Cache-Größe Label"
-  },
-  "cacheEntriesLabel": {
-    "message": "Cache-Einträge",
-    "description": "Anzahl Cache-Einträge Label"
-  },
-  "clearAllDataButton": {
-    "message": "Alle Daten löschen",
-    "description": "Alle Daten löschen Schaltflächentext"
-  },
-  "clearAllCacheButton": {
-    "message": "Gesamten Cache löschen",
-    "description": "Gesamten Cache löschen Schaltflächentext"
-  },
-  "cleanExpiredCacheButton": {
-    "message": "Abgelaufenen Cache bereinigen",
-    "description": "Abgelaufenen Cache bereinigen Schaltflächentext"
-  },
   "exportDataButton": {
     "message": "Daten exportieren",
     "description": "Daten exportieren Schaltflächentext"
@@ -282,10 +132,6 @@
   "importDataButton": {
     "message": "Daten importieren",
     "description": "Daten importieren Schaltflächentext"
-  },
-  "confirmClearDataTitle": {
-    "message": "Datenlöschung bestätigen",
-    "description": "Datenlöschung bestätigen Dialogtitel"
   },
   "settingsTitle": {
     "message": "Einstellungen",
@@ -298,50 +144,6 @@
   "helpTitle": {
     "message": "Hilfe",
     "description": "Hilfe Dialogtitel"
-  },
-  "clearDataWarningMessage": {
-    "message": "Diese Aktion löscht alle indizierten Webseiteninhalte und Vektordaten, einschließlich:",
-    "description": "Datenlöschung Warnmeldung"
-  },
-  "clearDataList1": {
-    "message": "Alle Webseitentextinhaltsindizes",
-    "description": "Erster Punkt in Datenlöschungsliste"
-  },
-  "clearDataList2": {
-    "message": "Vektor-Embedding-Daten",
-    "description": "Zweiter Punkt in Datenlöschungsliste"
-  },
-  "clearDataList3": {
-    "message": "Suchverlauf und Cache",
-    "description": "Dritter Punkt in Datenlöschungsliste"
-  },
-  "clearDataIrreversibleWarning": {
-    "message": "Diese Aktion ist unwiderruflich! Nach dem Löschen müssen Sie Webseiten erneut durchsuchen, um den Index neu aufzubauen.",
-    "description": "Unwiderrufliche Aktion Warnung"
-  },
-  "confirmClearButton": {
-    "message": "Löschung bestätigen",
-    "description": "Löschung bestätigen Aktionsschaltfläche"
-  },
-  "cacheDetailsLabel": {
-    "message": "Cache-Details",
-    "description": "Cache-Details Abschnittslabel"
-  },
-  "noCacheDataMessage": {
-    "message": "Keine Cache-Daten vorhanden",
-    "description": "Keine Cache-Daten verfügbar Meldung"
-  },
-  "loadingCacheInfoStatus": {
-    "message": "Cache-Informationen werden geladen...",
-    "description": "Cache-Informationen laden Status"
-  },
-  "processingCacheStatus": {
-    "message": "Cache wird verarbeitet...",
-    "description": "Cache verarbeiten Status"
-  },
-  "expiredLabel": {
-    "message": "Abgelaufen",
-    "description": "Abgelaufenes Element Label"
   },
   "bookmarksBarLabel": {
     "message": "Lesezeichenleiste",
@@ -399,10 +201,6 @@
     "message": "Ausführliche Protokollierung",
     "description": "Ausführliche Protokollierung Umschalter Label"
   },
-  "successNotification": {
-    "message": "Vorgang erfolgreich abgeschlossen",
-    "description": "Allgemeine Erfolgsmeldung"
-  },
   "warningNotification": {
     "message": "Warnung: Bitte prüfen Sie vor dem Fortfahren",
     "description": "Allgemeine Warnmeldung"
@@ -414,10 +212,6 @@
   "configCopiedNotification": {
     "message": "Konfiguration in Zwischenablage kopiert",
     "description": "Konfiguration kopiert Erfolgsmeldung"
-  },
-  "dataClearedNotification": {
-    "message": "Daten erfolgreich gelöscht",
-    "description": "Daten gelöscht Erfolgsmeldung"
   },
   "bytesUnit": {
     "message": "Bytes",

@@ -14,7 +14,7 @@
 
 ## 🎯 什么是 Chrome MCP Server？
 
-Chrome MCP Server 是一个基于chrome插件的 **模型上下文协议 (MCP) 服务器**，它将您的 Chrome 浏览器功能暴露给 Claude 等 AI 助手，实现复杂的浏览器自动化、内容分析和语义搜索等。与传统的浏览器自动化工具（如playwright）不同，**Chrome MCP server**直接使用您日常使用的chrome浏览器，基于现有的用户习惯和配置、登录态，让各种大模型或者各种chatbot都可以接管你的浏览器，真正成为你的日常助手
+Chrome MCP Server 是一个基于chrome插件的 **模型上下文协议 (MCP) 服务器**，它将您的 Chrome 浏览器功能暴露给 Claude 等 AI 助手，实现复杂的浏览器自动化和内容分析等。与传统的浏览器自动化工具（如playwright）不同，**Chrome MCP server**直接使用您日常使用的chrome浏览器，基于现有的用户习惯和配置、登录态，让各种大模型或者各种chatbot都可以接管你的浏览器，真正成为你的日常助手
 
 ## ✨ 核心特性
 
@@ -23,10 +23,8 @@ Chrome MCP Server 是一个基于chrome插件的 **模型上下文协议 (MCP) �
 - 💻 **完全本地运行**：纯本地运行的mcp server，保证用户隐私
 - 🚄 **Streamable http**：Streamable http的连接方式
 - 🏎 **跨标签页** 跨标签页的上下文
-- 🧠 **语义搜索**：内置向量数据库和本地小模型，智能发现浏览器标签页内容
-- 🔍 **智能内容分析**：AI 驱动的文本提取和相似度匹配
+- 🔍 **内容提取**：从页面提取干净的文本和 HTML
 - 🌐 **20+ 工具**：支持截图、网络监控、交互操作、书签管理、浏览历史等20多种工具
-- 🚀 **SIMD 加速 AI**：自定义 WebAssembly SIMD 优化，向量运算速度提升 4-8 倍
 
 ## 🆚 与同类项目对比
 
@@ -203,9 +201,8 @@ pnpm list -g mcp-chrome-bridger
 </details>
 
 <details>
-<summary><strong>🔍 内容分析 (4个工具)</strong></summary>
+<summary><strong>🔍 内容分析 (3个工具)</strong></summary>
 
-- `search_tabs_content` - AI 驱动的浏览器标签页语义搜索
 - `chrome_get_web_content` - 从页面提取 HTML/文本内容
 - `chrome_get_interactive_elements` - 查找可点击元素
 - `chrome_console` - 捕获和获取浏览器标签页的控制台输出

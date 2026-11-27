@@ -8,103 +8,6 @@ import { getLocalRecordedSiteConfig, getLocalRecordedSiteSummaries } from './rec
 import { NativeMessageType } from 'mcp-chrome-shared';
 import { emit as emitBusMessage } from '@/entrypoints/background/native-message-bus';
 
-// Worldbook API configuration
-const DEFAULT_WORLDBOOK_API_URL = 'https://worldbook.it.com/api/webmcp';
-let cachedWorldbookApiUrl: string | null = null;
-let cachedWorldbookEnabled: boolean | null = null;
-let cachedClientId: string | null = null;
-
-/**
- * Get or generate an anonymous clientId (UUID) for analytics tracking.
- * Used for DAU/MAU statistics, not associated with any personal information.
- */
-async function getOrCreateClientId(): Promise<string> {
-  if (cachedClientId) {
-    return cachedClientId;
-  }
-
-  try {
-    const result = await getStorage<{ clientId?: string }>(['clientId']);
-    if (result.clientId) {
-      cachedClientId = result.clientId;
-      return cachedClientId;
-    }
-
-    // Generate new UUID
-    cachedClientId = crypto.randomUUID();
-    await chrome.storage.local.set({ clientId: cachedClientId });
-    console.log('[WebMCP] Generated new anonymous clientId for analytics');
-    return cachedClientId;
-  } catch (error) {
-    console.log('[WebMCP] Failed to get/create clientId:', error);
-    // Return fixed error ID so server knows something went wrong
-    return 'error-failed-to-get-client-id';
-  }
-}
-
-function getStorage<T extends Record<string, any>>(keys: string[]): Promise<T> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(keys, (result) => resolve(result as T));
-  });
-}
-
-async function isWorldbookWebMCPEnabled(): Promise<boolean> {
-  if (cachedWorldbookEnabled !== null) {
-    return cachedWorldbookEnabled;
-  }
-
-  try {
-    const result = await getStorage<{ worldbookWebMCPEnabled?: boolean }>([
-      'worldbookWebMCPEnabled',
-    ]);
-    // Default to true
-    cachedWorldbookEnabled = result.worldbookWebMCPEnabled !== false;
-    return cachedWorldbookEnabled;
-  } catch (error) {
-    console.log('[WebMCP] Failed to read Worldbook WebMCP preference:', error);
-    return true; // Enable by default
-  }
-}
-
-async function getWorldbookApiUrl(): Promise<string> {
-  if (cachedWorldbookApiUrl) {
-    return cachedWorldbookApiUrl;
-  }
-
-  try {
-    const result = await getStorage<{ webmcpApiUrl?: string; worldbookApiUrl?: string }>([
-      'webmcpApiUrl',
-      'worldbookApiUrl',
-    ]);
-    const candidate = (result.webmcpApiUrl || result.worldbookApiUrl || '').trim();
-    if (candidate) {
-      cachedWorldbookApiUrl = candidate;
-      return cachedWorldbookApiUrl;
-    }
-  } catch (error) {
-    console.log('[WebMCP] Failed to read Worldbook API override from storage:', error);
-  }
-
-  cachedWorldbookApiUrl = DEFAULT_WORLDBOOK_API_URL;
-  return cachedWorldbookApiUrl;
-}
-
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== 'local') return;
-  if (changes.webmcpApiUrl || changes.worldbookApiUrl) {
-    const next = (
-      (changes.webmcpApiUrl?.newValue as string | undefined) ||
-      (changes.worldbookApiUrl?.newValue as string | undefined) ||
-      ''
-    ).trim();
-    cachedWorldbookApiUrl = next || DEFAULT_WORLDBOOK_API_URL;
-  }
-  if (changes.worldbookWebMCPEnabled !== undefined) {
-    cachedWorldbookEnabled = changes.worldbookWebMCPEnabled.newValue !== false;
-    console.log(`[WebMCP] Worldbook WebMCP preference changed to: ${cachedWorldbookEnabled}`);
-  }
-});
-
 // Debounce timeout for native server notification
 let notifyNativeTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -144,33 +47,6 @@ function notifyNativeServerToolsUpdate(
   }, 300);
 }
 
-// API response types - WebMCP standard format
-interface ApiInputSchema {
-  type: 'object';
-  properties: Record<
-    string,
-    {
-      type: string;
-      description?: string;
-      enum?: string[];
-    }
-  >;
-  required?: string[];
-}
-
-interface ApiTool {
-  name: string;
-  description: string;
-  inputSchema: ApiInputSchema;
-  handler: string;
-}
-
-interface ApiSiteConfig {
-  url_pattern: string;
-  site_name: string;
-  tools: ApiTool[];
-}
-
 // Store currently registered site tools
 const registeredSiteTools = new Map<number, SiteConfig>();
 
@@ -197,66 +73,10 @@ function mergeSiteConfigs(
 }
 
 /**
- * Convert API response to local SiteConfig format
- */
-function convertApiConfig(apiConfig: ApiSiteConfig): SiteConfig {
-  return {
-    urlPattern: new RegExp(apiConfig.url_pattern),
-    siteName: apiConfig.site_name,
-    tools: apiConfig.tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: t.inputSchema,
-      handler: t.handler,
-    })),
-  };
-}
-
-/**
- * Fetch matching site config from Worldbook API.
- * Includes anonymous clientId in request for DAU/MAU analytics.
- */
-async function fetchSiteConfigFromAPI(url: string): Promise<SiteConfig | null> {
-  try {
-    const apiUrl = await getWorldbookApiUrl();
-    const clientId = await getOrCreateClientId();
-    const response = await fetch(`${apiUrl}/match?url=${encodeURIComponent(url)}`, {
-      headers: { 'X-Client-Id': clientId },
-    });
-    if (!response.ok) {
-      console.log(`[WebMCP] API request failed: ${response.status}`);
-      return null;
-    }
-    const data = await response.json();
-    if (!data) return null;
-    return convertApiConfig(data as ApiSiteConfig);
-  } catch (error) {
-    console.log(`[WebMCP] Failed to fetch from API, falling back to local config:`, error);
-    return null;
-  }
-}
-
-/**
- * Get site config - prefer API, fallback to local config
+ * Get site config from local built-in and recorded configs
  */
 async function getSiteConfig(url: string): Promise<SiteConfig | null> {
   const recordedConfig = await getLocalRecordedSiteConfig(url);
-
-  // Check if Worldbook WebMCP is enabled
-  const worldbookEnabled = await isWorldbookWebMCPEnabled();
-
-  if (worldbookEnabled) {
-    // Try to fetch from Worldbook API first
-    const apiConfig = await fetchSiteConfigFromAPI(url);
-    if (apiConfig) {
-      console.log(`[WebMCP] Got config from Worldbook API: ${apiConfig.siteName}`);
-      return mergeSiteConfigs(apiConfig, recordedConfig);
-    }
-  } else {
-    console.log(`[WebMCP] Worldbook WebMCP disabled, skipping API request`);
-  }
-
-  // Fallback to local config if API fails or disabled
   const localConfig = matchSiteConfig(url);
   if (localConfig) {
     console.log(`[WebMCP] Using local config: ${localConfig.siteName}`);
@@ -688,7 +508,7 @@ export function resendAllToolsToNative(): void {
 }
 
 /**
- * Get all configured sites list (from API)
+ * Get all configured sites list (built-in and recorded)
  */
 export async function getConfiguredSites(): Promise<
   Array<{
@@ -698,25 +518,6 @@ export async function getConfiguredSites(): Promise<
     tools: string[];
   }>
 > {
-  // Check if Worldbook WebMCP is enabled
-  const worldbookEnabled = await isWorldbookWebMCPEnabled();
-
-  if (worldbookEnabled) {
-    try {
-      const apiUrl = await getWorldbookApiUrl();
-      const clientId = await getOrCreateClientId();
-      const response = await fetch(`${apiUrl}/sites`, {
-        headers: { 'X-Client-Id': clientId },
-      });
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (error) {
-      console.log('[WebMCP] Failed to fetch sites from API:', error);
-    }
-  }
-
-  // Return local config as fallback
   const configuredSites = siteToolsConfig.map((c) => ({
     site_name: c.siteName,
     url_pattern: String(c.urlPattern),

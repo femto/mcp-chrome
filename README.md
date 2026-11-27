@@ -16,7 +16,7 @@
 
 ## 🎯 What is Chrome MCP Server?
 
-Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) server** that exposes your Chrome browser functionality to AI assistants like Claude, enabling complex browser automation, content analysis, and semantic search. Unlike traditional browser automation tools (like Playwright), **Chrome MCP Server** directly uses your daily Chrome browser, leveraging existing user habits, configurations, and login states, allowing various large models or chatbots to take control of your browser and truly become your everyday assistant.
+Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) server** that exposes your Chrome browser functionality to AI assistants like Claude, enabling complex browser automation and content analysis. Unlike traditional browser automation tools (like Playwright), **Chrome MCP Server** directly uses your daily Chrome browser, leveraging existing user habits, configurations, and login states, allowing various large models or chatbots to take control of your browser and truly become your everyday assistant.
 
 ## ✨ Core Features
 
@@ -25,10 +25,8 @@ Chrome MCP Server is a Chrome extension-based **Model Context Protocol (MCP) ser
 - 💻 **Fully Local**: Pure local MCP server ensuring user privacy
 - 🚄 **Streamable HTTP**: Streamable HTTP connection method
 - 🏎 **Cross-Tab**: Cross-tab context
-- 🧠 **Semantic Search**: Built-in vector database for intelligent browser tab content discovery
-- 🔍 **Smart Content Analysis**: AI-powered text extraction and similarity matching
+- 🔍 **Content Extraction**: Clean text and HTML extraction from pages
 - 🌐 **20+ Tools**: Support for screenshots, network monitoring, interactive operations, bookmark management, browsing history, and 20+ other tools
-- 🚀 **SIMD-Accelerated AI**: Custom WebAssembly SIMD optimization for 4-8x faster vector operations
 
 ## 🆚 Comparison with Similar Projects
 
@@ -206,9 +204,8 @@ Complete tool list: [Complete Tool List](docs/TOOLS.md)
 </details>
 
 <details>
-<summary><strong>🔍 Content Analysis (4 tools)</strong></summary>
+<summary><strong>🔍 Content Analysis (3 tools)</strong></summary>
 
-- `search_tabs_content` - AI-powered semantic search across browser tabs
 - `chrome_get_web_content` - Extract HTML/text content from pages
 - `chrome_get_interactive_elements` - Find clickable elements
 - `chrome_console` - Capture and retrieve console output from browser tabs
