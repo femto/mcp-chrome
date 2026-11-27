@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "f7121413b33a",
+  "strategy": "manual-commit",
+  "branch": "femto/去除worldbook调用",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/background/legacy-cleanup.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f7/121413b33a/0/metadata.json",
+      "transcript": "/f7/121413b33a/0/full.jsonl",
+      "context": "/f7/121413b33a/0/context.md",
+      "content_hash": "/f7/121413b33a/0/content_hash.txt",
+      "prompt": "/f7/121413b33a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 20,
+    "cache_creation_tokens": 11022,
+    "cache_read_tokens": 1343317,
+    "output_tokens": 3897,
+    "api_call_count": 8
+  }
+}

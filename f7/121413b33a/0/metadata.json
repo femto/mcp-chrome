@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "f7121413b33a",
+  "session_id": "d8820e21-279a-4e26-934f-d09f0b8c99b0",
+  "strategy": "manual-commit",
+  "created_at": "2026-11-27T09:52:39.622494Z",
+  "branch": "femto/去除worldbook调用",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "app/chrome-extension/entrypoints/background/legacy-cleanup.ts"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "6802df340da3",
+  "transcript_identifier_at_start": "23195305-cc8f-4392-93b8-a586d80140a2",
+  "checkpoint_transcript_start": 673,
+  "transcript_lines_at_start": 673,
+  "token_usage": {
+    "input_tokens": 20,
+    "cache_creation_tokens": 11022,
+    "cache_read_tokens": 1343317,
+    "output_tokens": 3897,
+    "api_call_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-11-27T09:52:38.28548Z",
+    "agent_lines": 19,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 19,
+    "agent_percentage": 100
+  },
+  "transcript_path": ".claude/projects/-Users-femtozheng-orca-workspaces-mcp-chrome---worldbook--/d8820e21-279a-4e26-934f-d09f0b8c99b0.jsonl"
+}
